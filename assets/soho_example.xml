@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workspace version="60e18b8b-b4af-4065-af5e-a17c9cb73a41" id="48e2acc4-38df-4f93-9240-7bcf4cd78023" name="SOHO Example">
+	<nodes>
+		<node id="52bd4002-5a59-4eba-be55-67654c28854f" name="All LAN Clients" type="Multi-System">
+			<position x="700" y="430" />
+			<size h="50" w="100" />
+			<pins>
+				<pin id="cf6ab1a9-3379-4f5c-981f-089b3f62cfe9" type="Client">
+					<position relx="1.00" rely="0.62" />
+				</pin>
+			</pins>
+			<elements>
+				<subnets>
+					<subnet>192.168.1.0/24</subnet>
+				</subnets>
+			</elements>
+		</node>
+		<node id="e540d6e0-8a83-4804-8726-16d1d153b7a6" name="LAN" type="Boundary">
+			<position x="319" y="200" />
+			<size h="500" w="800" />
+		</node>
+		<node id="b4afbfce-efb5-4ef1-991b-335365a856ca" name="Public Internet" type="Multi-System">
+			<position x="1180" y="430" />
+			<size h="50" w="100" />
+			<pins>
+				<pin id="7b5ef2a5-9d21-47a5-9272-3b569c434d46" type="Server">
+					<position relx="0.00" rely="0.60" />
+					<service group_name="HTTP-Common" />
+				</pin>
+			</pins>
+		</node>
+		<node id="22253e13-d650-4c59-8b10-a57c3af498ba" name="Firewall" type="System">
+			<position x="900" y="410" />
+			<size h="80" w="100" />
+			<pins>
+				<pin id="38ceafdb-ffab-4aa3-9e2b-a382d18c2512" type="Server">
+					<position relx="0.50" rely="0.00" />
+					<service name="SSH" />
+				</pin>
+			</pins>
+			<system>
+				<cpu vendor="Intel" model="Core i3-2120" serial="" />
+				<memory vendor="Kingston" model="" serial="" capacity="2GB" />
+				<disk vendor="Western Digital" model="Blue" serial="" capacity="160GB" />
+				<interface alias="em0" mac="" model="">
+					<ipv4 addr="192.168.1.2" netmask="255.255.255.0" gateway="192.168.1.1" />
+					<nameservers>
+						<ipv4 nameserver="192.168.1.1" />
+					</nameservers>
+				</interface>
+				<interface alias="em1" mac="" model="" />
+				<interface alias="re0" mac="" model="" />
+				<interface alias="vether0" mac="" model="Virtual Bridge" />
+				<psu vendor="Seasonic" model="SS-380HB" serial="" wattage="380W" />
+				<motherboard bios="" vendor="Intel" model="DQ67SW" serial="" />
+				<operating_system name="OpenBSD" version="7.7" kernel="" arch="amd64" />
+			</system>
+		</node>
+		<node id="50fa0d50-0f2d-4cc8-8479-b4c4a91ff4b2" name="NAS" type="System">
+			<position x="680" y="250" />
+			<size h="80" w="100" />
+			<pins>
+				<pin id="35327a8e-85b5-40b1-987d-7e3bcb34fa98" type="Server">
+					<position relx="0.50" rely="1.00" />
+					<service name="SMB" />
+				</pin>
+				<pin id="ea109f9f-9475-4bd7-b9cc-966d21376a01" type="Server">
+					<position relx="0.00" rely="0.57" />
+					<service name="SSH" />
+				</pin>
+			</pins>
+			<system>
+				<cpu vendor="Intel" model="Xeon E3-1245v3" serial="" />
+				<memory vendor="Kingston" model="" serial="" capacity="4GB" />
+				<memory vendor="Kingston" model="" serial="" capacity="4GB" />
+				<memory vendor="Kingston" model="" serial="" capacity="4GB" />
+				<memory vendor="Kingston" model="" serial="" capacity="4GB" />
+				<disk vendor="Crucial" model="BX500" serial="" capacity="120GB" />
+				<disk vendor="Toshiba" model="N300" serial="" capacity="10TB" />
+				<disk vendor="Toshiba" model="N300" serial="" capacity="10TB" />
+				<interface alias="em0" mac="" model="">
+					<ipv4 addr="192.168.1.3" netmask="255.255.255.0" gateway="192.168.1.1" />
+					<nameservers>
+						<ipv4 nameserver="192.168.1.1" />
+					</nameservers>
+				</interface>
+				<psu vendor="Corsair" model="CX500" serial="" wattage="500W" />
+				<motherboard bios="" vendor="Asus" model="P8Z68-V Pro" serial="" />
+				<operating_system name="FreeBSD" version="13.1" kernel="" arch="amd64" />
+			</system>
+		</node>
+		<node id="d3002ee7-1214-4384-9829-b80de1814a8a" name="Router" type="System">
+			<position x="1020" y="410" />
+			<size h="80" w="100" />
+			<pins>
+				<pin id="396e9748-c9d6-4a0f-8e34-1a4f2df22997" type="Server">
+					<position relx="0.51" rely="0.00" />
+					<service name="SSH" />
+				</pin>
+			</pins>
+			<system>
+				<interface alias="em0" mac="" model="">
+					<ipv4 addr="192.168.1.1" netmask="255.255.255.0" gateway="192.168.1.1" />
+					<nameservers>
+						<ipv4 nameserver="1.1.1.1" />
+					</nameservers>
+				</interface>
+			</system>
+		</node>
+		<node id="1a76183f-79e0-41b4-8cb8-6d269cdb04ef" name="Laptop" type="System">
+			<position x="400" y="540" />
+			<size h="80" w="100" />
+			<pins>
+				<pin id="a7e49a3f-0530-4814-9c33-996fe500bf8a" type="Client">
+					<position relx="1.00" rely="0.60" />
+				</pin>
+			</pins>
+			<system>
+				<cpu vendor="AMD" model="Ryzen 3 5300G" serial="" />
+				<memory vendor="" model="" serial="" capacity="4GB" />
+				<memory vendor="" model="" serial="" capacity="4GB" />
+				<disk vendor="Samsung" model="990 Pro" serial="" capacity="256GB" />
+				<interface alias="eth0" mac="" model="">
+					<ipv4 addr="192.168.1.11" netmask="255.255.255.0" gateway="192.168.1.1" />
+					<nameservers>
+						<ipv4 nameserver="192.168.1.1" />
+					</nameservers>
+				</interface>
+				<operating_system name="Linux" version="Mint 22.1" kernel="" arch="amd64" />
+			</system>
+		</node>
+		<node id="79abefd7-9d7d-40a8-be14-26e31d5f1589" name="Workstation" type="System">
+			<position x="400" y="300" />
+			<size h="80" w="100" />
+			<pins>
+				<pin id="ef447b32-5ea3-4efd-b581-001d1c01a5a9" type="Client">
+					<position relx="1.00" rely="0.68" />
+				</pin>
+			</pins>
+			<system>
+				<cpu vendor="AMD" model="Ryzen 7 9800X3D" serial="" />
+				<memory vendor="Corsair" model="Vengeance" serial="" capacity="32GB" />
+				<memory vendor="Corsair" model="Vengeance" serial="" capacity="32GB" />
+				<disk vendor="Crucial" model="BX500" serial="" capacity="500GB" />
+				<disk vendor="Samsung" model="990 Pro" serial="" capacity="2TB" />
+				<gpu vendor="AMD" model="Radeon 5600XT" serial="" />
+				<interface alias="eth0" mac="" model="">
+					<ipv4 addr="192.168.1.10" netmask="255.255.255.0" gateway="192.168.1.1" />
+					<nameservers>
+						<ipv4 nameserver="192.168.1.1" />
+					</nameservers>
+				</interface>
+				<psu vendor="Seasonic" model="Focus Gold" serial="" wattage="750W" />
+				<motherboard bios="" vendor="msi" model="Tomahawk X870" serial="" />
+				<operating_system name="Linux" version="Bunsenlabs" kernel="" arch="amd64" />
+			</system>
+		</node>
+	</nodes>
+	<links>
+		<link id="2eccf6fc-3945-46e3-b981-55afa762d77d">
+			<source id="ef447b32-5ea3-4efd-b581-001d1c01a5a9" />
+			<target id="396e9748-c9d6-4a0f-8e34-1a4f2df22997" />
+		</link>
+		<link id="cd85b44d-4cb7-4c70-8cce-92c0f2d721e3">
+			<source id="ef447b32-5ea3-4efd-b581-001d1c01a5a9" />
+			<target id="35327a8e-85b5-40b1-987d-7e3bcb34fa98" />
+		</link>
+		<link id="f092b1b4-8967-4e84-9d5a-b3c573429168">
+			<source id="cf6ab1a9-3379-4f5c-981f-089b3f62cfe9" />
+			<target id="7b5ef2a5-9d21-47a5-9272-3b569c434d46" />
+		</link>
+		<link id="f627f395-a717-4aac-ac21-241828f6f022">
+			<source id="ef447b32-5ea3-4efd-b581-001d1c01a5a9" />
+			<target id="ea109f9f-9475-4bd7-b9cc-966d21376a01" />
+		</link>
+		<link id="6b731a27-6ac0-4ff6-ae56-79f933d6c7cf">
+			<source id="ef447b32-5ea3-4efd-b581-001d1c01a5a9" />
+			<target id="38ceafdb-ffab-4aa3-9e2b-a382d18c2512" />
+		</link>
+		<link id="635e2c25-df59-4bb5-91f9-19e332c6f8b3">
+			<source id="a7e49a3f-0530-4814-9c33-996fe500bf8a" />
+			<target id="35327a8e-85b5-40b1-987d-7e3bcb34fa98" />
+		</link>
+	</links>
+	<node_styles />
+	<pin_styles />
+	<services>
+		<service name="ALL_TCP" protocol="tcp" port="1" comment="" />
+		<service name="ALL_UDP" protocol="udp" port="1" comment="" />
+		<service name="DNS-tcp" protocol="tcp" port="53" comment="" />
+		<service name="DNS-udp" protocol="udp" port="53" comment="" />
+		<service name="FTP-Control" protocol="tcp" port="21" comment="" />
+		<service name="FTP-Data" protocol="tcp" port="20" comment="" />
+		<service name="HTTP" protocol="tcp" port="80" comment="" />
+		<service name="HTTP-8008" protocol="tcp" port="8008" comment="" />
+		<service name="HTTP-8080" protocol="tcp" port="8080" comment="" />
+		<service name="HTTP-8443" protocol="tcp" port="8443" comment="" />
+		<service name="HTTPS" protocol="tcp" port="443" comment="" />
+		<service name="IMAP" protocol="tcp" port="143" comment="" />
+		<service name="IMAPS" protocol="tcp" port="993" comment="" />
+		<service name="IRC" protocol="tcp" port="6665" comment="" />
+		<service name="IRC-SSL" protocol="tcp" port="6697" comment="" />
+		<service name="LDAP" protocol="tcp" port="389" comment="" />
+		<service name="LDAPS" protocol="tcp" port="636" comment="" />
+		<service name="MQTT" protocol="tcp" port="1883" comment="Plaintext MQTT" />
+		<service name="MQTT-TLS" protocol="tcp" port="8883" comment="MQTT over TLS" />
+		<service name="Microsoft EPMAP" protocol="tcp" port="135" comment="EndPoint Mapper (DCE/RPC)" />
+		<service name="Microsoft SQL" protocol="tcp" port="1433" comment="MSQL Listener" />
+		<service name="MySQL" protocol="tcp" port="3306" comment="" />
+		<service name="NFS-tcp" protocol="tcp" port="2049" comment="" />
+		<service name="NFS-udp" protocol="udp" port="2049" comment="" />
+		<service name="NTP" protocol="udp" port="123" comment="" />
+		<service name="NetBIOS-Session" protocol="tcp" port="139" comment="" />
+		<service name="NetBIOS-tcp" protocol="tcp" port="135" comment="" />
+		<service name="NetBIOS-udp" protocol="udp" port="135" comment="" />
+		<service name="POP3" protocol="tcp" port="110" comment="" />
+		<service name="PPTP" protocol="tcp" port="1723" comment="" />
+		<service name="Postgres" protocol="tcp" port="5432" comment="" />
+		<service name="RADIUS-Accounting" protocol="tcp" port="1813" comment="" />
+		<service name="RADIUS-Auth" protocol="tcp" port="1812" comment="" />
+		<service name="RDP" protocol="tcp" port="3389" comment="" />
+		<service name="SCP" protocol="tcp" port="22" comment="" />
+		<service name="SIP" protocol="tcp" port="5060" comment="Session Initiation Protocol" />
+		<service name="SIPS" protocol="tcp" port="5061" comment="Session Initiation Protocol over TLS" />
+		<service name="SMB" protocol="tcp" port="445" comment="" />
+		<service name="SMTP" protocol="tcp" port="25" comment="" />
+		<service name="SMTPS" protocol="tcp" port="587" comment="" />
+		<service name="SSH" protocol="tcp" port="22" comment="" />
+		<service name="Syslog-TLS" protocol="tcp" port="6514" comment="" />
+		<service name="Syslog-tcp" protocol="tcp" port="514" comment="" />
+		<service name="Syslog-udp" protocol="udp" port="514" comment="" />
+		<service name="Telnet" protocol="tcp" port="23" comment="" />
+		<service name="VNC" protocol="tcp" port="5900" comment="" />
+		<service name="VNC-Java" protocol="tcp" port="5800" comment="" />
+		<service name="WinRM-HTTP" protocol="tcp" port="5985" comment="" />
+		<service name="WinRM-HTTPS" protocol="tcp" port="5986" comment="" />
+		<service name="X11" protocol="tcp" port="6000" comment="" />
+		<service name="metasploit" protocol="tcp" port="4444" comment="Default Listener" />
+		<service name="pcAnywhere" protocol="tcp" port="5631" comment="" />
+		<service name="rexec" protocol="tcp" port="512" comment="" />
+		<service name="traceroute" protocol="tcp" port="33434" comment="" />
+	</services>
+	<service_groups>
+		<group name="HTTP-Alt" comment="Common Alternate HTTP Ports" services="HTTP-8008;HTTP-8080;HTTP-8443" />
+		<group name="HTTP-Common" comment="Conventional HTTP Ports" services="HTTP;HTTPS" />
+		<group name="NetBIOS" comment="" services="NetBIOS-udp;NetBIOS-tcp;NetBIOS-Session" />
+		<group name="WinRM" comment="Windows Remote Management" services="WinRM-HTTP;WinRM-HTTPS" />
+	</service_groups>
+</workspace>
