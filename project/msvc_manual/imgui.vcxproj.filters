@@ -1,0 +1,145 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{a1097b86-059c-4a6d-8ee6-e9477be55bc9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\dear imgui">
+      <UniqueIdentifier>{2b50e9fc-c91a-4966-9876-b50e62f996f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{72c7c8d5-1036-4ba4-8c4e-37474993ea2c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\dear imgui">
+      <UniqueIdentifier>{efac9f66-89dc-42bf-b8f8-9fc8e24e196a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{7704cacb-6811-4a6d-a558-9a8bb3d47e68}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\imgui\definitions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\IImGuiImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\ImGuiImpl_Base.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\dear_imgui\imconfig.h">
+      <Filter>Header Files\dear imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\dear_imgui\imgui.h">
+      <Filter>Header Files\dear imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\dear_imgui\imgui_internal.h">
+      <Filter>Header Files\dear imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\dear_imgui\imstb_rectpack.h">
+      <Filter>Header Files\dear imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\dear_imgui\imstb_textedit.h">
+      <Filter>Header Files\dear imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\dear_imgui\imstb_truetype.h">
+      <Filter>Header Files\dear imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\dear_imgui\imgui_impl_sdl2.h">
+      <Filter>Header Files\dear imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\dear_imgui\imgui_impl_sdlrenderer2.h">
+      <Filter>Header Files\dear imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\CustomImGui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\ImGuiImpl_SDL2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\ImNodeGraph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\ImNodeGraphPin.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\BaseNode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\Canvas.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\imgui_bezier_math.h">
+      <Filter>Header Files\dear imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\imgui_extra_math.h">
+      <Filter>Header Files\dear imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\imgui\ImNodeGraphLink.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\imgui\dear_imgui\imgui.cpp">
+      <Filter>Source Files\dear imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\imgui\dear_imgui\imgui_demo.cpp">
+      <Filter>Source Files\dear imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\imgui\dear_imgui\imgui_draw.cpp">
+      <Filter>Source Files\dear imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\imgui\dear_imgui\imgui_tables.cpp">
+      <Filter>Source Files\dear imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\imgui\dear_imgui\imgui_widgets.cpp">
+      <Filter>Source Files\dear imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\imgui\libhelper.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\imgui\dllmain.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\imgui\dear_imgui\imgui_impl_sdlrenderer2.cpp">
+      <Filter>Source Files\dear imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\imgui\dear_imgui\imgui_impl_sdl2.cpp">
+      <Filter>Source Files\dear imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\imgui\CustomImGui.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\imgui\ImGuiImpl_SDL2.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\imgui\ImNodeGraph.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\imgui\ImNodeGraphPin.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\imgui\BaseNode.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\imgui\Canvas.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\imgui\ImNodeGraphLink.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="imgui.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\imgui\imgui_bezier_math.inl">
+      <Filter>Header Files\dear imgui</Filter>
+    </None>
+    <None Include="..\..\src\imgui\imgui_extra_math.inl">
+      <Filter>Header Files\dear imgui</Filter>
+    </None>
+  </ItemGroup>
+</Project>

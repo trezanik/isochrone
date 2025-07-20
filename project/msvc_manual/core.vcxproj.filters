@@ -1,0 +1,410 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\util">
+      <UniqueIdentifier>{eec0263c-8b3d-42db-b184-9719f4854518}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\util">
+      <UniqueIdentifier>{737298d4-0e3b-48a3-8ef5-10b76b1cd3e1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\services">
+      <UniqueIdentifier>{78b57ff5-a968-40cc-a5b6-afdd1ecbc486}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\services">
+      <UniqueIdentifier>{1fc347ac-a1c2-425c-a06b-e9e2110160a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\services\config">
+      <UniqueIdentifier>{844d1633-fb27-4c4c-a0db-57054dd4f04c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\services\log">
+      <UniqueIdentifier>{f0dc5a52-89a3-452a-997c-ce308b6df068}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\services\memory">
+      <UniqueIdentifier>{f9e7867e-f0a0-4a36-ab29-8ee4c01de20f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\services\threading">
+      <UniqueIdentifier>{ea2a5e02-5fb8-4433-9d0f-7b84f7fe833b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\util\filesystem">
+      <UniqueIdentifier>{8d759f0c-298f-4083-81d0-f3ade68645e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\util\hash">
+      <UniqueIdentifier>{5335dbf5-d15b-47ff-8149-dc7f0fd0fe73}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\util\net">
+      <UniqueIdentifier>{6dacfaf7-73a9-4672-a1ef-86d3a4442cd8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\util\string">
+      <UniqueIdentifier>{c5e2a2cd-7451-4dfb-a8cd-505168871646}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\util\sysinfo">
+      <UniqueIdentifier>{b4692b60-82c2-4308-a3f9-0d6d095e98d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\util\filesystem">
+      <UniqueIdentifier>{faa793cf-1737-4de1-8d75-26d5e36a7a70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\util\hash">
+      <UniqueIdentifier>{3aa92b33-7205-4bce-8c68-70b281bf93f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\util\net">
+      <UniqueIdentifier>{3ac328d8-cad3-4392-b406-7136df731769}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\util\string">
+      <UniqueIdentifier>{4f3d7b61-9654-48aa-af83-7dfeab86fca9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\util\sysinfo">
+      <UniqueIdentifier>{b39a5e5e-02e3-41b5-b689-c84a3677bc0f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\services\config">
+      <UniqueIdentifier>{33a4d266-338f-4870-90dc-d6c6f0076657}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\services\log">
+      <UniqueIdentifier>{8bf612d7-7775-4490-a725-0c3c47506a5d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\services\memory">
+      <UniqueIdentifier>{a93c2b97-c81f-4744-8b9d-6bfb21c72a83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\services\threading">
+      <UniqueIdentifier>{014b9936-ea0b-40e4-ae72-911677451f34}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\core\error.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\sysinfo\DataSource_API.h">
+      <Filter>Header Files\util\sysinfo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\sysinfo\IDataSource.h">
+      <Filter>Header Files\util\sysinfo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\sysinfo\sysinfo_enums.h">
+      <Filter>Header Files\util\sysinfo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\sysinfo\sysinfo_structs.h">
+      <Filter>Header Files\util\sysinfo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\string\STR_funcs.h">
+      <Filter>Header Files\util\string</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\string\string.h">
+      <Filter>Header Files\util\string</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\string\strlcat.h">
+      <Filter>Header Files\util\string</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\string\strlcpy.h">
+      <Filter>Header Files\util\string</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\string\strtonum.h">
+      <Filter>Header Files\util\string</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\string\typeconv.h">
+      <Filter>Header Files\util\string</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\net\net.h">
+      <Filter>Header Files\util\net</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\net\net_structs.h">
+      <Filter>Header Files\util\net</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\hash\compile_time_hash.h">
+      <Filter>Header Files\util\hash</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\hash\crc32.h">
+      <Filter>Header Files\util\hash</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\hash\Hash_CRC32.h">
+      <Filter>Header Files\util\hash</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\hash\Hash_MD5.h">
+      <Filter>Header Files\util\hash</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\hash\Hash_SHA1.h">
+      <Filter>Header Files\util\hash</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\hash\Hash_SHA256.h">
+      <Filter>Header Files\util\hash</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\hash\IHash.h">
+      <Filter>Header Files\util\hash</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\hash\md5.h">
+      <Filter>Header Files\util\hash</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\hash\sha1.h">
+      <Filter>Header Files\util\hash</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\hash\sha256.h">
+      <Filter>Header Files\util\hash</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\filesystem\env.h">
+      <Filter>Header Files\util\filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\filesystem\file.h">
+      <Filter>Header Files\util\filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\filesystem\folder.h">
+      <Filter>Header Files\util\filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\filesystem\Path.h">
+      <Filter>Header Files\util\filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\Singleton.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\SingularInstance.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\util\time.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\threading\IThreading.h">
+      <Filter>Header Files\services\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\threading\Threading.h">
+      <Filter>Header Files\services\threading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\memory\IMemory.h">
+      <Filter>Header Files\services\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\memory\mem_info.h">
+      <Filter>Header Files\services\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\memory\Memory.h">
+      <Filter>Header Files\services\memory</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\log\ILogTarget.h">
+      <Filter>Header Files\services\log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\log\Log.h">
+      <Filter>Header Files\services\log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\log\LogEvent.h">
+      <Filter>Header Files\services\log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\log\LogLevel.h">
+      <Filter>Header Files\services\log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\log\LogTarget.h">
+      <Filter>Header Files\services\log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\log\LogTarget_File.h">
+      <Filter>Header Files\services\log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\log\LogTarget_Terminal.h">
+      <Filter>Header Files\services\log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\config\Config.h">
+      <Filter>Header Files\services\config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\config\ConfigServer.h">
+      <Filter>Header Files\services\config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\config\IConfig.h">
+      <Filter>Header Files\services\config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\sys\win\src\core\util\DllWrapper.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\sys\win\src\core\util\modules.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\sys\win\src\core\util\ntdll.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\sys\win\src\core\util\NtFunctions.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\sys\win\src\core\util\ntquerysysteminformation.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\sys\win\src\core\util\winerror.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\sys\win\src\core\util\string\textconv.h">
+      <Filter>Header Files\util\string</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\sys\win\src\core\util\sysinfo\DataSource_Registry.h">
+      <Filter>Header Files\util\sysinfo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\sys\win\src\core\util\sysinfo\DataSource_SMBIOS.h">
+      <Filter>Header Files\util\sysinfo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\sys\win\src\core\util\sysinfo\DataSource_WMI.h">
+      <Filter>Header Files\util\sysinfo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\sys\win\src\core\util\sysinfo\win32_info.h">
+      <Filter>Header Files\util\sysinfo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\definitions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\UUID.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\TConverter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\ServiceLocator.h">
+      <Filter>Header Files\services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\NullServices.h">
+      <Filter>Header Files\services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\sys\win\src\core\util\net\win32net.h">
+      <Filter>Header Files\util\net</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="core.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\core\error.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\time.cc">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\string\STR_funcs.cc">
+      <Filter>Source Files\util\string</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\string\string.cc">
+      <Filter>Source Files\util\string</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\string\strlcat.cc">
+      <Filter>Source Files\util\string</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\string\strlcpy.cc">
+      <Filter>Source Files\util\string</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\string\strtonum.cc">
+      <Filter>Source Files\util\string</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\string\typeconv.cc">
+      <Filter>Source Files\util\string</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\net\net.cc">
+      <Filter>Source Files\util\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\hash\crc32.cc">
+      <Filter>Source Files\util\hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\hash\Hash_CRC32.cc">
+      <Filter>Source Files\util\hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\hash\Hash_MD5.cc">
+      <Filter>Source Files\util\hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\hash\Hash_SHA1.cc">
+      <Filter>Source Files\util\hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\hash\Hash_SHA256.cc">
+      <Filter>Source Files\util\hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\hash\md5.cc">
+      <Filter>Source Files\util\hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\hash\sha1.cc">
+      <Filter>Source Files\util\hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\hash\sha256.cc">
+      <Filter>Source Files\util\hash</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\filesystem\env.cc">
+      <Filter>Source Files\util\filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\filesystem\file.cc">
+      <Filter>Source Files\util\filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\filesystem\folder.cc">
+      <Filter>Source Files\util\filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\util\filesystem\Path.cc">
+      <Filter>Source Files\util\filesystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\services\threading\Threading.cc">
+      <Filter>Source Files\services\threading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\services\memory\Memory.cc">
+      <Filter>Source Files\services\memory</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\services\log\Log.cc">
+      <Filter>Source Files\services\log</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\services\log\LogEvent.cc">
+      <Filter>Source Files\services\log</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\services\log\LogLevel.cc">
+      <Filter>Source Files\services\log</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\services\log\LogTarget_File.cc">
+      <Filter>Source Files\services\log</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\services\log\LogTarget_Terminal.cc">
+      <Filter>Source Files\services\log</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\services\config\Config.cc">
+      <Filter>Source Files\services\config</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\services\config\ConfigServer.cc">
+      <Filter>Source Files\services\config</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\services\ServiceLocator.cc">
+      <Filter>Source Files\services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\core\util\sysinfo\DataSource_API.cc">
+      <Filter>Source Files\util\sysinfo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\core\util\sysinfo\DataSource_Registry.cc">
+      <Filter>Source Files\util\sysinfo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\core\util\sysinfo\DataSource_SMBIOS.cc">
+      <Filter>Source Files\util\sysinfo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\core\util\sysinfo\DataSource_WMI.cc">
+      <Filter>Source Files\util\sysinfo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\core\util\string\textconv.cc">
+      <Filter>Source Files\util\string</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\core\util\modules.cc">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\core\util\NtFunctions.cc">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\core\util\winerror.cc">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\UUID.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\TConverter.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\core\libhelper.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\core\dllmain.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\core\util\net\win32net.cc">
+      <Filter>Source Files\util\net</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

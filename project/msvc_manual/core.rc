@@ -1,0 +1,32 @@
+#include "core/version.h"  // version information
+#include <Windows.h>  // VERSIONINFO
+
+#define VER_FILEVERSION      TZK_PROJECT_VERSION_MAJOR,TZK_PROJECT_VERSION_MINOR
+#define VER_FILEVERSION_STR  TZK_STRINGIFY(TZK_PROJECT_VERSION_MAJOR) "." TZK_STRINGIFY(TZK_PROJECT_VERSION_MINOR)
+
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     VER_FILEVERSION
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+		BLOCK "040904E4" // U.S. English - multilingual (hex)
+		BEGIN
+			VALUE "CompanyName", "Trezanik"
+			VALUE "FileDescription", "Isochrone Core"
+			VALUE "FileVersion", VER_FILEVERSION
+			VALUE "InternalName", "core"
+			VALUE "LegalCopyright", "Copyright \251 2014-2025, Trezanik developers"
+			VALUE "LegalTrademarks", "Distributed under the zlib software license, see https://www.opensource.org/licenses/zlib."
+			VALUE "ProductName", "isochrone"
+			VALUE "ProductVersion", TZK_PROJECT_PROD_VER
+		END
+	END
+
+	BLOCK "VarFileInfo"
+	BEGIN
+		VALUE "Translation", 0x0, 1252 // language neutral - multilingual (decimal)
+	END
+END

@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <ProjectRoot>$(SolutionDir)../../</ProjectRoot>
+    <BuildTargetIdentifier>build-$(PlatformShortName)-$(Configuration)-$(TargetToolset)</BuildTargetIdentifier>
+    <ProjectTargetIdentifier>$(ProjectName)</ProjectTargetIdentifier>
+    <IntDir>$(ProjectRoot)/temp/Intermediate/$(ProjectTargetIdentifier)/</IntDir>
+    <BinDir>$(SolutionDir)$(BuildTargetIdentifier)</BinDir>
+    <LibDir>$(BinDir)</LibDir>
+    <IncDir>$(ProjectRoot)/include</IncDir>
+    <SrcDir>$(ProjectRoot)/src</SrcDir>
+    <SysSrcDir>$(ProjectRoot)/sys/win/src</SysSrcDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(IncDir);$(SrcDir);$(SysSrcDir);%(AdditionalIncludeDirectories);</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(LibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SrcDir);</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="ProjectRoot">
+      <Value>$(ProjectRoot)</Value>
+    </BuildMacro>
+    <BuildMacro Include="BuildTargetIdentifier">
+      <Value>$(BuildTargetIdentifier)</Value>
+    </BuildMacro>
+    <BuildMacro Include="ProjectTargetIdentifier">
+      <Value>$(ProjectTargetIdentifier)</Value>
+    </BuildMacro>
+    <BuildMacro Include="IntDir">
+      <Value>$(IntDir)</Value>
+    </BuildMacro>
+    <BuildMacro Include="BinDir">
+      <Value>$(BinDir)</Value>
+    </BuildMacro>
+    <BuildMacro Include="LibDir">
+      <Value>$(LibDir)</Value>
+    </BuildMacro>
+    <BuildMacro Include="IncDir">
+      <Value>$(IncDir)</Value>
+    </BuildMacro>
+    <BuildMacro Include="SrcDir">
+      <Value>$(SrcDir)</Value>
+    </BuildMacro>
+    <BuildMacro Include="SysSrcDir">
+      <Value>$(SysSrcDir)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

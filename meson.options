@@ -1,0 +1,44 @@
+# NOTE:
+# If running a version of meson prior to 1.1, create a symlink to this file named 'meson_options.txt' - it has been replaced
+# Command: ln -s meson.options meson_options.txt
+
+# General Options
+option('Enable-Audio', type : 'boolean', value : true)
+option('Enable-Networking', type : 'boolean', value : true)
+
+# Dependency Options (we don't use zlib code so is not an option)
+option('Use-Catch2', type : 'feature', value : 'enabled')  # unused
+option('Use-dearimgui', type : 'feature', value : 'enabled')  # integrated
+option('Use-freetype', type : 'feature', value : 'enabled')
+option('Use-libpng', type : 'feature', value : 'enabled')
+option('Use-OpenAL', type : 'feature', value : 'enabled')
+#option('Use-OpenSSL', type : 'feature', value : 'enabled') - Enabled via Networking
+option('Use-opus', type : 'feature', value : 'enabled')
+option('Use-pugixml', type : 'feature', value : 'enabled')
+option('Use-SDL2', type : 'feature', value : 'enabled')
+option('Use-SDL2_ttf', type : 'feature', value : 'enabled')
+option('Use-sqlite3', type : 'feature', value : 'enabled')
+option('Use-STB-Image', type : 'feature', value : 'enabled')  # integrated
+option('Use-vorbis', type : 'feature', value : 'enabled')
+
+# Default Overrides (run generate_configure_h.sh and view the configure.h file for these defaults)
+option('LogEvent-Pool', type : 'boolean', value : true)
+option('LogEvent-Pool-InitialSize', type : 'integer', min : 1, max : 65536, value : 100)
+option('Audio-VerboseTraceLogs', type : 'boolean', value : false)
+option('Audio-StackBufferSize', type : 'integer', min : 1024, max : 65536, value : 4096)
+option('Audio-RingBuffer-MinimumBufferSize', type : 'integer', min : 1024, max : 65536, value : 8192)
+option('Audio-RingBuffer-TargetDuration', type : 'integer', min : 100, max : 32768, value : 200)
+option('Audio-WaveStreamThreshold', type : 'integer', min : 1024, max : 65536, value : 32768)
+option('DefaultFPSCap', type : 'integer', min : 24, max : 1024, value : 240)
+option('PauseSleepDuration', type : 'integer', min : 1, max : 256, value : 25)
+option('ResourceLoader-MaximumThreads', type : 'integer', min : 1, max : 256, value : 64)
+option('Image-MaximumFileSize', type : 'integer', min : 1024, max : 1000000000, value : 10000000)
+option('MouseMove-VerboseTraceLogs', type : 'boolean', value : false)
+option('OpenAL-SourceCount', type : 'integer', min : 1, max : 256, value : 4)
+option('ThreadedRender', type : 'boolean', value : false)
+option('Window-MinimumHeight', type : 'integer', min : 480, max : 32768, value : 768)
+option('Window-MinimumWidth', type : 'integer', min : 640, max : 32768, value : 768)
+option('DefaultNewNode-Height', type : 'integer', min : 30, max : 256, value : 50)
+option('DefaultNewNode-Width', type : 'integer', min : 30, max : 256, value : 100)
+option('HTTP-MaxSendSize', type : 'integer', min : 256, max : 1073741824, value : 8192)
+option('HTTP-MaxResponseSize', type : 'integer', min : 4096, max : 1073741824, value : 14680064)

@@ -1,0 +1,413 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\services">
+      <UniqueIdentifier>{78f5265f-e973-4fcf-a6d4-61eacf7346d0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\services\audio">
+      <UniqueIdentifier>{32ba2437-3168-4eca-96a8-6c06d9c94a1e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\services\event">
+      <UniqueIdentifier>{d80a2d35-0bc4-450f-b168-df6b11079f34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\resources">
+      <UniqueIdentifier>{d34f0736-7f98-483e-934e-d0e40367fe15}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\resources">
+      <UniqueIdentifier>{d7ef40bc-f396-4250-a752-26719fad2c0b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\objects">
+      <UniqueIdentifier>{15df836d-c4e2-4a3a-a520-5da82cd13c3e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\objects">
+      <UniqueIdentifier>{9646d911-5021-4eb1-a70b-44b84c5befaa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\services">
+      <UniqueIdentifier>{272c7622-6d9c-4449-82fb-7bf69fad8d56}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\services\event">
+      <UniqueIdentifier>{4af4044e-e08b-472f-bf83-ea79c9d20f7f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\services\audio">
+      <UniqueIdentifier>{ab9cdfce-8a19-46ec-a4e0-c52d1e08c5fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\services\net">
+      <UniqueIdentifier>{c69238f6-cada-405d-b7fc-237266ef13f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\services\net">
+      <UniqueIdentifier>{cec3105a-a906-45a7-871a-8e9f7397eeb8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\engine\services\audio\AudioFile.cc">
+      <Filter>Source Files\services\audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\services\audio\AudioFile_Vorbis.cc">
+      <Filter>Source Files\services\audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\Resource_Sprite.cc">
+      <Filter>Source Files\resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\ResourceCache.cc">
+      <Filter>Source Files\resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\ResourceLoader.cc">
+      <Filter>Source Files\resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\TypeLoader.cc">
+      <Filter>Source Files\resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\TypeLoader_Audio.cc">
+      <Filter>Source Files\resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\TypeLoader_Font.cc">
+      <Filter>Source Files\resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\TypeLoader_Image.cc">
+      <Filter>Source Files\resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\TypeLoader_Sprite.cc">
+      <Filter>Source Files\resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\Resource.cc">
+      <Filter>Source Files\resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\Resource_Audio.cc">
+      <Filter>Source Files\resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\Resource_Font.cc">
+      <Filter>Source Files\resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\Resource_Image.cc">
+      <Filter>Source Files\resources</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\TConverter.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\Context.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\services\event\EventManager.cc">
+      <Filter>Source Files\services\event</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\services\event\KeyConversion.cc">
+      <Filter>Source Files\services\event</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\EngineConfigServer.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\services\audio\AudioFile_Wave.cc">
+      <Filter>Source Files\services\audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\objects\Entity.cc">
+      <Filter>Source Files\objects</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\objects\Object.cc">
+      <Filter>Source Files\objects</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\engine\dllmain.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\engine\libhelper.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\services\ServiceLocator.cc">
+      <Filter>Source Files\services</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\objects\AudioComponent.cc">
+      <Filter>Source Files\objects</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\services\audio\AudioFile_Opus.cc">
+      <Filter>Source Files\services\audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\services\audio\AudioFile_FLAC.cc">
+      <Filter>Source Files\services\audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\services\audio\ALSound.cc">
+      <Filter>Source Files\services\audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\services\audio\ALSource.cc">
+      <Filter>Source Files\services\audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\services\net\Net.cc">
+      <Filter>Source Files\services\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\services\net\HTTP.cc">
+      <Filter>Source Files\services\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\services\audio\ALAudio.cc">
+      <Filter>Source Files\services\audio</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\engine\definitions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\Resource.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\Resource_Audio.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\Resource_Font.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\Resource_Image.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\Resource_Sprite.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\ResourceCache.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\ResourceLoader.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\ResourceTypes.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\TypeLoader.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\TypeLoader_Audio.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\TypeLoader_Font.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\TypeLoader_Image.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\TypeLoader_Sprite.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\IResource.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\IResourceLoader.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\TConverter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\Context.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\EngineConfigDefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\EngineConfigServer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\AIController.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\Ball.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\Bat.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\Boundary.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\Controller.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\CredentialsComponent.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\Entity.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\EntityComponent.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\ExploitComponent.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\File.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\IComponent.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\InetICMP.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\InetICMPSender.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\InetTCP.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\InetTCPListener.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\InetTCPSender.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\InetUDP.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\InetUDPListener.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\InetUDPSender.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\InformationComponent.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\InputComponent.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\KeyboardComponent.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\LinkComponent.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\MouseComponent.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\Node.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\Object.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\PlayerController.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\Process.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\ScanningComponent.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\SoftwareComponent.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\Text.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\Threshold.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\event\KeyConversion.h">
+      <Filter>Header Files\services\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\event\System.h">
+      <Filter>Header Files\services\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\event\Audio.h">
+      <Filter>Header Files\services\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\event\Engine.h">
+      <Filter>Header Files\services\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\event\Event.h">
+      <Filter>Header Files\services\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\event\EventData.h">
+      <Filter>Header Files\services\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\event\EventManager.h">
+      <Filter>Header Files\services\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\event\EventType.h">
+      <Filter>Header Files\services\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\event\IEvent.h">
+      <Filter>Header Files\services\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\event\IEventListener.h">
+      <Filter>Header Files\services\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\event\Input.h">
+      <Filter>Header Files\services\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\event\Interprocess.h">
+      <Filter>Header Files\services\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\audio\AudioFile.h">
+      <Filter>Header Files\services\audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\audio\AudioFile_Vorbis.h">
+      <Filter>Header Files\services\audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\audio\AudioFile_Wave.h">
+      <Filter>Header Files\services\audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\ServiceLocator.h">
+      <Filter>Header Files\services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\NullServices.h">
+      <Filter>Header Files\services</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\audio\IAudio.h">
+      <Filter>Header Files\services\audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\objects\AudioComponent.h">
+      <Filter>Header Files\objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\audio\AudioFile_Opus.h">
+      <Filter>Header Files\services\audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\audio\AudioFile_FLAC.h">
+      <Filter>Header Files\services\audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\audio\ALAudio.h">
+      <Filter>Header Files\services\audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\audio\ALSound.h">
+      <Filter>Header Files\services\audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\audio\ALSource.h">
+      <Filter>Header Files\services\audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\audio\AudioData.h">
+      <Filter>Header Files\services\audio</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\IFrameListener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\net\Net.h">
+      <Filter>Header Files\services\net</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\net\HTTP.h">
+      <Filter>Header Files\services\net</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\net\INet.h">
+      <Filter>Header Files\services\net</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\stb_image.h">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\services\event\External.h">
+      <Filter>Header Files\services\event</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="engine.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

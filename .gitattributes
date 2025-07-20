@@ -1,0 +1,19 @@
+# All files are to have Unix LF line-endings - https://help.github.com/articles/dealing-with-line-endings/
+* text eol=lf
+
+# Prevent binary or binary-style content being corrupted by line ending changes
+*.ani binary
+*.aps binary
+*.bin binary
+*.dds binary
+*.exe binary
+*.dll binary
+*.ico binary
+*.mdl binary
+*.mesh binary
+*.ogg binary
+*.opus binary
+*.png binary
+*.tga binary
+*.ttf binary
+*.wav binary

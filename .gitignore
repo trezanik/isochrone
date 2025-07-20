@@ -1,0 +1,99 @@
+# all hidden (dot) files/folders..
+.*
+# ..except this file itself, and attributes
+!.gitignore
+!.gitattributes
+
+# dynamic builds, large/non-essential assets, binaries, and generated files.
+assets/audio/**
+build/**
+**/build-*
+configure.h
+version.h
+
+# temporary files and directories
+temp
+**/~*
+*~
+
+#########################
+###### Third-Party ######
+#########################
+dependencies/**
+!dependencies/*.cmd
+!dependencies/*.sh
+!dependencies/*.txt
+
+#########################
+##### Documentation #####
+#########################
+# ---- Doxygen ----
+docs/doxygen/**
+!docs/doxygen/config.doxygen
+!docs/doxygen/*.cmd
+!docs/doxygen/*.sh
+# ---- Internal ----
+#notes.txt - to include in future, for now I want this transient for ease of machine swapping
+
+#########################
+### Platform-specific ###
+#########################
+# ---- Linux ----
+# ---- MacOS ----
+.DS_Store
+# ---- Windows ----
+
+#########################
+####### autotools #######
+#########################
+autom4te.cache/
+aclocal.m4
+*.in
+ar-lib
+compile
+configure
+config.h
+config.log
+config.status
+depcomp
+install-sh
+Makefile
+missing
+stamp-*
+
+#########################
+##### IDE-specifics #####
+#########################
+# ---- Code::Blocks ----
+project/codeblocks_manual/**/*.depend
+project/codeblocks_manual/**/*.layout
+# ---- QtCreator ----
+**/qtcreator/**/*.pro.user
+# ---- Visual Studio ----
+*.lastcodeanalysissucceeded
+*.nativecodeanalysis.*
+*.ncb
+*.opensdf
+*.psess
+*.res
+*.sdf
+*.suo
+*.vcproj*.user
+*.vcxproj.user
+*.vsp
+### Visual Studio 2010 Only
+**/ipch
+**/*_manifest.rc
+### Introduced with Visual Studio 2015
+**/.vs
+### Introduced with Visual Studio 2015 Update 1
+*.VC.opendb
+*.VC.db
+# ---- XCode ----
+UserInterfaceState.xcuserstate
+*.xcworkspace
+*/xcuserdata
+# ---- cmake temp/cache ----
+CMakeLists.txt.*
+# ---- kdevelop ----
+

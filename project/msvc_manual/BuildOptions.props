@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <IsPackagedBuild>0</IsPackagedBuild>
+    <NT5Support>0</NT5Support>
+    <ConformanceMode>true</ConformanceMode>
+    <LanguageStandard>stdcpp17</LanguageStandard>
+    <TargetToolset>v142</TargetToolset>
+    <Win32WinNT>0x601</Win32WinNT>
+    <UsingCatch2>1</UsingCatch2>
+    <UsingFLAC>0</UsingFLAC>
+    <UsingFreetype>1</UsingFreetype>
+    <UsingImGui>1</UsingImGui>
+    <UsingLibPNG>1</UsingLibPNG>
+    <UsingOggOpus>1</UsingOggOpus>
+    <UsingOggVorbis>1</UsingOggVorbis>
+    <UsingOpenALSoft>1</UsingOpenALSoft>
+    <UsingOpenSSL>1</UsingOpenSSL>
+    <UsingPugixml>1</UsingPugixml>
+    <UsingRCCPP>0</UsingRCCPP>
+    <UsingSDL>1</UsingSDL>
+    <UsingSDLImage>0</UsingSDLImage>
+    <UsingSDLTTF>1</UsingSDLTTF>
+    <UsingSqlite>1</UsingSqlite>
+    <UsingSTBF>0</UsingSTBF>
+    <UsingSTBI>1</UsingSTBI>
+    <AudioLogTracing>1</AudioLogTracing>
+    <MouseMoveLogs>0</MouseMoveLogs>
+    <ThreadedRender>0</ThreadedRender>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>_WIN32_WINNT=$(Win32WinNT);TZK_ENABLE_XP2003_SUPPORT=$(NT5Support);_CRT_NONSTDC_NO_WARNINGS;TZK_AUDIO_LOG_TRACING=$(AudioLogTracing);TZK_MOUSEMOVE_LOGS=$(MouseMoveLogs);TZK_THREADED_RENDER=$(ThreadedRender);TZK_USING_CATCH2=$(UsingCatch2);TZK_USING_FLAC=$(UsingFLAC);TZK_USING_FREETYPE=$(UsingFreetype);TZK_USING_IMGUI=$(UsingImGui);TZK_USING_LIBPNG=$(UsingLibPNG);TZK_USING_OGGOPUS=$(UsingOggOpus);TZK_USING_OGGVORBIS=$(UsingOggVorbis);TZK_USING_OPENALSOFT=$(UsingOpenALSoft);TZK_USING_OPENSSL=$(UsingOpenSSL);TZK_USING_PUGIXML=$(UsingPugixml);TZK_USING_RCCPP=$(UsingRCCPP);TZK_USING_SDL=$(UsingSDL);SDL_MAIN_HANDLED;TZK_USING_SDLIMAGE=$(UsingSDLImage);TZK_USING_SDL_TTF=$(UsingSDLTTF);TZK_USING_SQLITE=$(UsingSqlite);TZK_USING_STBF=$(UsingSTBF);TZK_USING_STBI=$(UsingSTBI);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_WIN32_WINNT=$(Win32WinNT);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="NT5Support">
+      <Value>$(NT5Support)</Value>
+    </BuildMacro>
+    <BuildMacro Include="ConformanceMode">
+      <Value>$(ConformanceMode)</Value>
+    </BuildMacro>
+    <BuildMacro Include="LanguageStandard">
+      <Value>$(LanguageStandard)</Value>
+    </BuildMacro>
+    <BuildMacro Include="TargetToolset">
+      <Value>$(TargetToolset)</Value>
+    </BuildMacro>
+    <BuildMacro Include="Win32WinNT">
+      <Value>$(Win32WinNT)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingCatch2">
+      <Value>$(UsingCatch2)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingFLAC">
+      <Value>$(UsingFLAC)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingFreetype">
+      <Value>$(UsingFreetype)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingImGui">
+      <Value>$(UsingImGui)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingLibPNG">
+      <Value>$(UsingLibPNG)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingOggOpus">
+      <Value>$(UsingOggOpus)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingOggVorbis">
+      <Value>$(UsingOggVorbis)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingOpenALSoft">
+      <Value>$(UsingOpenALSoft)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingOpenSSL">
+      <Value>$(UsingOpenSSL)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingPugixml">
+      <Value>$(UsingPugixml)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingRCCPP">
+      <Value>$(UsingRCCPP)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingSDL">
+      <Value>$(UsingSDL)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingSDLImage">
+      <Value>$(UsingSDLImage)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingSDLTTF">
+      <Value>$(UsingSDLTTF)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingSqlite">
+      <Value>$(UsingSqlite)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingSTBF">
+      <Value>$(UsingSTBF)</Value>
+    </BuildMacro>
+    <BuildMacro Include="UsingSTBI">
+      <Value>$(UsingSTBI)</Value>
+    </BuildMacro>
+    <BuildMacro Include="AudioLogTracing">
+      <Value>$(AudioLogTracing)</Value>
+    </BuildMacro>
+    <BuildMacro Include="MouseMoveLogs">
+      <Value>$(MouseMoveLogs)</Value>
+    </BuildMacro>
+    <BuildMacro Include="ThreadedRender">
+      <Value>$(ThreadedRender)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

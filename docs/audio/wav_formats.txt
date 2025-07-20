@@ -1,0 +1,43 @@
+https://www.beinyu.com/wav-audio-format/
+https://www.recordingblogs.com/wiki/format-chunk-of-a-wave-file
+https://www.recordingblogs.com/wiki/fact-chunk-of-a-wave-file
+
+
+
+Byte sequence      Length     Starts
+ description      in bytes    at byte    Value
+-------------------------------------------------------------------------
+chunk ID          4           0x00       The ASCII character string "RIFF"
+size              4           0x04       The size of the wave file (number of bytes) less 8 (less the size of the "chunk ID" and the "size")
+RIFF type ID      4           0x08       The ASCII character string "WAVE"
+wave chunks       various     0x0C       Various chunks in the wave file as described below
+
+
+
+                   Length       Starts at byte
+Description       in bytes       in the chunk    Value
+-------------------------------------------------------------------------
+chunk ID          4             0x00             The ASCII character string "fmt " (note the space at the end)
+size              4             0x04             The size of the format chunk (number of bytes) less 8 (less the "chunk ID" and the "size"). The usual size of the format chunk is 16, unless there are any extra format bytes (see below)
+compression code  2             0x08             Various. A typical compression code is 1, signifying uncompressed Pulse Code Modulation (PCM). Other values are shown below
+number of
+ channels         2             0x0A             Various. The typical number of channels is 1 in mono waves and 2 in stereo waves
+sampling rate     4             0x0C             Various. An example sampling rate is 44100 = 0x0000AC44 for 44,100 Hz
+average bytes
+ per second       4             0x10             Various. For example, a PCM wave file that has a sampling rate of 44100 Hz, 1 channel, and sampling resolution of 16 bits (2 bytes) per sample, will have an average number of bytes equal to 44100 * 2 * 1 = 88,200
+block align       2             0x14             Various. For example, a PCM wave that has a sampling resolution of 16 bits (2 bytes) and has 2 channels will record a block of samples in 2 * 2 = 4 bytes
+significant bits
+ per sample       2             0x16             Various. These bytes define the sampling resolution of the file. A typical sampling resolution is 16 bits per sample, but could be anything greater than 1
+number of extra
+ format bytes     2             0x18             Various. These bytes define the number of extra format bytes to follow in the format chunk. This field may or may not be present
+extra format
+ bytes            various       0x1A             Various. These may or may not be present
+
+
+
+Byte sequence    Length      Starts at byte
+ description    in bytes      in the chunk      Value
+-------------------------------------------------------------------------
+chunk ID        4            0x00               The ASCII character string "fact"
+size            4            0x04               The size of the fact chunk (number of bytes) less 8 (less the "chunk ID" and the "size")
+data            4            0x08               Various information about the contents of the file, depending on the compression code
