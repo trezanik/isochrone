@@ -3,6 +3,8 @@
 > Note:
 > The application is still under heavy development, user interface elements are subject to change and may not reflect the current visual state
 
+> The application embeds Control Freak (contf.ttf) and ProggyClean (proggyclean.ttf) for usage as fallback fonts.
+
 ### Table of Contents
 
 - [Navigating the interface](#Navigating-the-Interface)
@@ -15,6 +17,7 @@
 - [Adding Pins to a Node](#Adding-Pins-to-a-Node)
 - [Adding Links between Pins](#Adding-Links-between-Pins)
 - [Removing Nodes/Links/Pins](#Removing-Nodes-Links-Pins)
+- [Docks](#Docks)
 
 ### <a id="Navigating-the-Interface"></a>Navigating the Interface
 
@@ -158,7 +161,7 @@ Within the nodegraph, right-click on any blank area and select **New `$(Type)` N
 ![graph_context_menu](graph_context_menu.png "NodeGraph context menu")
 
 - To resize the node, with the node selected open the Node Properties in the Property View, and edit the **Size** fields; first is x (width), second is y (height). There will be a future ability to drag from the node edges, but is not yet implemented.
-- To reposition the node, click and drag on the node header to have it follow the cursor position. It can also be done via the Property View, at the **Position** field pair.
+- To reposition the node, click and drag on the node header to have it follow the cursor position. If not configured for header-only dragging, anywhere in the node can be dragged in order to relocate (Boundary nodes are enforced header-only). It can also be done via the Property View, at the **Position** field pair.
 
 
 
@@ -184,12 +187,13 @@ Left-click + hold, and drag from a Pin; a connector line will be displayed, sour
 When the click is released, if another Pin is not hovered then the action is effectively aborted.
 If another Pin is hovered, then checks are performed to ensure validity:
 - Server pins can only link to one or more Client pins
-- Generic Connector pins can only link to one or more other Generic Connectors
+- Generic Connector pins can only link to a single other Generic Connector
 
 An attempt to connect to an incompatible Pin will generate an error.
 
 > Note:
 > Server Pins can drag out to Client Pins and vice versa.
+
 
 ### <a id="Removing-Nodes-Links-Pins"></a>Removing Nodes/Links/Pins
 
@@ -202,3 +206,21 @@ Each different type of node, pin, and link have different menu options, includin
 ![link_context_menu](link_context_menu.png "Link Context Menu")
 
 As you can see, it's also possible to 'break' a link without having to delete pins or the link itself directly. Breaking a link will perform the same operation as a link deletion.
+
+
+### <a id="Docks"></a>Docks
+
+Docks currently lack direct interactive modification, making their usage slightly more difficult.
+
+The application client area is split into thirds, both vertically and horizontally. The workspace is the center of each. When displayed, each dock - one of Left, Top, Right, or Bottom - will consume up to this 'third' value at a maximum.
+
+You can configure the width/height as a float value ranging from 0 to 1, where 1 is the maximum. e.g. for a 600px wide client area, both the Left and Right docks configuration of 1 will result in 200px. 0.5 will result in 100px, and so on. 0 is synonymous with Hidden.
+
+![dock_prefs](dock_prefs.png "Docking Preferences")
+
+Docks will not display if they have no **draw clients**, which is a window that will display within the dock. Available draw clients can be directed towards one of the four Docks. Each Dock can (and will) extend into an available corner to ensure no gaps.
+
+When a Dock has multiple draw clients, a dropdown can be used to switch between each entry.
+
+This results in a maximum of four possible additional 'windows' on display. It is not a perfect docking solution, but is decently functional for the interim.
+
