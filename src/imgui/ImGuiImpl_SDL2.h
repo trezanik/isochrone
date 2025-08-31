@@ -5,6 +5,10 @@
  * @brief       ImGui implementation for SDL2
  * @license     zlib (view the LICENSE file for details)
  * @copyright   Trezanik Developers, 2014-2025
+ * @note        This is essentially a copy of the imgui_impl_sdl2.cpp, merged
+ *              into an interface implementation and formatting changes. A lot
+ *              of methods may not make sense, but could be useful if we do a
+ *              refactor
  */
 
 
@@ -12,22 +16,17 @@
 
 #include "imgui/ImGuiImpl_Base.h"
 
-#if 1
-#	include <SDL.h>
-#else
 // SDL_Keymod can't be forward declared...
-struct SDL_Window;
-struct SDL_Renderer;
-struct SDL_Cursor;
-#endif
+#include <SDL.h>
 
 
 namespace trezanik {
 namespace imgui {
 
 
-
-// SDL Platform Data
+/**
+ * SDL2 platform data for imgui interfacing
+ */
 struct ImGui_SDL2Platform_Data
 {
 	SDL_Window*    Window;
@@ -47,7 +46,10 @@ struct ImGui_SDL2Platform_Data
 	}
 };
 
-// SDL Renderer data
+
+/**
+ * SDL2 renderer data for imgui interfacing
+ */
 struct ImGui_SDL2Renderer_Data
 {
 	SDL_Renderer* SDLRenderer;
