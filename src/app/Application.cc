@@ -1716,10 +1716,13 @@ Application::InitializeSDL()
 		SDL_SetWindowGrab(my_window, SDL_TRUE);
 	}
 
-	if ( STR_compare(my_cfg.ui.sdl_renderer.type.c_str(), "Hardware", false) == 0 )
+	bool  case_sensitive = false;
+	int   renderer_index = -1;
+
+	if ( STR_compare(my_cfg.ui.sdl_renderer.type.c_str(), "Hardware", case_sensitive) == 0 )
 	{
 		my_renderer_flags = SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED;
-		my_renderer = SDL_CreateRenderer(my_window, -1, my_renderer_flags);
+		my_renderer = SDL_CreateRenderer(my_window, renderer_index, my_renderer_flags);
 		if ( my_renderer == nullptr )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, "[SDL] SDL_CreateRenderer (hardware accelerated) failed: %s", SDL_GetError());
@@ -1730,7 +1733,7 @@ Application::InitializeSDL()
 	if ( my_renderer == nullptr )
 	{
 		my_renderer_flags = SDL_RENDERER_SOFTWARE;
-		my_renderer = SDL_CreateRenderer(my_window, -1, my_renderer_flags);
+		my_renderer = SDL_CreateRenderer(my_window, renderer_index, my_renderer_flags);
 		if ( my_renderer == nullptr )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, "[SDL] SDL_CreateRenderer (software) failed: %s", SDL_GetError());
