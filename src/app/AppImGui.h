@@ -282,6 +282,10 @@ struct GuiInteractions
  * 
  * Potential for huge creep, anti-patterns and terrible design. Hopefully we'll
  * avoid it...
+ * 
+ * Userdata loading could be shifted, and totally open for adjustments for
+ * optimal design - no extra versions needed until a main release though, so
+ * later consideration.
  */
 class AppImGui
 	: public trezanik::engine::IFrameListener

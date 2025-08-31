@@ -40,9 +40,9 @@
 
 
 namespace trezanik {
-	namespace engine {
-		class AudioComponent;
-	}
+namespace engine {
+	class AudioComponent;
+}
 namespace app {
 
 

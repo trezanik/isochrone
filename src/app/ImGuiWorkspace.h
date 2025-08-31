@@ -753,7 +753,7 @@ private:
 	 */
 	std::vector<std::shared_ptr<IsochroneNode>>  my_undoredo_nodes;
 
-	/*
+	/**
 	 * Command history to support Undo and Redo operations.
 	 * 
 	 * If one or more operations are undone, and then a separate change is made
@@ -761,7 +761,7 @@ private:
 	 */
 	std::vector<Command>  my_commands;
 
-	/*
+	/**
 	 * This holds the value in history of the 'current' execution point. This
 	 * is needed so in event of e.g. 6 undo operations, 3 may want to be redone;
 	 * restoration of the 3 can then be done. And if no further modifications

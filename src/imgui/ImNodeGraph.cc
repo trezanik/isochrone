@@ -692,6 +692,16 @@ ImNodeGraph::Update()
 				ConsumeClick(ImGuiMouseButton_Left);
 			}
 		}
+
+		/*
+		 * Click+Drag node selection
+		 * 
+		 * mouse down and dragging on empty space?
+		 * grab coords of drag start
+		 * draw rect from there to current mouse pos (style? white lines with white grid no good, needs to be customisable)
+		 * use imgui inbuilt for IsPointWithinRect or whatever it's called, adding selected nodes that way
+		 * on release, stop drawing rect, retain selection list
+		 */
 	}
 	// re-loop to apply the selected value states to the nodes (dislike, but works!)
 	for ( auto& node : my_nodes )
