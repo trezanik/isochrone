@@ -25,6 +25,10 @@
 #include "imgui/dear_imgui/imgui.h"
 #include "imgui/dear_imgui/imgui_internal.h"
 
+#if TZK_USING_PUGIXML
+#	include <pugixml.hpp>
+#endif
+
 #include <map>
 #include <memory>
 #include <mutex>
@@ -54,6 +58,7 @@ class ImGuiHostDialog;
 class ImGuiPreferencesDialog;
 class ImGuiRSS;
 class ImGuiSemiFixedDock;
+class ImGuiStyleEditor;
 class ImGuiUpdateDialog;
 class ImGuiVirtualKeyboard;
 class ImGuiWorkspace;
@@ -127,6 +132,7 @@ struct GuiInteractions
 	ImGuiHostDialog*         host_dialog = nullptr;
 	ImGuiPreferencesDialog*  preferences_dialog = nullptr;
 	ImGuiRSS*                rss = nullptr;
+	ImGuiStyleEditor*        style_editor = nullptr;
 	ImGuiUpdateDialog*       update_dialog = nullptr;
 	ImGuiVirtualKeyboard*    virtual_keyboard = nullptr;
 
@@ -154,6 +160,8 @@ struct GuiInteractions
 #endif
 	/** Flag to show the service management dialog */
 	bool  show_service_management = false;
+	/** Flag to show the style editor window */
+	bool  show_style_editor = false;
 	/** Flag to show the update dialog (non-functional) */
 	bool  show_update = false;
 	/** Flag to show the virtual keyboard (non-functional) */
@@ -186,6 +194,16 @@ struct GuiInteractions
 	std::map<trezanik::core::UUID, std::pair<std::shared_ptr<ImGuiWorkspace>, std::shared_ptr<Workspace>>, core::uuid_comparator>  workspaces;
 	/** UUID of the active workspace; set to a blank_uuid when none */
 	trezanik::core::UUID  active_workspace = trezanik::core::blank_uuid;
+
+	/**
+	 * All application styles (themes)
+	 * 
+	 * Would be a set, but returns const, so have to self-sort and duplicate
+	 * check..
+	 */
+	std::vector<std::unique_ptr<AppImGuiStyle>>  app_styles;
+	/** Name of the active application style; yes, we could use an id instead */
+	std::string  active_app_style;
 
 	/** The left dock window */
 	std::unique_ptr<ImGuiSemiFixedDock>  dock_left;
@@ -387,6 +405,77 @@ private:
 	);
 
 
+#if TZK_USING_PUGIXML
+	/**
+	 * Loads an individual style from XML
+	 * 
+	 * @param[in] xmlnode_style
+	 *  The XML node for the root of the style
+	 */
+	void
+	LoadStyle_783d1279_05ca_40af_b1c2_cfc40c212658(
+		pugi::xml_node xmlnode_style
+	);
+
+
+	/**
+	 * Loads colours within a style from XML
+	 *
+	 * @param[in] app_style
+	 *  The imgui style to populate
+	 * @param[in] xmlnode_colours
+	 *  The XML node for the root of the colours
+	 */
+	void
+	LoadStyleColours(
+		ImGuiStyle* app_style,
+		pugi::xml_node xmlnode_colours
+	);
+
+
+	/**
+	 * Loads rendering attributes within a style from XML
+	 *
+	 * @param[in] app_style
+	 *  The imgui style to populate
+	 * @param[in] xmlnode_rendering
+	 *  The XML node for the root of the rendering elements
+	 */
+	void
+	LoadStyleRendering(
+		ImGuiStyle* app_style,
+		pugi::xml_node xmlnode_rendering
+	);
+
+
+	/**
+	 * Loads sizes attribuets within a style from XML
+	 *
+	 * @param[in] app_style
+	 *  The imgui style to populate
+	 * @param[in] xmlnode_sizes
+	 *  The XML node for the root of the sizes elements
+	 */
+	void
+	LoadStyleSizes(
+		ImGuiStyle* app_style,
+		pugi::xml_node xmlnode_sizes
+	);
+
+
+	/**
+	 * Loads all styles within the XML
+	 *
+	 * @param[in] xmlnode_styles
+	 *  The XML node for the root of the styles
+	 */
+	void
+	LoadStyles_783d1279_05ca_40af_b1c2_cfc40c212658(
+		// version details to add
+		pugi::xml_node xmlnode_styles
+	);
+
+
 	/**
 	 * Version-specific userdata loader
 	 * 
@@ -409,6 +498,9 @@ private:
 	SaveUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
 		pugi::xml_node root
 	) const;
+#endif  // TZK_USING_PUGIXML
+
+
 	/**
 	 * Determines positional data for ImGui windows, docks, etc.
 	 * 
@@ -562,6 +654,7 @@ public:
 	std::unique_ptr<IImGui>  console_window;
 	std::shared_ptr<IImGui>  log_window;
 	std::shared_ptr<IImGui>  rss_window;
+	std::unique_ptr<IImGui>  style_window;
 	std::unique_ptr<IImGui>  virtual_keyboard;
 	// ---- modal dialogs ----
 	std::unique_ptr<IImGui>  about_dialog;

@@ -19,6 +19,7 @@
 #include "app/ImGuiPreferencesDialog.h"
 #include "app/ImGuiRSS.h"
 #include "app/ImGuiSemiFixedDock.h"
+#include "app/ImGuiStyleEditor.h"
 #include "app/ImGuiUpdateDialog.h"
 #include "app/ImGuiVirtualKeyboard.h"
 #include "app/ImGuiWorkspace.h"
@@ -112,6 +113,7 @@ AppImGui::AppImGui(
 , console_window(nullptr)
 , log_window(nullptr)
 , rss_window(nullptr)
+, style_window(nullptr)
 , virtual_keyboard(nullptr)
 , about_dialog(nullptr)
 , file_dialog(nullptr)
@@ -139,6 +141,7 @@ AppImGui::AppImGui(
 		my_gui.show_service_group = false; 
 #endif
 		my_gui.show_service_management = false;
+		my_gui.show_style_editor = false;
 		my_gui.show_update = false;
 		my_gui.show_virtual_keyboard = false;
 		my_gui.font_default = nullptr;
@@ -150,6 +153,27 @@ AppImGui::AppImGui(
 		my_gui.dock_top = std::make_unique<ImGuiSemiFixedDock>(gui_interactions, WindowLocation::Top);
 		my_gui.dock_right = std::make_unique<ImGuiSemiFixedDock>(gui_interactions, WindowLocation::Right);
 		my_gui.dock_bottom = std::make_unique<ImGuiSemiFixedDock>(gui_interactions, WindowLocation::Bottom);
+
+		// always load in the imgui inbuilt styles, available to use
+		auto  appstyle_inbuilt_classic = std::make_unique<AppImGuiStyle>();
+		auto  appstyle_inbuilt_dark = std::make_unique<AppImGuiStyle>();
+		auto  appstyle_inbuilt_light = std::make_unique<AppImGuiStyle>();
+
+		appstyle_inbuilt_classic->name = "Inbuilt:Classic";
+		appstyle_inbuilt_classic->id.Generate();
+		ImGui::StyleColorsClassic(&appstyle_inbuilt_classic->style); 
+		
+		appstyle_inbuilt_dark->name = "Inbuilt:Dark";
+		appstyle_inbuilt_dark->id.Generate();
+		ImGui::StyleColorsDark(&appstyle_inbuilt_dark->style);
+
+		appstyle_inbuilt_light->name = "Inbuilt:Light";
+		appstyle_inbuilt_light->id.Generate();
+		ImGui::StyleColorsLight(&appstyle_inbuilt_light->style);
+		
+		my_gui.app_styles.emplace_back(std::move(appstyle_inbuilt_classic));
+		my_gui.app_styles.emplace_back(std::move(appstyle_inbuilt_dark));
+		my_gui.app_styles.emplace_back(std::move(appstyle_inbuilt_light));
 
 		engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::Engine);
 		engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::External);
@@ -207,6 +231,10 @@ AppImGui::~AppImGui()
 		if ( rss_window != nullptr )
 		{
 			rss_window.reset();
+		}
+		if ( style_window != nullptr )
+		{
+			style_window.reset();
 		}
 		if ( console_window != nullptr )
 		{
@@ -608,6 +636,360 @@ AppImGui::HandleWindowLocation(
 }
 
 
+void
+AppImGui::LoadStyle_783d1279_05ca_40af_b1c2_cfc40c212658(
+	pugi::xml_node xmlnode_style
+)
+{
+	using namespace trezanik::core;
+
+	pugi::xml_attribute  name = xmlnode_style.attribute("name");
+	std::string  style_name;
+
+	if ( !name )
+	{
+		style_name = "autogen_";
+		style_name += core::aux::GenRandomString(8, 4);
+
+		TZK_LOG_FORMAT(LogLevel::Warning, "Style does not have a name; generating at random: %s", style_name.c_str());
+	}
+	else if ( my_gui.application.IsInbuiltStylePrefix(name.name()) )
+	{
+		style_name = "autogen_";
+		style_name += core::aux::GenRandomString(8, 4);
+
+		TZK_LOG_FORMAT(LogLevel::Warning, "Style name uses reserved prefix; replacing with random: %s", style_name.c_str());
+	}
+	else
+	{
+		style_name = name.value();
+	}
+
+	auto  app_style = std::make_unique<AppImGuiStyle>();
+	app_style->name = style_name;
+	app_style->id.Generate();
+	
+	pugi::xml_node  node_colours = xmlnode_style.child(nodename_colours);
+	pugi::xml_node  node_rendering = xmlnode_style.child(nodename_rendering);
+	pugi::xml_node  node_sizes = xmlnode_style.child(nodename_sizes);
+
+	if ( node_colours )
+	{
+		LoadStyleColours(&app_style->style, node_colours);
+	}
+	if ( node_rendering )
+	{
+		LoadStyleRendering(&app_style->style, node_rendering);
+	}
+	if ( node_sizes )
+	{
+		LoadStyleSizes(&app_style->style, node_sizes);
+	}
+
+	// general settings
+
+	auto  load_enabled_node = [&xmlnode_style](const char* child_name){
+		pugi::xml_attribute  attr_enabled;
+		bool  default_ret = true; // default enabled
+		auto  node = xmlnode_style.child(child_name);
+		if ( node )
+		{
+			attr_enabled = node.attribute("enabled");
+			if ( attr_enabled )
+			{
+				return attr_enabled.as_bool(default_ret);
+			}
+		}
+		TZK_LOG_FORMAT(LogLevel::Warning, "Style does not contain '%s'", child_name);
+		return default_ret;
+	};
+
+	// cast to float as 0..1
+	app_style->style.WindowBorderSize = load_enabled_node(nodename_window_border);
+	app_style->style.FrameBorderSize  = load_enabled_node(nodename_frame_border);
+	app_style->style.PopupBorderSize  = load_enabled_node(nodename_popup_border);
+
+	my_gui.app_styles.emplace_back(std::move(app_style));
+}
+
+
+void
+AppImGui::LoadStyleColours(
+	ImGuiStyle* app_style,
+	pugi::xml_node xmlnode_colours
+)
+{
+	using namespace trezanik::core;
+
+	auto  load_rgba_node = [&xmlnode_colours](const char* child_name) {
+		ImVec4  retval = { 0, 0, 0, 0 };
+		unsigned int  default_ret = 0;
+		unsigned int  ret = default_ret;
+		unsigned int  v;
+		auto   node = xmlnode_colours.child(child_name);
+		if ( node )
+		{
+			pugi::xml_attribute  attr_val = node.attribute("r");
+			if ( attr_val )
+			{
+				if ( (v = attr_val.as_uint(default_ret)) < 256 )
+				{
+					ret = v << IM_COL32_R_SHIFT;
+				}
+			}
+			attr_val = node.attribute("g");
+			if ( attr_val )
+			{
+				if ( (v = attr_val.as_uint(default_ret)) < 256 )
+				{
+					ret |= v << IM_COL32_G_SHIFT;
+				}
+			}
+			attr_val = node.attribute("b");
+			if ( attr_val )
+			{
+				if ( (v = attr_val.as_uint(default_ret)) < 256 )
+				{
+					ret |= v << IM_COL32_B_SHIFT;
+				}
+			}
+			attr_val = node.attribute("a");
+			if ( attr_val )
+			{
+				if ( (v = attr_val.as_uint(default_ret)) < 256 )
+				{
+					ret |= v << IM_COL32_A_SHIFT;
+				}
+			}
+
+			retval = ImGui::ColorConvertU32ToFloat4(ret);
+		}
+		else
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Style does not contain colour '%s'", child_name);
+		}
+		return retval;
+	};
+
+	for ( int i = 0; i < ImGuiCol_COUNT; i++ )
+	{
+		/*
+		 * Deviate from our normal naming in XML, as ImGui names come in mixed
+		 * case and we acquire via loop (since it's exposed). We could use our
+		 * norm but that means declaring all 53 of them, and then on the hook
+		 * for maintaining additions/removals by imgui.
+		 * Just use their own
+		 */
+#if 0
+		// imgui names are mixed case, and xml loads case sensitive
+		const char*  name = ImGui::GetStyleColorName(i);
+		const char*  p = name;
+		std::string  lname;
+		
+		while ( *p != '\0' )
+		{
+			lname += static_cast<char>(tolower(*p++));
+		}
+
+		app_style->Colors[i] = load_rgba_node(lname.c_str());
+#else
+		app_style->Colors[i] = load_rgba_node(ImGui::GetStyleColorName(i));
+#endif
+	}
+}
+
+
+void
+AppImGui::LoadStyleRendering(
+	ImGuiStyle* app_style,
+	pugi::xml_node xmlnode_rendering
+)
+{
+	using namespace trezanik::core;
+
+	auto  load_enabled_node = [&xmlnode_rendering](const char* child_name) {
+		pugi::xml_attribute  attr_enabled;
+		bool  default_ret = true; // default enabled
+		auto  node = xmlnode_rendering.child(child_name);
+		if ( node )
+		{
+			attr_enabled = node.attribute("enabled");
+			if ( attr_enabled )
+			{
+				return attr_enabled.as_bool(default_ret);
+			}
+		}
+		TZK_LOG_FORMAT(LogLevel::Warning, "Style does not contain '%s'", child_name);
+		return default_ret;
+	};
+	auto  load_value_node = [&xmlnode_rendering](const char* child_name) {
+		pugi::xml_attribute  attr_val;
+		float  default_ret = 0.0f;
+		auto   node = xmlnode_rendering.child(child_name);
+		if ( node )
+		{
+			attr_val = node.attribute("value");
+			if ( attr_val )
+			{
+				return attr_val.as_float(default_ret);
+			}
+		}
+		TZK_LOG_FORMAT(LogLevel::Warning, "Style does not contain '%s'", child_name);
+		return default_ret;
+	};
+
+	app_style->AntiAliasedLines = load_enabled_node(nodename_antialiased_lines);
+	app_style->AntiAliasedLinesUseTex = load_enabled_node(nodename_antialiased_lines_use_texture);
+	app_style->AntiAliasedFill = load_enabled_node(nodename_antialiased_fill);
+	app_style->CurveTessellationTol = load_value_node(nodename_curve_tessellation_tolerance);
+	app_style->CircleTessellationMaxError = load_value_node(nodename_circle_tessellation_max_error);
+	app_style->Alpha = load_value_node(nodename_global_alpha);
+	app_style->DisabledAlpha = load_value_node(nodename_disabled_alpha);
+}
+
+
+void
+AppImGui::LoadStyles_783d1279_05ca_40af_b1c2_cfc40c212658(
+	pugi::xml_node xmlnode_styles
+)
+{
+	using namespace trezanik::core;
+
+	bool  case_sensitive = true;
+	size_t  num_styles = 0; 
+	pugi::xml_node  node_style = xmlnode_styles.child(nodename_style);
+
+	while ( node_style )
+	{
+		if ( STR_compare(node_style.name(), nodename_style, case_sensitive) != 0 )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-style in styles: %s", node_style.name());
+			node_style = node_style.next_sibling();
+			continue;
+		}
+
+		if ( my_gui.app_styles.size() == TZK_MAX_NUM_STYLES )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Styles limit (%u) reached, skipping all other elements", TZK_MAX_NUM_STYLES);
+			break;
+		}
+
+		num_styles++;
+		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing style %zu", num_styles);
+
+		LoadStyle_783d1279_05ca_40af_b1c2_cfc40c212658(node_style);
+
+		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing style %zu complete", num_styles);
+		node_style = node_style.next_sibling();
+	}
+}
+
+
+void
+AppImGui::LoadStyleSizes(
+	ImGuiStyle* app_style,
+	pugi::xml_node xmlnode_sizes
+)
+{
+	using namespace trezanik::core;
+
+	auto  load_dir_node = [&xmlnode_sizes](const char* child_name) {
+		pugi::xml_attribute  attr_val;
+		ImGuiDir_  default_ret = ImGuiDir_Right;
+		auto   node = xmlnode_sizes.child(child_name);
+		if ( node )
+		{
+			attr_val = node.attribute("value");
+			if ( attr_val )
+			{
+				switch ( attr_val.as_uint(default_ret) )
+				{
+				case ImGuiDir_Down:  return ImGuiDir_Down;
+				case ImGuiDir_Up:    return ImGuiDir_Up;
+				case ImGuiDir_Left:  return ImGuiDir_Left;
+				case ImGuiDir_Right: return ImGuiDir_Right;
+				default:
+					break;
+				}
+			}
+		}
+		TZK_LOG_FORMAT(LogLevel::Warning, "Style does not contain '%s'", child_name);
+		return default_ret;
+	};
+	auto  load_value_node = [&xmlnode_sizes](const char* child_name) {
+		pugi::xml_attribute  attr_val;
+		float  default_ret = 0.0f;
+		auto   node = xmlnode_sizes.child(child_name);
+		if ( node )
+		{
+			attr_val = node.attribute("value");
+			if ( attr_val )
+			{
+				return attr_val.as_float(default_ret);
+			}
+		}
+		TZK_LOG_FORMAT(LogLevel::Warning, "Style does not contain '%s'", child_name);
+		return default_ret;
+	};
+	auto  load_pair_node = [&xmlnode_sizes](const char* child_name) {
+		pugi::xml_attribute  attr_val;
+		float   default_ret = 0.f; 
+		ImVec2  retval = { default_ret, default_ret };
+		auto    node = xmlnode_sizes.child(child_name);
+		if ( node )
+		{
+			attr_val = node.attribute("x");
+			if ( attr_val )
+			{
+				retval.x = attr_val.as_float(default_ret);
+			}
+			attr_val = node.attribute("y");
+			if ( attr_val )
+			{
+				retval.y = attr_val.as_float(default_ret);
+			}
+		}
+		else
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Style does not contain '%s'", child_name);
+		}
+		return retval;
+	};
+
+	app_style->WindowPadding = load_pair_node(nodename_window_padding);
+	app_style->FramePadding = load_pair_node(nodename_frame_padding);
+	app_style->ItemSpacing = load_pair_node(nodename_item_spacing);
+	app_style->ItemInnerSpacing = load_pair_node(nodename_item_inner_spacing);
+	app_style->TouchExtraPadding = load_pair_node(nodename_touch_extra_padding);
+	app_style->CellPadding = load_pair_node(nodename_cell_padding);
+	app_style->WindowTitleAlign = load_pair_node(nodename_window_title_align);
+	app_style->ButtonTextAlign = load_pair_node(nodename_button_text_align);
+	app_style->SelectableTextAlign = load_pair_node(nodename_selectable_text_align);
+	app_style->SeparatorTextPadding = load_pair_node(nodename_separator_text_padding);
+	app_style->DisplaySafeAreaPadding = load_pair_node(nodename_display_safe_area_padding);
+	app_style->IndentSpacing = load_value_node(nodename_indent_spacing);
+	app_style->ScrollbarSize = load_value_node(nodename_scrollbar_size);
+	app_style->GrabMinSize = load_value_node(nodename_grab_min_size);
+	app_style->WindowBorderSize = load_value_node(nodename_window_border_size);
+	app_style->ChildBorderSize = load_value_node(nodename_child_border_size);
+	app_style->PopupBorderSize = load_value_node(nodename_popup_border_size);
+	app_style->FrameBorderSize = load_value_node(nodename_frame_border_size);
+	app_style->TabBorderSize = load_value_node(nodename_tab_border_size);
+	app_style->TabBarBorderSize = load_value_node(nodename_tabbar_border_size);
+	app_style->WindowRounding = load_value_node(nodename_window_rounding);
+	app_style->ChildRounding = load_value_node(nodename_child_rounding);
+	app_style->FrameRounding = load_value_node(nodename_frame_rounding);
+	app_style->PopupRounding = load_value_node(nodename_popup_rounding);
+	app_style->ScrollbarRounding = load_value_node(nodename_scrollbar_rounding);
+	app_style->GrabRounding = load_value_node(nodename_grab_rounding);
+	app_style->TabRounding = load_value_node(nodename_tab_rounding);
+	app_style->TableAngledHeadersAngle = load_value_node(nodename_table_angled_headers_angle);
+	app_style->LogSliderDeadzone = load_value_node(nodename_log_slider_deadzone);
+	app_style->WindowMenuButtonPosition = load_dir_node(nodename_window_menu_button_position);
+	app_style->ColorButtonPosition = load_dir_node(nodename_color_button_position);
+}
+
+
 int
 AppImGui::LoadUserData(
 	const core::aux::Path& path
@@ -766,6 +1148,7 @@ AppImGui::LoadUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
 
 	if ( node_styles )
 	{
+		LoadStyles_783d1279_05ca_40af_b1c2_cfc40c212658(node_styles);
 	}
 	if ( node_os )
 	{
@@ -839,7 +1222,15 @@ AppImGui::PostEnd()
 	{
 		rss_window.reset();
 	}
+	else if ( TZK_UNLIKELY(my_gui.show_style_editor && style_window == nullptr) )
 	{
+		style_window = std::make_unique<ImGuiStyleEditor>(my_gui);
+		my_gui.style_editor = dynamic_cast<ImGuiStyleEditor*>(style_window.get());
+	}
+	else if ( TZK_UNLIKELY(!my_gui.show_style_editor && style_window != nullptr) )
+	{
+		style_window.reset();
+	}
 
 	
 
@@ -1126,6 +1517,10 @@ AppImGui::PreEnd()
 	{
 		rss_window->Draw();
 	}
+	if ( style_window != nullptr )
+	{
+		style_window->Draw();
+	}
 	if ( virtual_keyboard != nullptr )
 	{
 		virtual_keyboard->Draw();
@@ -1230,6 +1625,142 @@ AppImGui::SaveUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
 	//
 	// ## Styles
 	//
+
+	bool  has_styles = false;
+	pugi::xml_node  styles;
+
+	for ( auto& appstyle : my_gui.app_styles )
+	{
+		if ( my_gui.application.IsInbuiltStylePrefix(appstyle->name.c_str()) )
+			continue;
+
+		if ( !has_styles )
+		{
+			has_styles = true;
+			styles = root.append_child(nodename_styles);
+		}
+		
+		pugi::xml_node  style = styles.append_child(nodename_style);
+		style.append_attribute("name").set_value(appstyle->name.c_str());
+		// id?
+
+		auto  window_border = style.append_child(nodename_window_border);
+		auto  frame_border = style.append_child(nodename_frame_border);
+		auto  popup_border = style.append_child(nodename_popup_border);
+
+		window_border.append_attribute("enabled").set_value(static_cast<bool>(appstyle->style.WindowBorderSize));
+		frame_border.append_attribute("enabled").set_value(static_cast<bool>(appstyle->style.FrameBorderSize));
+		popup_border.append_attribute("enabled").set_value(static_cast<bool>(appstyle->style.PopupBorderSize));
+
+		auto  rendering = style.append_child(nodename_rendering);
+		auto  colours = style.append_child(nodename_colours);
+		auto  sizes = style.append_child(nodename_sizes);
+
+		auto  aal = rendering.append_child(nodename_antialiased_lines);
+		auto  aalut = rendering.append_child(nodename_antialiased_lines_use_texture);
+		auto  aaf = rendering.append_child(nodename_antialiased_fill);
+		auto  ctt = rendering.append_child(nodename_curve_tessellation_tolerance);
+		auto  ctme = rendering.append_child(nodename_circle_tessellation_max_error);
+		auto  ga = rendering.append_child(nodename_global_alpha);
+		auto  da = rendering.append_child(nodename_disabled_alpha);
+
+		aal.append_attribute("enabled").set_value(appstyle->style.AntiAliasedLines);
+		aalut.append_attribute("enabled").set_value(appstyle->style.AntiAliasedLinesUseTex);
+		aaf.append_attribute("enabled").set_value(appstyle->style.AntiAliasedFill);
+		ctt.append_attribute("value").set_value(core::aux::float_string_precision(appstyle->style.CurveTessellationTol, 2).c_str());
+		ctme.append_attribute("value").set_value(core::aux::float_string_precision(appstyle->style.CircleTessellationMaxError, 2).c_str());
+		ga.append_attribute("value").set_value(core::aux::float_string_precision(appstyle->style.Alpha, 2).c_str());
+		da.append_attribute("value").set_value(core::aux::float_string_precision(appstyle->style.DisabledAlpha, 2).c_str());
+
+		// if only imgui settings were all declared using this setup!
+		for ( int i = 0; i < ImGuiCol_COUNT; i++ )
+		{
+			auto  col = colours.append_child(ImGui::GetStyleColorName(i));
+			ImU32  u = ImGui::ColorConvertFloat4ToU32(appstyle->style.Colors[i]);
+			
+			col.append_attribute("r").set_value(static_cast<unsigned int>(0xFF & (u >> 0)));
+			col.append_attribute("g").set_value(static_cast<unsigned int>(0xFF & (u >> 8)));
+			col.append_attribute("b").set_value(static_cast<unsigned int>(0xFF & (u >> 16)));
+			col.append_attribute("a").set_value(static_cast<unsigned int>(0xFF & (u >> 24)));
+		}
+
+		auto  wp = sizes.append_child(nodename_window_padding);
+		auto  fp = sizes.append_child(nodename_frame_padding);
+		auto  its = sizes.append_child(nodename_item_spacing);
+		auto  iis = sizes.append_child(nodename_item_inner_spacing);
+		auto  tep = sizes.append_child(nodename_touch_extra_padding);
+		auto  ins = sizes.append_child(nodename_indent_spacing);
+		auto  ss = sizes.append_child(nodename_scrollbar_size);
+		auto  gms = sizes.append_child(nodename_grab_min_size);
+		auto  wbs = sizes.append_child(nodename_window_border_size);
+		auto  cbs = sizes.append_child(nodename_child_border_size);
+		auto  pbs = sizes.append_child(nodename_popup_border_size);
+		auto  fbs = sizes.append_child(nodename_frame_border_size);
+		auto  tbs = sizes.append_child(nodename_tab_border_size);
+		auto  tbbs = sizes.append_child(nodename_tabbar_border_size);
+		auto  wr = sizes.append_child(nodename_window_rounding);
+		auto  cr = sizes.append_child(nodename_child_rounding);
+		auto  fr = sizes.append_child(nodename_frame_rounding);
+		auto  pr = sizes.append_child(nodename_popup_rounding);
+		auto  sr = sizes.append_child(nodename_scrollbar_rounding);
+		auto  gr = sizes.append_child(nodename_grab_rounding);
+		auto  tr = sizes.append_child(nodename_tab_rounding);
+		auto  cp = sizes.append_child(nodename_cell_padding);
+		auto  taha = sizes.append_child(nodename_table_angled_headers_angle);
+		auto  wta = sizes.append_child(nodename_window_title_align);
+		auto  wmbp = sizes.append_child(nodename_window_menu_button_position);
+		auto  cbp = sizes.append_child(nodename_color_button_position);
+		auto  bta = sizes.append_child(nodename_button_text_align);
+		auto  sta = sizes.append_child(nodename_selectable_text_align);
+		auto  stp = sizes.append_child(nodename_separator_text_padding);
+		auto  lsd = sizes.append_child(nodename_log_slider_deadzone);
+		auto  dsap = sizes.append_child(nodename_display_safe_area_padding);
+
+		wp.append_attribute("x").set_value(appstyle->style.WindowPadding.x);
+		wp.append_attribute("y").set_value(appstyle->style.WindowPadding.y);
+		fp.append_attribute("x").set_value(appstyle->style.FramePadding.x);
+		fp.append_attribute("y").set_value(appstyle->style.FramePadding.y);
+		its.append_attribute("x").set_value(appstyle->style.ItemSpacing.x);
+		its.append_attribute("y").set_value(appstyle->style.ItemSpacing.y);
+		iis.append_attribute("x").set_value(appstyle->style.ItemInnerSpacing.x);
+		iis.append_attribute("y").set_value(appstyle->style.ItemInnerSpacing.y);
+		tep.append_attribute("x").set_value(appstyle->style.TouchExtraPadding.x);
+		tep.append_attribute("y").set_value(appstyle->style.TouchExtraPadding.y);
+		ins.append_attribute("value").set_value(appstyle->style.IndentSpacing);
+		ss.append_attribute("value").set_value(appstyle->style.ScrollbarSize);
+		gms.append_attribute("value").set_value(appstyle->style.GrabMinSize);
+		wbs.append_attribute("value").set_value(appstyle->style.WindowBorderSize);
+		cbs.append_attribute("value").set_value(appstyle->style.ChildBorderSize);
+		pbs.append_attribute("value").set_value(appstyle->style.PopupBorderSize);
+		fbs.append_attribute("value").set_value(appstyle->style.FrameBorderSize);
+		tbs.append_attribute("value").set_value(appstyle->style.TabBorderSize);
+		tbbs.append_attribute("value").set_value(appstyle->style.TabBarBorderSize);
+		wr.append_attribute("value").set_value(appstyle->style.WindowRounding);
+		cr.append_attribute("value").set_value(appstyle->style.ChildRounding);
+		fr.append_attribute("value").set_value(appstyle->style.FrameRounding);
+		pr.append_attribute("value").set_value(appstyle->style.PopupRounding);
+		sr.append_attribute("value").set_value(appstyle->style.ScrollbarRounding);
+		gr.append_attribute("value").set_value(appstyle->style.GrabRounding);
+		tr.append_attribute("value").set_value(appstyle->style.TabRounding);
+		cp.append_attribute("x").set_value(appstyle->style.CellPadding.x);
+		cp.append_attribute("y").set_value(appstyle->style.CellPadding.y);
+		taha.append_attribute("value").set_value(core::aux::float_string_precision(appstyle->style.TableAngledHeadersAngle, 2).c_str());
+		wta.append_attribute("x").set_value(core::aux::float_string_precision(appstyle->style.WindowTitleAlign.x, 2).c_str());
+		wta.append_attribute("y").set_value(core::aux::float_string_precision(appstyle->style.WindowTitleAlign.y, 2).c_str());
+		wmbp.append_attribute("value").set_value(appstyle->style.WindowMenuButtonPosition);
+		cbp.append_attribute("value").set_value(appstyle->style.ColorButtonPosition);
+		bta.append_attribute("x").set_value(core::aux::float_string_precision(appstyle->style.ButtonTextAlign.x, 2).c_str());
+		bta.append_attribute("y").set_value(core::aux::float_string_precision(appstyle->style.ButtonTextAlign.y, 2).c_str());
+		sta.append_attribute("x").set_value(appstyle->style.SelectableTextAlign.x);
+		sta.append_attribute("y").set_value(appstyle->style.SelectableTextAlign.y);
+		stp.append_attribute("x").set_value(appstyle->style.SeparatorTextPadding.x);
+		stp.append_attribute("y").set_value(appstyle->style.SeparatorTextPadding.y);
+		lsd.append_attribute("value").set_value(appstyle->style.LogSliderDeadzone);
+		dsap.append_attribute("x").set_value(appstyle->style.DisplaySafeAreaPadding.x);
+		dsap.append_attribute("y").set_value(appstyle->style.DisplaySafeAreaPadding.y);
+	}
+
+
 }
 
 

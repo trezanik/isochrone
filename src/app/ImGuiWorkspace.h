@@ -1645,6 +1645,23 @@ public:
 
 	/** Configuration settings for this workspace. Currently NOT saved on closure */
 	workspace_config  wksp_cfg;
+
+
+	/**
+	 * Refreshes an external modification to the workspace data
+	 * 
+	 * Presently, this is geared towards styles *only* - all other data should
+	 * be kept in sync already. Styles have an external (to this workspace)
+	 * editor, and we need a way to acquire new content without closing the
+	 * entire thing down and reopening - very poor.
+	 * 
+	 * As styles can be acquired and set dynamically, simply swap out the data
+	 * structure (to acquire the updated styles), then iterate all the nodes and
+	 * pins (and anything else in future) and re-invoke the SetStyle, as if they
+	 * were being modified within a GUI call.
+	 */
+	void
+	UpdateWorkspaceData();
 };
 
 

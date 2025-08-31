@@ -192,6 +192,9 @@ ImGuiPreferencesDialog::ApplyModifications()
 	{
 		cfg->Set(cur.first, VariantDataAsString(cur.second));
 	}
+	
+	// don't want to check every setting for this to apply in advance!
+	//_gui_interactions.active_app_style;
 
 	my_loaded_settings = my_current_settings;
 
@@ -685,6 +688,7 @@ ImGuiPreferencesDialog::Draw_Display()
 	ImGui::SeparatorText("Style");
 	ImGui::Indent();
 	{
+#if 0
 		/*
 		 * For alpha, have a switch between the imgui inbuilt Dark and Light
 		 * styles. For main release, have these integrated into our custom
@@ -700,16 +704,10 @@ ImGuiPreferencesDialog::Draw_Display()
 		{
 			my_current_settings[TZK_CVAR_SETTING_UI_STYLE_NAME] = std::string("light");
 		}
-
-#if 0  // to fill with styling
-		if ( ImGui::CollapsingHeader("Style", ImGuiTreeNodeFlags_DefaultOpen) )
-		{
-			ImGui::Indent();
-
-			
-
-			ImGui::Unindent();
-		}
+#else
+		Draw_ComboItem(my_style_list, TZK_CVAR_SETTING_UI_STYLE_NAME);
+		ImGui::SameLine();
+		ImGui::HelpMarker("To view, create or delete styles and settings, open the Style Editor");
 #endif
 	}
 	ImGui::Unindent();
@@ -1779,6 +1777,12 @@ ImGuiPreferencesDialog::LoadPreferences()
 		 * would be a shorthand to revert to those
 		 */
 		my_font_list.emplace(my_font_list.begin(), "");
+
+		my_style_list.clear();
+		for ( auto& ast : _gui_interactions.app_styles )
+		{
+			my_style_list.push_back(ast->name);
+		}
 
 		my_loaded_settings[TZK_CVAR_SETTING_UI_DEFAULT_FONT_FILE] = inflight[TZK_CVAR_SETTING_UI_DEFAULT_FONT_FILE];
 		my_loaded_settings[TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE] = std::stoi(inflight[TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE]);

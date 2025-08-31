@@ -200,12 +200,9 @@ AppConfigServer::ValidateForCvar(
 		return ErrNONE;
 	case TZK_CVAR_HASH_UI_STYLE_NAME:
 		{
-			if ( STR_compare(setting, "dark", case_sens_false) != 0
-			  && STR_compare(setting, "light", case_sens_false) != 0
-			)
-			{
+			// anything not empty could be valid
+			if ( strlen(setting) == 0 )
 				return ErrDATA;
-			}
 		}
 		return ErrNONE;
 	case TZK_CVAR_HASH_UI_WINDOW_POS_DISPLAY:

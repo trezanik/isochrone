@@ -952,6 +952,34 @@ public:
 
 
 	/**
+	 * Compares a supplied style name to an inbuilt prefix.
+	 * 
+	 * Styles use 'Inbuilt:', as ImGui integrates them
+	 * 
+	 * @param[in] name
+	 *  The style name to compare. Not case-sensitive
+	 */
+	bool
+	IsInbuiltStylePrefix(
+		const char* name
+	) const;
+
+
+	/**
+	 * Compares a supplied name to our default prefix.
+	 * 
+	 * Our standard names use 'Default:' - these cannot be modified.
+	 * 
+	 * @param[in] name
+	 *  The style name to compare. Not case-sensitive
+	 */
+	bool
+	IsReservedStylePrefix(
+		const char* name
+	) const;
+
+
+	/**
 	 * Loads configuration from file
 	 * 
 	 * If the configuration file does not exist, it will attempt to be created

@@ -1225,6 +1225,16 @@ public:
 
 
 	/**
+	 * Gets the workspace data
+	 *
+	 * @return
+	 *  Reference to the workspace data
+	 */
+	const workspace_data&
+	GetWorkspaceData() const;
+
+
+	/**
 	 * Gets the workspace file path
 	 *
 	 * @return

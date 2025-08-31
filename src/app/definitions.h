@@ -40,3 +40,8 @@
 #	define TZK_FILEDIALOG_INPUTBUF_SIZE     1024
 #endif
 
+#if !defined(TZK_MAX_NUM_STYLES)
+	// Number of styles per-item that can be added, including inbuilt
+#	define TZK_MAX_NUM_STYLES     255
+#endif
+

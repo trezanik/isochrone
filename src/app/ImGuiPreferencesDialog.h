@@ -212,6 +212,8 @@ private:
 		"17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "28",
 		"30", "32", "34", "36", "38", "42", "44", "46", "48", "64", "72"
 	};
+	/// Available style names, copied from the appstyles already in config
+	std::vector<std::string>  my_style_list;
 
 	/**
 	 * Set of all the registered event callback IDs

@@ -166,6 +166,39 @@ struct IMGUI_API PinStyle
 	, outline_colour(default_link_outline_colour)
 	{
 	}
+
+
+	/**
+	 * Copy constructor
+	 * 
+	 * @note
+	 *  Does not copy the image if present (not yet implemented anyway), method
+	 *  needed to reobtain the SDL_Texture* from the resource, or duplicate the
+	 *  actual texture.
+	 *  As we don't destroy it, we could always just retain the pointer pass
+	 *  around, and as long as it points to the cached item and is not cleared,
+	 *  it'll always stay valid anyway.
+	 *  Not considered this yet so rolling off top of the head.
+	 */
+	PinStyle(
+		PinStyle const& other
+	)
+	{
+		display = other.display;
+		filename = other.filename;
+		image = other.image; // safe??
+		image_scale = other.image_scale;
+		socket_colour = other.socket_colour;
+		socket_shape = other.socket_shape;
+		socket_radius = other.socket_radius;
+		socket_connected_radius = other.socket_connected_radius;
+		socket_thickness = other.socket_thickness;
+		link_thickness = other.link_thickness;
+		link_dragged_thickness = other.link_dragged_thickness;
+		link_hovered_thickness = other.link_hovered_thickness;
+		link_selected_outline_thickness = other.link_selected_outline_thickness;
+		outline_colour = other.outline_colour;
+	}
 	
 
 	/// the type of socket displayed; image or shape

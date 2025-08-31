@@ -1409,11 +1409,6 @@ Application::InitializeIMGUI()
 	io.ConfigWindowsMoveFromTitleBarOnly = true;
 
 
-	// to be replaced with proper custom styling
-	bool  light_theme = (my_cfg.ui.style.name == "light");
-	light_theme ? ImGui::StyleColorsLight() : ImGui::StyleColorsDark();
-
-
 #if TZK_USING_SDL
 	my_imgui_impl = std::make_shared<ImGuiImpl_SDL2>(my_imgui_context, my_renderer, my_window);
 	if ( !my_imgui_impl->Init() )
@@ -1462,6 +1457,27 @@ TZK_CC_RESTORE_WARNING // -Wmissing-field-initializers
 	// first time run/nothing custom, and this won't exist
 	my_app_imgui->LoadUserData(my_context->UserDataPath());
 
+	// apply the custom style based on the application configuration
+	for ( auto& ast : my_gui_interactions->app_styles )
+	{
+		if ( ast->name == my_cfg.ui.style.name )
+		{
+			auto&  st = ImGui::GetStyle();
+			memcpy(&st, &ast->style, sizeof(ImGuiStyle));
+			my_gui_interactions->active_app_style = my_cfg.ui.style.name;
+			break;
+		}
+	}
+
+	// coverage for no configuration or failure to load
+	if ( my_gui_interactions->active_app_style.empty() )
+	{
+		TZK_LOG_FORMAT(LogLevel::Warning, "Unable to find configured style '%s', reverting to inbuilt", my_cfg.ui.style.name.c_str());
+		
+		ImGui::StyleColorsDark();
+		my_cfg.ui.style.name = "Inbuilt:Dark";
+		my_gui_interactions->active_app_style = my_cfg.ui.style.name;
+	}
 
 	TZK_LOG(LogLevel::Debug, "ImGui Initialization complete");
 
@@ -1864,6 +1880,31 @@ Application::InterpretCommandLine(
 	}
 
 	return ErrNONE;
+}
+
+
+bool
+Application::IsInbuiltStylePrefix(
+	const char* name
+) const
+{
+	bool  case_sensitive = false;
+	const char  cname[] = "Inbuilt:";
+	return STR_compare_n(name, cname, strlen(cname), case_sensitive) == 0;
+}
+
+
+bool
+Application::IsReservedStylePrefix(
+	const char* name
+) const
+{
+	/*
+	 * Resides in Workspace.h, which doesn't have access to us.
+	 * Make available so there's only a single function, and anything without
+	 * workspace access can use this
+	 */
+	return IsReservedStyleName(name);
 }
 
 

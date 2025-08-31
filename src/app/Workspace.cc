@@ -1098,6 +1098,13 @@ Workspace::GetServiceGroup(
 }
 
 
+const workspace_data&
+Workspace::GetWorkspaceData() const
+{
+	return my_wksp_data;
+}
+
+
 void
 Workspace::HandleProcessAborted(
 	trezanik::app::EventData::process_aborted TZK_UNUSED(pabort)
@@ -2602,6 +2609,12 @@ Workspace::LoadVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
 			continue;
 		}
 
+		if ( valid_node_styles == TZK_MAX_NUM_STYLES )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Styles limit (%u) reached, skipping all other elements", TZK_MAX_NUM_STYLES);
+			break;
+		}
+
 		num_node_styles++;
 
 		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing node style %zu", num_node_styles);
@@ -2671,6 +2684,12 @@ Workspace::LoadVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
 			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-style in styles: %s", pin_style.name());
 			pin_style = pin_style.next_sibling();
 			continue;
+		}
+
+		if ( valid_pin_styles == TZK_MAX_NUM_STYLES )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Styles limit (%u) reached, skipping all other elements", TZK_MAX_NUM_STYLES);
+			break;
 		}
 
 		num_pin_styles++;

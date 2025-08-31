@@ -6323,6 +6323,40 @@ ImGuiWorkspace::UpdatePinTooltip(
 
 
 
+void
+ImGuiWorkspace::UpdateWorkspaceData()
+{
+	my_wksp_data = my_workspace->WorkspaceData();
+
+	/*
+	 * For now, this is used for node and pin style changes only. Nodes being
+	 * modified will be ignored, otherwise we might as well re-call SetWorkspace
+	 * and delete everything (which I'm trying to avoid).
+	 * 
+	 * Invalid styles (e.g. custom one assigned now deleted) are fine as they'll
+	 * revert to defaults if not found
+	 */
+
+	for ( auto& n : my_nodes )
+	{
+		n.second->SetStyle(GetNodeStyle(n.first->style.c_str()));
+
+		for ( auto& p : n.second->GetPins() )
+		{
+			for ( auto& ps : n.first->pins )
+			{
+				if ( ps.id == p->GetID() )
+				{
+					p->SetStyle(GetPinStyle(ps.style.c_str()));
+				}
+			}
+		}
+	}
+}
+
+
+
+
 
 // to be split out to ImGuiWorkspaceNodes.cc ??
 

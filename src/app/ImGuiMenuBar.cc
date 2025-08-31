@@ -120,39 +120,48 @@ ImGuiMenuBar::Draw()
 
 	if ( ImGui::BeginMenu("Application") )
 	{
-		if ( ImGui::BeginMenu("Theme") )
+		if ( ImGui::BeginMenu("Style") )
 		{
-			engine::EventData::Engine_Config  data;
-			bool  theme_changed = false;
-
-			if ( ImGui::MenuItem("Light", "", nullptr) )
+			if ( ImGui::MenuItem("Editor", "", _gui_interactions.show_style_editor) )
 			{
-				ImGui::StyleColorsLight();
-				data.new_config.emplace(TZK_CVAR_SETTING_UI_STYLE_NAME, "light");
-				theme_changed = true;
-			}
-			if ( ImGui::MenuItem("Dark", "", nullptr) )
-			{
-				ImGui::StyleColorsDark();
-				data.new_config.emplace(TZK_CVAR_SETTING_UI_STYLE_NAME, "dark");
-				theme_changed = true;
+				_gui_interactions.show_style_editor = !_gui_interactions.show_style_editor;
 			}
 
-			if ( theme_changed )
-			{
-				// special case; update the preferences on the fly
-				
-				// notify out, as appimgui has custom tweaks to perform on theme changes currently
-				engine::ServiceLocator::EventManager()->PushEvent(
-					engine::EventType::Domain::Engine,
-					engine::EventType::ConfigChange,
-					&data
-				);
-			}
+			ImGui::Separator();
 
-#if 0 // loop all user available styles
-			//ImGui::Separator();
+			for ( auto& ast : _gui_interactions.app_styles )
+			{
+				bool  not_current = !(ast->name == _gui_interactions.active_app_style);
+
+				if ( ImGui::MenuItem(ast->name.c_str(), "", nullptr, not_current) )
+				{
+					_gui_interactions.active_app_style = ast->name;
+
+					/*
+					 * We can apply it immediately here, but config change will
+					 * trigger AppImGui to apply the style anyway since it has
+					 * the handling for modification in the Preferences dialog.
+					 * 
+					 * Without a config change, enable this code
+					 */
+#if 0
+					auto&  st = ImGui::GetStyle();
+					memcpy(&st, &ast->style, sizeof(ImGuiStyle));
+#else
+					// actually update the setting
+					auto  cfg = core::ServiceLocator::Config();
+					cfg->Set(TZK_CVAR_SETTING_UI_STYLE_NAME, ast->name.c_str());
+
+					// track the setting for notification to listeners
+					auto  cc = std::make_shared<engine::EventData::config_change>();
+					cc->new_config.emplace(TZK_CVAR_SETTING_UI_STYLE_NAME, ast->name.c_str());
+
+					// notify out, as appimgui has custom tweaks to perform on theme changes currently
+					core::ServiceLocator::EventDispatcher()->DelayedDispatch(uuid_configchange, cc);
 #endif
+					break;
+				}
+			}
 
 			ImGui::EndMenu();
 		}
