@@ -810,22 +810,6 @@ Context::UpdateThread(
 			std::this_thread::sleep_for(std::chrono::milliseconds(TZK_PAUSE_SLEEP_DURATION));
 			continue;
 		case State::Loading:
-			/*
-			 * Initiate loading of the critical resources. Save non-essential
-			 * for after the display is up
-			 */
-			if ( my_resources.empty() )
-			{
-				/// @todo add critical resources via bytegen for failsafe use; 
-				/// we're already doing this within app, is it needed here?
-				/* e.g.
-				my_resources.emplace_back(ResourceState::Declared,
-					std::make_shared<Resource_Font>("SQR721N.ttf", MediaType::font_ttf)
-				);
-				my_resources.emplace_back(ResourceState::Declared,
-					std::make_shared<Resource_Audio>("test.wav", MediaType::audio_wave)
-				);*/
-			}
 			for ( auto& res : my_resources )
 			{
 				my_resource_loader.AddResource(res.second);

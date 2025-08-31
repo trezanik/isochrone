@@ -775,13 +775,6 @@ ImNodeGraph::Update()
 
 	// Post-Frame actions
 	{
-#if 0  // Code Disabled: Nothing yet, but ideal for updating flags and other stuff..
-		for ( auto& n : my_nodes )
-		{
-			n.my_node_flags;
-		}
-#endif
-
 		if ( clear_drag_state )
 		{
 			my_lclick_was_dragging_prerelease = false;

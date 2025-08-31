@@ -5218,58 +5218,7 @@ ImGuiWorkspace::Notification(
 	case NodeUpdate::Boundary:
 		break;
 	case NodeUpdate::Created:
-		{
-#if 0 // redundant; workspace + imgui have the latest node trackings
-			for ( auto& in : my_wksp_data.nodes )
-			{
-				bool  found = false;
-
-				for ( auto& wn : my_workspace->GetNodes() )
-				{
-					if ( in->GetID() == wn->id )
-					{
-						found = true;
-						break;
-					}
-				}
-				if ( !found )
-				{
-					// found the new node, add it to the workspace
-					if ( in->Typename() == typename_system )
-					{
-						my_workspace->AddNode(std::dynamic_pointer_cast<graph_node_system>(in->GetGraphNode()));
-					}
-					else if ( in->Typename() == typename_boundary )
-					{
-						my_workspace->AddNode(std::dynamic_pointer_cast<graph_node_boundary>(in->GetGraphNode()));
-					}
-					else
-					{
-						TZK_DEBUG_BREAK;
-					}
-
-					// event notification
-					auto  extevt = std::make_unique<AppEvent_NodeCreate>(my_workspace->GetID(), in->GetID());
-					evtmgr->PushEvent(std::move(extevt));
-					
-#if 0 // Code Disabled: testing PoC for Command pattern
-					// retain command for undo/redo
-					cur.id = in->GetID();
-					now.id = in->GetID();
-					now.vec2 = in->GetSize();
-					v4.w = in->GetPosition().x;
-					v4.x = in->GetPosition().y;
-					v4.y = in->GetPosition().x + in->GetSize().x;
-					v4.z = in->GetPosition().y + in->GetSize().y;
-					now.vec4 = v4;
-
-					my_commands.emplace_back(Cmd::NodeCreate, std::move(cur), std::move(now));
-#endif
-					break;
-				}
-			}
-#endif
-		}
+		// redundant; workspace + imgui have the latest node trackings
 		break;
 	case NodeUpdate::Dragged:
 		{
