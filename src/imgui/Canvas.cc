@@ -35,7 +35,7 @@ Canvas::Canvas()
 		configuration.reset_scroll_key = ImGuiKey_R;
 		configuration.scroll_button = ImGuiMouseButton_Right;
 		configuration.zoom_divisions = 10.0f;
-		configuration.zoom_enabled = true;
+		configuration.zoom_enabled = false; // not enabled until (if) we make functional
 		configuration.zoom_max = 2.0f;
 		configuration.zoom_min = 0.3f;
 		configuration.zoom_smoothness = 5.f;
