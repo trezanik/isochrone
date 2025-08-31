@@ -20,6 +20,8 @@
 #include "core/util/string/string.h"
 #include "core/util/string/STR_funcs.h"
 #include "core/util/time.h"
+#include "core/error.h"
+#include "core/TConverter.h"
 
 #include <algorithm>
 
@@ -29,6 +31,12 @@ namespace app {
 
 
 static const char  workspace_ver_1_0[] = "60e18b8b-b4af-4065-af5e-a17c9cb73a41";
+static const char  strtype_bool[] = "boolean";
+static const char  strtype_dockloc[] = "dock_location";
+static const char  strtype_float[] = "float";
+static const char  strtype_rgba[] = "rgba";
+static const char  strtype_uint[] = "uinteger";
+
 
 
 Workspace::Workspace()
@@ -966,6 +974,40 @@ Workspace::AppendVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
 			xmlservicegroup.append_attribute("services").set_value(svclist.c_str());
 		}
 	}
+
+	// handle settings
+	pugi::xml_node  xmlsettings = xmlroot.append_child("settings");
+	for ( auto& setting : my_wksp_data.settings )
+	{
+		std::string   strtype;
+
+		// ugh
+		if ( setting.first.compare(settingname_dock_canvasdbg) == 0 )  strtype = strtype_dockloc;
+		if ( setting.first.compare(settingname_dock_propview) == 0 )  strtype = strtype_dockloc;
+		if ( setting.first.compare(settingname_grid_colour_background) == 0 )  strtype = strtype_rgba;
+		if ( setting.first.compare(settingname_grid_colour_primary) == 0 )  strtype = strtype_rgba;
+		if ( setting.first.compare(settingname_grid_colour_secondary) == 0 )  strtype = strtype_rgba;
+		if ( setting.first.compare(settingname_grid_colour_origin) == 0 )  strtype = strtype_rgba;
+		if ( setting.first.compare(settingname_grid_draw) == 0 )  strtype = strtype_bool;
+		if ( setting.first.compare(settingname_grid_draworigin) == 0 )  strtype = strtype_bool;
+		if ( setting.first.compare(settingname_grid_size) == 0 )  strtype = strtype_uint;
+		if ( setting.first.compare(settingname_grid_subdivisions) == 0 )  strtype = strtype_uint;
+		if ( setting.first.compare(settingname_node_dragfromheadersonly) == 0 )  strtype = strtype_bool;
+		if ( setting.first.compare(settingname_node_drawheaders) == 0 )  strtype = strtype_bool;
+
+		if ( strtype.empty() )
+		{
+			TZK_LOG_FORMAT(LogLevel::Error, "Setting type unidentified in Workspace save: %s", setting.first.c_str());
+		}
+		else
+		{
+			pugi::xml_node  xmlsetting = xmlsettings.append_child("setting");
+
+			xmlsetting.append_attribute("key").set_value(setting.first.c_str());
+			xmlsetting.append_attribute("type").set_value(strtype.c_str());
+			xmlsetting.append_attribute("value").set_value(setting.second.c_str());
+		}
+	}
 }
 
 
@@ -1636,12 +1678,32 @@ Workspace::LoadVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
 	 *     </link>
 	 *     ...more links...
 	 *   </links>
-	 *   <styles>
+	 *   <node_styles>
 	 *     <style name="">
 	 *       ...child elements...
 	 *     </style>
 	 *     ...more styles...
-	 *   </styles>
+	 *   </node_styles>
+	 *   <pin_styles>
+	 *     <style name="">
+	 *       ...child elements...
+	 *     </style>
+	 *     ...more styles...
+	 *   </pin_styles>
+	 *   <services>
+	 *     <service name="" protocol="" port="" comment"" />
+	 *     <service name="" protocol="" type="" code="" comment"" />
+	 *     ...more services...
+	 *   </services>
+	 *   <service_groups>
+	 *     <group name="" comment"" services="" />
+	 *     ...more service groups...
+	 *   </service_groups>
+	 *   <settings>
+	 *     <setting key="dock.propview" type="dock_location" value=Left" />
+	 *     <setting key="grid.draw" type="boolean" value="true" />
+	 *     ...more settings...
+	 *   </settings>
 	 * </workspace>
 	 */
 
@@ -1651,12 +1713,14 @@ Workspace::LoadVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
 	pugi::xml_node  pin_styles = workspace.child("pin_styles");
 	pugi::xml_node  service_groups = workspace.child("service_groups");
 	pugi::xml_node  services = workspace.child("services");
+	pugi::xml_node  settings = workspace.child("settings");
 	pugi::xml_node  node;
 	pugi::xml_node  link;
 	pugi::xml_node  node_style;
 	pugi::xml_node  pin_style;
 	pugi::xml_node  xml_service_group;
 	pugi::xml_node  xml_service;
+	pugi::xml_node  xml_setting;
 	size_t  num_nodes = 0;
 	size_t  valid_nodes = 0;
 	size_t  num_links = 0;
@@ -1669,6 +1733,7 @@ Workspace::LoadVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
 	size_t  valid_service_groups = 0;
 	size_t  num_services = 0;
 	size_t  valid_services = 0;
+	size_t  num_settings = 0;
 	auto  def_style = trezanik::imgui::NodeStyle::standard();
 
 	// grab first child of each core element for immediate iteration
@@ -1678,6 +1743,15 @@ Workspace::LoadVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
 	if ( pin_styles )     pin_style = pin_styles.child("style");
 	if ( service_groups ) xml_service_group = service_groups.child("group");
 	if ( services )       xml_service = services.child("service");
+	if ( settings )       xml_setting = settings.child("setting");
+
+	/*
+	 * For all these, the intention is to split out into individual methods for
+	 * each root child. Will be done in future, for now it's one big function.
+	 * This is due to:
+	 */
+	 /// @todo provide feedback method for all loaded parameters, common form
+
 
 	// must load before service groups and pins
 	while ( xml_service )
@@ -2777,7 +2851,111 @@ Workspace::LoadVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
 		pin_style = pin_style.next_sibling();
 	}
 
-	/// @todo provide feedback method for all loaded parameters, common form
+	while ( xml_setting )
+	{
+		if ( STR_compare(xml_setting.name(), "setting", true) != 0 )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-setting in settings: %s", xml_setting.name());
+			xml_setting = xml_setting.next_sibling();
+			continue;
+		}
+
+		num_settings++;
+
+		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing setting %zu", num_settings);
+
+		const char  str_key[] = "key";
+		const char  str_value[] = "value";
+		const char  str_type[] = "type";
+		pugi::xml_attribute  attr_key = xml_setting.attribute(str_key);
+		pugi::xml_attribute  attr_value = xml_setting.attribute(str_value);
+		pugi::xml_attribute  attr_type = xml_setting.attribute(str_type);
+
+		if ( !attr_key || attr_key.empty() )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Missing attribute '%s'", str_key);
+			xml_setting = xml_setting.next_sibling();
+			continue;
+		}
+		if ( !attr_value || attr_value.empty() )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Missing attribute '%s'", str_value);
+			xml_setting = xml_setting.next_sibling();
+			continue;
+		}
+		if ( !attr_type || attr_type.empty() )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Missing attribute '%s'", str_type);
+			xml_setting = xml_setting.next_sibling();
+			continue;
+		}
+
+		std::string  stype = attr_type.as_string();
+		// hashval, compile_time_hash
+
+		TZK_LOG_FORMAT(LogLevel::Trace, "Setting = %s (%s): %s", attr_key.value(), attr_type.value(), attr_value.value());
+
+		/*
+		 * Validate here, anything that fails is not added to the workspace
+		 * data settings and implied to be defaults.
+		 * Subsequent conversion is implied to always be 'good' when used in the
+		 * ImGuiWorkspace, no unset/invalid checks
+		 */
+		if ( stype.compare(strtype_bool) == 0 )
+		{
+			trezanik::core::TConverter<bool>::FromString(attr_value.value()); // for the warning log
+			my_wksp_data.settings[attr_key.value()] = attr_value.value();
+		}
+		else if ( stype.compare(strtype_dockloc) == 0 )
+		{
+			WindowLocation  wl = TConverter<WindowLocation>::FromString(attr_value.value());
+			if ( wl == WindowLocation::Invalid )
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Type conversion failed: %s", attr_value.value());
+			}
+			else
+			{
+				my_wksp_data.settings[attr_key.value()] = attr_value.value();
+			}
+		}
+		else if ( stype.compare(strtype_float) == 0 )
+		{
+			trezanik::core::TConverter<float>::FromString(attr_value.value());
+			my_wksp_data.settings[attr_key.value()] = attr_value.value();
+		}
+		else if ( stype.compare(strtype_rgba) == 0 )
+		{
+			size_t  v = trezanik::core::TConverter<size_t>::FromString(attr_value.value());
+			if ( v > UINT32_MAX )
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Type conversion failed: %s", attr_value.value());
+			}
+			else
+			{
+				my_wksp_data.settings[attr_key.value()] = attr_value.value();
+			}
+			my_wksp_data.settings[attr_key.value()] = attr_value.value();
+		}
+		else if ( stype.compare(strtype_uint) == 0 )
+		{
+			size_t  v = trezanik::core::TConverter<size_t>::FromString(attr_value.value());
+			if ( v > UINT_MAX )
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Type conversion failed: %s", attr_value.value());
+			}
+			else
+			{
+				my_wksp_data.settings[attr_key.value()] = attr_value.value();
+			}
+		}
+		else
+		{
+			TZK_LOG_FORMAT(LogLevel::Error, "Setting type not implemented: %s", stype.c_str());
+		}
+
+		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing setting %zu complete", num_settings);
+		xml_setting = xml_setting.next_sibling();
+	}
 
 	return ErrNONE;
 }
@@ -2789,15 +2967,6 @@ std::string
 Workspace::Name() const
 {
 	return my_wksp_data.name;
-}
-
-
-
-		{
-		}
-	}
-
-	return ErrNONE;
 }
 
 
@@ -2868,7 +3037,8 @@ Workspace::Save(
 			"\tNode Styles.....: %zu\n"
 			"\tPin Styles......: %zu\n"
 			"\tServices........: %zu\n"
-			"\tService Groups..: %zu"
+			"\tService Groups..: %zu\n"
+			"\tSettings........: %zu"
 			,
 			new_data->name.c_str(),
 			new_data->nodes.size(),
@@ -2876,7 +3046,8 @@ Workspace::Save(
 			new_data->node_styles.size(),
 			new_data->pin_styles.size(),
 			new_data->services.size(),
-			new_data->service_groups.size()
+			new_data->service_groups.size(),
+			new_data->settings.size()
 		);
 
 		my_wksp_data = *new_data;

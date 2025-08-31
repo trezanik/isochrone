@@ -13,9 +13,9 @@
 #include "app/Workspace.h"
 #include "app/Application.h"
 #include "app/AppConfigDefs.h"
+#include "app/AppImGui.h"  // drawclient IDs
 #include "app/TConverter.h"
 #include "app/Command.h"
-#include "app/ImGuiSemiFixedDock.h"
 #include "app/event/AppEvent.h"
 
 #include "engine/resources/ResourceCache.h"
@@ -48,6 +48,11 @@ constexpr char  popupname_hardware[] = "Hardware";
 constexpr char  popupname_service_group[] = "Service Group";
 constexpr char  popupname_service_selector[] = "Service Selector";
 constexpr char  popupname_service[] = "Service";
+
+static trezanik::core::UUID  drawclient_canvasdbg_uuid("9cbc06c0-c1e6-472c-a73a-1855039b1a1f");
+static trezanik::core::UUID  drawclient_propview_uuid("9a663f51-9162-4bec-964e-dd5f3da2db8e");
+
+
 
 /**
  * Enumeration for Service Management selection and control flow
@@ -104,8 +109,6 @@ ImGuiWorkspace::ImGuiWorkspace(
 , my_open_hardware_popup(false)
 , my_draw_hardware_popup(false)
 , my_commands_pos(0)
-, my_propview_dock(app::TConverter<WindowLocation>::FromString(core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_LAYOUT_PROPERTIES_LOCATION)))
-, my_canvasdbg_dock(app::TConverter<WindowLocation>::FromString(core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_LAYOUT_CANVASDBG_LOCATION)))
 {
 	using namespace trezanik::core;
 
@@ -139,6 +142,7 @@ ImGuiWorkspace::~ImGuiWorkspace()
 		{
 			evtmgr->Unregister(id);
 		}
+
 		/*
 		 * Would never expect these to be executed on application closure!
 		 * AppImGui destructor is the expected purging point, as it brings
@@ -147,44 +151,18 @@ ImGuiWorkspace::~ImGuiWorkspace()
 		 * For a standard closure of the workspace without the application
 		 * being closed, then yes, expect these invoked.
 		 */
-		if ( my_drawclient_propview != nullptr )
+		for ( auto& dc : my_draw_clients )
 		{
-			switch ( my_propview_dock )
+			switch ( dc->dock )
 			{
-			case WindowLocation::Bottom: _gui_interactions.dock_bottom->RemoveDrawClient(my_drawclient_propview); break;
-			case WindowLocation::Left:   _gui_interactions.dock_left->RemoveDrawClient(my_drawclient_propview); break;
-			case WindowLocation::Right:  _gui_interactions.dock_right->RemoveDrawClient(my_drawclient_propview); break;
-			case WindowLocation::Top:    _gui_interactions.dock_top->RemoveDrawClient(my_drawclient_propview); break;
+			case WindowLocation::Bottom: _gui_interactions.dock_bottom->RemoveDrawClient(dc); break;
+			case WindowLocation::Left:   _gui_interactions.dock_left->RemoveDrawClient(dc); break;
+			case WindowLocation::Right:  _gui_interactions.dock_right->RemoveDrawClient(dc); break;
+			case WindowLocation::Top:    _gui_interactions.dock_top->RemoveDrawClient(dc); break;
 			default: break;
 			}
-			my_drawclient_propview.reset();
 		}
-		if ( my_drawclient_canvasdbg != nullptr )
-		{
-			switch ( my_canvasdbg_dock )
-			{
-			case WindowLocation::Bottom: _gui_interactions.dock_bottom->RemoveDrawClient(my_drawclient_canvasdbg); break;
-			case WindowLocation::Left:   _gui_interactions.dock_left->RemoveDrawClient(my_drawclient_canvasdbg); break;
-			case WindowLocation::Right:  _gui_interactions.dock_right->RemoveDrawClient(my_drawclient_canvasdbg); break;
-			case WindowLocation::Top:    _gui_interactions.dock_top->RemoveDrawClient(my_drawclient_canvasdbg); break;
-			default: break;
-			}
-			my_drawclient_canvasdbg.reset();
-		}
-#if 0  // Code Disabled: placeholder code for next phase of draw client design
-		for ( auto& dc : my_drawclients )
-		{
-			switch ( dc.dock )
-			{
-			case WindowLocation::Bottom: _gui_interactions.dock_bottom->RemoveDrawClient(dc.client); break;
-			case WindowLocation::Left:   _gui_interactions.dock_left->RemoveDrawClient(dc.client); break;
-			case WindowLocation::Right:  _gui_interactions.dock_right->RemoveDrawClient(dc.client); break;
-			case WindowLocation::Top:    _gui_interactions.dock_top->RemoveDrawClient(dc.client); break;
-			default: break;
-			}
-			dc.client.reset();
-		}
-#endif
+		my_draw_clients.clear();
 	}
 	TZK_LOG(LogLevel::Trace, "Destructor finished");
 }
@@ -764,57 +742,55 @@ ImGuiWorkspace::AddPropertyRow<std::string>(
 
 
 void
-ImGuiWorkspace::AssignDockClients()
-{
-	my_drawclient_propview = std::make_shared<DrawClient>();
-	my_drawclient_propview->func = std::bind(&ImGuiWorkspace::DrawPropertyView, this);
-	my_drawclient_propview->name = my_workspace->Name() + " | Properties";
-	my_drawclient_propview->id = propview_id;
-	
-	switch ( my_propview_dock )
-	{
-	case WindowLocation::Bottom: _gui_interactions.dock_bottom->AddDrawClient(my_drawclient_propview); break;
-	case WindowLocation::Left:   _gui_interactions.dock_left->AddDrawClient(my_drawclient_propview); break;
-	case WindowLocation::Right:  _gui_interactions.dock_right->AddDrawClient(my_drawclient_propview); break;
-	case WindowLocation::Top:    _gui_interactions.dock_top->AddDrawClient(my_drawclient_propview); break;
-	default: break;
-	}
-
-	my_drawclient_canvasdbg = std::make_shared<DrawClient>();
-	my_drawclient_canvasdbg->func = std::bind(&trezanik::imgui::ImNodeGraph::DrawDebug, &my_nodegraph);
-	my_drawclient_canvasdbg->name = my_workspace->Name() + " | NodeGraph";
-	my_drawclient_canvasdbg->id = canvasdbg_id;
-
-	switch ( my_canvasdbg_dock )
-	{
-	case WindowLocation::Bottom: _gui_interactions.dock_bottom->AddDrawClient(my_drawclient_canvasdbg); break;
-	case WindowLocation::Left:   _gui_interactions.dock_left->AddDrawClient(my_drawclient_canvasdbg); break;
-	case WindowLocation::Right:  _gui_interactions.dock_right->AddDrawClient(my_drawclient_canvasdbg); break;
-	case WindowLocation::Top:    _gui_interactions.dock_top->AddDrawClient(my_drawclient_canvasdbg); break;
-	default: break;
-	}
-}
-
-
-#if 0  // Code Disabled: placeholder code for next phase of draw client design
-void
 ImGuiWorkspace::AssignDockClient(
 	const char* menu_name,
-	const char* dock_name,
+	WindowLocation dock,
 	client_draw_function bind_func,
-	trezanik::core::UUID& client_id
+	const trezanik::core::UUID& client_id
 )
 {
-	auto  dc = std::make_shared<DrawClient>();
-	dc->func = bind_func;
-	// log is not workspace-based, ensure handling for it and others
-	dc->name = my_workspace->Name() + "|" + dock_name;
-	dc->menu_name = menu_name;
-	dc->id = client_id;
+	using namespace trezanik::core;
 
-	my_drawclients.push_back(dc);
+	auto  dc = std::make_shared<DrawClient>();
+
+	dc->func = bind_func;
+	dc->dock = dock;
+	dc->menu_name = menu_name;
+
+	/*
+	 * Important: log/vkbd/rss are not workspace-based, and they have config
+	 * set in the application file, not the workspace one.
+	 * We will not monitor nor save their changes in this context.
+	 */
+	if ( client_id == blank_uuid )
+	{
+		/*
+		 * Blank ID items can have standard manipulation while the application
+		 * is running, but will NOT be able to save any associated settings,
+		 * since we associate settings to their IDs on load+save
+		 */
+		TZK_LOG_FORMAT(LogLevel::Warning, "Blank UUID supplied unexpectedly: %s", menu_name);
+		dc->id.Generate();
+		dc->name = my_workspace->Name() + "|Unnamed";	
+	}
+	else
+	{
+		dc->id = client_id;
+		dc->name = my_workspace->Name() + "|" + menu_name;
+	}
+
+	my_draw_clients.push_back(dc);
+
+	switch ( dc->dock )
+	{
+	case WindowLocation::Bottom: _gui_interactions.dock_bottom->AddDrawClient(dc); break;
+	case WindowLocation::Left:   _gui_interactions.dock_left->AddDrawClient(dc); break;
+	case WindowLocation::Right:  _gui_interactions.dock_right->AddDrawClient(dc); break;
+	case WindowLocation::Top:    _gui_interactions.dock_top->AddDrawClient(dc); break;
+	default:
+		break;
+	}
 }
-#endif
 
 
 void
@@ -1164,6 +1140,32 @@ ImGuiWorkspace::Draw()
 			{
 				// handle
 			}*/
+
+			/*
+			 * Update the settings that tie into the nodegraph and/or have not
+			 * been dynamically updated; workspace data such as nodes, services
+			 * and styles are tracked already, but settings are not.
+			 * 
+			 * There's no direct access into dependent project, so it's either
+			 * link into another notification/event routine, or just acquire
+			 * everything fresh now. Opting for this as easier (it's also 23:43
+			 * and I've been drinking), but will be better to have a proper
+			 * location - not to mention handling failure detection.
+			 * 
+			 * WindowLocation handling via dedicated method as it's already
+			 * routed through AppImGui for the application draw clients
+			 */
+			my_wksp_data.settings[settingname_grid_colour_background] = core::TConverter<size_t>::ToString(my_nodegraph.settings.grid_style.colours.background);
+			my_wksp_data.settings[settingname_grid_colour_origin] = core::TConverter<size_t>::ToString(my_nodegraph.settings.grid_style.colours.origins);
+			my_wksp_data.settings[settingname_grid_colour_primary] = core::TConverter<size_t>::ToString(my_nodegraph.settings.grid_style.colours.primary);
+			my_wksp_data.settings[settingname_grid_colour_secondary] = core::TConverter<size_t>::ToString(my_nodegraph.settings.grid_style.colours.secondary);
+			my_wksp_data.settings[settingname_grid_draw] = core::TConverter<bool>::ToString(my_nodegraph.settings.grid_style.draw);
+			my_wksp_data.settings[settingname_grid_draworigin] = core::TConverter<bool>::ToString(my_nodegraph.settings.grid_style.draw_origin);
+			my_wksp_data.settings[settingname_grid_size] = core::TConverter<size_t>::ToString(my_nodegraph.settings.grid_style.size);
+			my_wksp_data.settings[settingname_grid_subdivisions] = core::TConverter<size_t>::ToString(my_nodegraph.settings.grid_style.subdivisions);
+			my_wksp_data.settings[settingname_node_drawheaders] = core::TConverter<bool>::ToString(my_nodegraph.settings.node_draw_headers);
+			my_wksp_data.settings[settingname_node_dragfromheadersonly] = core::TConverter<bool>::ToString(my_nodegraph.settings.node_drag_from_headers_only);
+
 			int  rc;
 			if ( (rc = my_workspace->Save(my_workspace->GetPath(), &my_wksp_data)) != ErrNONE )
 			{
@@ -2849,30 +2851,29 @@ ImGuiWorkspace::DrawPropertyView()
 			row_count += 2;
 
 
-			// no effect until we've got the workspace (graph) config integrated; remove disabled when ready
+			// disable elements that are not yet integrated
 			ImGui::TableNextColumn();
 			ImGui::Text("Draw Headers");
 			ImGui::TableNextColumn();
-ImGui::BeginDisabled();
-			if ( ImGui::ToggleButton("##DrawHeaders", &wksp_cfg.draw_header) )
+		ImGui::BeginDisabled();
+			if ( ImGui::ToggleButton("##DrawHeaders", &my_nodegraph.settings.node_draw_headers) )
 			{
-				TZK_LOG_FORMAT(LogLevel::Trace, "Workspace.DrawHeader = %s", core::TConverter<bool>::ToString(wksp_cfg.draw_header).c_str());
+				TZK_LOG_FORMAT(LogLevel::Trace, "Workspace.DrawHeader = %s", core::TConverter<bool>::ToString(my_nodegraph.settings.node_draw_headers).c_str());
 			}
-ImGui::EndDisabled();
+		ImGui::EndDisabled();
 			ImGui::SameLine();
 			ImGui::HelpMarker("Toggle for each Node drawing its header\n"
 				"- Does not apply to BoundaryNodes, which must always have their headers shown"
+		"- Disabled : not yet implemented"
 			);
 			
 			ImGui::TableNextColumn();
 			ImGui::Text("Drag From Header Only");
 			ImGui::TableNextColumn();
-ImGui::BeginDisabled();
-			if ( ImGui::ToggleButton("##DragFromHeaderOnly", &wksp_cfg.drag_from_header_only) )
+			if ( ImGui::ToggleButton("##DragFromHeaderOnly", &my_nodegraph.settings.node_drag_from_headers_only) )
 			{
-				TZK_LOG_FORMAT(LogLevel::Trace, "Workspace.DragFromHeaderOnly = %s", core::TConverter<bool>::ToString(wksp_cfg.drag_from_header_only).c_str());
+				TZK_LOG_FORMAT(LogLevel::Trace, "Workspace.DragFromHeaderOnly = %s", core::TConverter<bool>::ToString(my_nodegraph.settings.node_drag_from_headers_only).c_str());
 			}
-ImGui::EndDisabled();
 			ImGui::SameLine();
 			ImGui::HelpMarker("Toggle for nodes being movable from any free space, or only their header\n"
 				"- Does not apply to BoundaryNodes, which always drag from their headers only"
@@ -5991,8 +5992,6 @@ ImGuiWorkspace::SetWorkspace(
 
 	my_workspace = wksp;
 
-	AssignDockClients();
-
 	// no event/notification triggers until a workspace is assigned in
 
 
@@ -6235,6 +6234,134 @@ ImGuiWorkspace::SetWorkspace(
 
 	// no-op needed for service_groups
 
+	// settings
+	/*
+	 * Special case:
+	 * Any draw clients not specified in settings will not be available in the
+	 * menu, or anywhere else (will add to its config props later).
+	 * This is especially true on the first run for a new workspace. We always
+	 * want these available for selection, so ensure they always exist!
+	 * Update visibility based on the config.
+	 */
+	WindowLocation  cdbg_loc = WindowLocation::Hidden;
+	WindowLocation  propview_loc = WindowLocation::Hidden;
+
+	for ( auto& setting : my_wksp_data.settings )
+	{
+		if ( setting.first.compare(settingname_dock_propview) == 0 )
+		{
+			propview_loc = TConverter<WindowLocation>::FromString(setting.second);
+			if ( propview_loc == WindowLocation::Invalid )
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring invalid setting supplied for '%s': %s", setting.first.c_str(), setting.second.c_str());
+				propview_loc = WindowLocation::Hidden;
+			}
+		}
+		else if ( setting.first.compare(settingname_dock_canvasdbg) == 0 )
+		{
+			cdbg_loc = TConverter<WindowLocation>::FromString(setting.second);
+			if ( cdbg_loc == WindowLocation::Invalid )
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring invalid setting supplied for '%s': %s", setting.first.c_str(), setting.second.c_str());
+				cdbg_loc = WindowLocation::Hidden;
+			}
+		}
+		else if ( setting.first.compare(settingname_grid_colour_background) == 0 )
+		{
+			size_t  v = core::TConverter<size_t>::FromString(setting.second);
+			if ( v <= UINT32_MAX )
+			{
+				my_nodegraph.settings.grid_style.colours.background = static_cast<uint32_t>(v);
+				my_nodegraph.GetCanvas().configuration.colour = my_nodegraph.settings.grid_style.colours.background;
+			}
+			else
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring invalid setting supplied for '%s': %s", setting.first.c_str(), setting.second.c_str());
+			}
+		}
+		else if ( setting.first.compare(settingname_grid_colour_primary) == 0 )
+		{
+			size_t  v = core::TConverter<size_t>::FromString(setting.second);
+			if ( v <= UINT32_MAX )
+			{
+				my_nodegraph.settings.grid_style.colours.primary = static_cast<uint32_t>(v);
+			}
+			else
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring invalid setting supplied for '%s': %s", setting.first.c_str(), setting.second.c_str());
+			}
+		}
+		else if ( setting.first.compare(settingname_grid_colour_secondary) == 0 )
+		{
+			size_t  v = core::TConverter<size_t>::FromString(setting.second);
+			if ( v <= UINT32_MAX )
+			{
+				my_nodegraph.settings.grid_style.colours.secondary = static_cast<uint32_t>(v);
+			}
+			else
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring invalid setting supplied for '%s': %s", setting.first.c_str(), setting.second.c_str());
+			}
+
+		}
+		else if ( setting.first.compare(settingname_grid_colour_origin) == 0 )
+		{
+			size_t  v = core::TConverter<size_t>::FromString(setting.second);
+			if ( v <= UINT32_MAX )
+			{
+				my_nodegraph.settings.grid_style.colours.origins = static_cast<uint32_t>(v);
+			}
+			else
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring invalid setting supplied for '%s': %s", setting.first.c_str(), setting.second.c_str());
+			}
+
+		}
+		else if ( setting.first.compare(settingname_grid_draw) == 0 )
+		{
+			my_nodegraph.settings.grid_style.draw = core::TConverter<bool>::FromString(setting.second);
+		}
+		else if ( setting.first.compare(settingname_grid_draworigin) == 0 )
+		{
+			my_nodegraph.settings.grid_style.draw_origin = core::TConverter<bool>::FromString(setting.second);
+		}
+		else if ( setting.first.compare(settingname_grid_size) == 0 )
+		{
+			size_t  v = core::TConverter<size_t>::FromString(setting.second);
+			if ( v >= 10 && v <= 100 && v % 10 == 0 )
+			{
+				my_nodegraph.settings.grid_style.size = static_cast<int>(v);
+			}
+			else
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring invalid setting supplied for '%s': %s", setting.first.c_str(), setting.second.c_str());
+			}
+		}
+		else if ( setting.first.compare(settingname_grid_subdivisions) == 0 )
+		{
+			size_t  v = core::TConverter<size_t>::FromString(setting.second);
+			if ( v == 1 || v == 2 || v == 5 || v == 10 )
+			{
+				my_nodegraph.settings.grid_style.subdivisions = static_cast<int>(v);
+			}
+			else
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring invalid setting supplied for '%s': %s", setting.first.c_str(), setting.second.c_str());
+			}
+		}
+		else if ( setting.first.compare(settingname_node_drawheaders) == 0 )
+		{
+			my_nodegraph.settings.node_draw_headers = core::TConverter<bool>::FromString(setting.second);
+		}
+		else if ( setting.first.compare(settingname_node_dragfromheadersonly) == 0 )
+		{
+			my_nodegraph.settings.node_drag_from_headers_only = core::TConverter<bool>::FromString(setting.second);
+		}
+	}
+
+	AssignDockClient("Canvas Debug", cdbg_loc, std::bind(&trezanik::imgui::ImNodeGraph::DrawDebug, &my_nodegraph), drawclient_canvasdbg_uuid);
+	AssignDockClient("Property View", propview_loc, std::bind(&ImGuiWorkspace::DrawPropertyView, this), drawclient_propview_uuid);
+
 	return retval;
 }
 
@@ -6321,6 +6448,38 @@ ImGuiWorkspace::UpdatePinTooltip(
 }
 
 
+std::tuple<std::shared_ptr<DrawClient>, WindowLocation>
+ImGuiWorkspace::UpdateDrawClientDockLocation(
+	const trezanik::core::UUID& drawclient_id,
+	WindowLocation newloc
+)
+{
+	using namespace trezanik::core;
+
+	if ( drawclient_id == drawclient_canvasdbg_uuid )
+	{
+		my_wksp_data.settings[settingname_dock_canvasdbg] = TConverter<WindowLocation>::ToString(newloc);
+	}
+	else if ( drawclient_id == drawclient_propview_uuid )
+	{
+		my_wksp_data.settings[settingname_dock_propview] = TConverter<WindowLocation>::ToString(newloc);
+	}
+
+	// find the draw client to return details to the caller
+	for ( auto& dc : my_draw_clients )
+	{
+		if ( dc->id == drawclient_id )
+		{
+			auto  retval = std::make_tuple<>(dc, dc->dock);
+			// AddDrawClient in ImGuiSemiFixedDock updates dc->dock, skip here
+			return retval;
+		}
+	}
+
+	TZK_LOG_FORMAT(LogLevel::Error, "Draw Client with ID %s not found", drawclient_id.GetCanonical());
+
+	return std::make_tuple<>(nullptr, WindowLocation::Invalid);
+}
 
 
 void

@@ -23,6 +23,23 @@ struct GuiInteractions;
 
 
 /**
+ * The location of the dock window
+ * 
+ * Default initialization to Hidden
+ */
+enum class WindowLocation
+{
+	Invalid, //< only used for type conversion
+	Hidden,  //< Do not draw the dock
+	Top,     //< Top of the screen, beneath menu bar
+	Left,    //< Left of the screen
+	Bottom,  //< Bottom of the screen, above status bar
+	Right    //< Right of the screen
+	//Window   //< As independent window
+};
+
+
+/**
  * Interface for an imgui drawable window
  */
 class IImGui

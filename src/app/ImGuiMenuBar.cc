@@ -12,6 +12,7 @@
 #include "app/ImGuiMenuBar.h"
 #include "app/ImGuiSemiFixedDock.h" // WindowLocation
 #include "app/ImGuiFileDialog.h" // FileDialogType
+#include "app/ImGuiWorkspace.h"
 #include "app/Application.h"
 #include "app/AppConfigDefs.h"
 #include "app/TConverter.h"
@@ -22,8 +23,8 @@
 #include "core/services/ServiceLocator.h"
 #include "core/services/log/Log.h"
 
-
 #if TZK_IS_DEBUG_BUILD
+#	include "engine/Context.h"
 #	include <csignal>
 #endif
 
@@ -91,13 +92,45 @@ ImGuiMenuBar::Draw()
 	if ( !ImGui::BeginMainMenuBar() )
 		return;
 
-	auto  update_log_location = [this](WindowLocation new_location){
+	// updater for application-wide dock draw clients
+	auto  update_appdc_location = [this](WindowLocation new_location, trezanik::core::UUID& window_id){
+		std::string  setting_name;
+		bool*        setting_show;
+
+		if ( window_id == drawclient_log_uuid )
+		{
+			setting_name = TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION;
+			setting_show = &_gui_interactions.show_log;
+		}
+#if 0  // not in appcfg yet
+		else if ( window_id == drawclient_rss_uuid )
+		{
+			setting_name = TZK_CVAR_SETTING_UI_LAYOUT_RSS_LOCATION;
+			setting_show = &_gui_interactions.show_rss;
+		}
+		else if ( window_id == drawclient_virtualkeyboard_uuid )
+		{
+			setting_name = TZK_CVAR_SETTING_UI_LAYOUT_VKBD_LOCATION;
+			setting_show = &_gui_interactions.show_vkbd;
+		}
+		else if ( window_id == drawclient_console_uuid )
+		{
+			setting_name = TZK_CVAR_SETTING_UI_LAYOUT_CONSOLE_LOCATION;
+			setting_show = &_gui_interactions.show_console;
+		}
+#endif
+		else
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Application draw client unhandled: %s", window_id.GetCanonical());
+			return;
+		}
+
 		// hide if set to hidden, otherwise show; ensure first to prevent double delete
-		_gui_interactions.show_log = new_location == WindowLocation::Hidden ? false : true;
+		*setting_show = new_location == WindowLocation::Hidden ? false : true;
 
 		auto cfg = core::ServiceLocator::Config();
 		// update core config, now available to getters
-		cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION, TConverter<WindowLocation>::ToString(new_location));
+		cfg->Set(setting_name, TConverter<WindowLocation>::ToString(new_location));
 
 		/*
 		 * Dispatch config change notification, so application can track the new
@@ -108,6 +141,7 @@ ImGuiMenuBar::Draw()
 		cc->new_config[setting_name] = cfg->Get(setting_name);
 		core::ServiceLocator::EventDispatcher()->DelayedDispatch(uuid_configchange, cc);
 	};
+	// updater for workspace-specific dock draw clients
 	auto  update_window_location = [this](WindowLocation new_location, trezanik::core::UUID& window_id)
 	{
 		app::EventData::window_location  wl;
@@ -197,20 +231,62 @@ ImGuiMenuBar::Draw()
 
 		ImGui::Separator();
 
-		if ( ImGui::BeginMenu("Show Log") )
+		/*
+		 * These are all the application-based draw clients.
+		 * Eventually, they can be brought out as standalone windows on top; for
+		 * now, they're tied into docks alongside the workspace draw clients.
+		 */
+
+#if 0  // Code Disabled: Not implemented/ready for use
+		if ( ImGui::BeginMenu("Show Console") )
 		{
-			if ( ImGui::MenuItem("Hidden", "", nullptr) ) { update_log_location(WindowLocation::Hidden); }
-			if ( ImGui::MenuItem("Left", "", nullptr) )   { update_log_location(WindowLocation::Left); }
-			if ( ImGui::MenuItem("Top", "", nullptr) )    { update_log_location(WindowLocation::Top); }
-			if ( ImGui::MenuItem("Bottom", "", nullptr) ) { update_log_location(WindowLocation::Bottom); }
-			if ( ImGui::MenuItem("Right", "", nullptr) )  { update_log_location(WindowLocation::Right); }
+			if ( ImGui::MenuItem("Hidden", "", nullptr) ) { update_appdc_location(WindowLocation::Hidden, drawclient_console_uuid); }
+			if ( ImGui::MenuItem("Left", "", nullptr) )   { update_appdc_location(WindowLocation::Left, drawclient_console_uuid); }
+			if ( ImGui::MenuItem("Top", "", nullptr) )    { update_appdc_location(WindowLocation::Top, drawclient_console_uuid); }
+			if ( ImGui::MenuItem("Bottom", "", nullptr) ) { update_appdc_location(WindowLocation::Bottom, drawclient_console_uuid); }
+			if ( ImGui::MenuItem("Right", "", nullptr) )  { update_appdc_location(WindowLocation::Right, drawclient_console_uuid); }
+			//if ( ImGui::MenuItem("Window", "", nullptr) )  { update_appdc_location(WindowLocation::Window, drawclient_console_uuid); }
 			ImGui::EndMenu();
 		}
-
-		ImGui::Separator();
-
-		ImGui::MenuItem(rss.text, rss.shortcut, rss.setting, rss.enabled);
-		ImGui::MenuItem(vkbd.text, vkbd.shortcut, vkbd.setting, vkbd.enabled);
+#endif
+		if ( ImGui::BeginMenu("Show Log") )
+		{
+			if ( ImGui::MenuItem("Hidden", "", nullptr) ) { update_appdc_location(WindowLocation::Hidden, drawclient_log_uuid); }
+			if ( ImGui::MenuItem("Left", "", nullptr) )   { update_appdc_location(WindowLocation::Left, drawclient_log_uuid); }
+			if ( ImGui::MenuItem("Top", "", nullptr) )    { update_appdc_location(WindowLocation::Top, drawclient_log_uuid); }
+			if ( ImGui::MenuItem("Bottom", "", nullptr) ) { update_appdc_location(WindowLocation::Bottom, drawclient_log_uuid); }
+			if ( ImGui::MenuItem("Right", "", nullptr) )  { update_appdc_location(WindowLocation::Right, drawclient_log_uuid); }
+			//if ( ImGui::MenuItem("Window", "", nullptr) )  { update_appdc_location(WindowLocation::Window, drawclient_log_uuid); }
+			ImGui::EndMenu();
+		}
+#if 0  // Code Disabled: Not implemented/ready for use
+		if ( ImGui::BeginMenu("Show RSS") )
+		{
+			if ( ImGui::MenuItem("Hidden", "", nullptr) ) { update_appdc_location(WindowLocation::Hidden, drawclient_rss_uuid); }
+			if ( ImGui::MenuItem("Left", "", nullptr) )   { update_appdc_location(WindowLocation::Left, drawclient_rss_uuid); }
+			if ( ImGui::MenuItem("Top", "", nullptr) )    { update_appdc_location(WindowLocation::Top, drawclient_rss_uuid); }
+			if ( ImGui::MenuItem("Bottom", "", nullptr) ) { update_appdc_location(WindowLocation::Bottom, drawclient_rss_uuid); }
+			if ( ImGui::MenuItem("Right", "", nullptr) )  { update_appdc_location(WindowLocation::Right, drawclient_rss_uuid); }
+			ImGui::Separator();
+			if ( ImGui::MenuItem("Window", "", nullptr) )
+			{
+				// something like this
+				_gui_interactions.rss_is_draw_client = false;
+				_gui_interactions.show_rss = !_gui_interactions.show_rss;
+			}
+			ImGui::EndMenu();
+		}
+		if ( ImGui::BeginMenu("Show Virtual Keyboard") )
+		{
+			if ( ImGui::MenuItem("Hidden", "", nullptr) ) { update_appdc_location(WindowLocation::Hidden, drawclient_virtualkeyboard_uuid); }
+			if ( ImGui::MenuItem("Left", "", nullptr) )   { update_appdc_location(WindowLocation::Left, drawclient_virtualkeyboard_uuid); }
+			if ( ImGui::MenuItem("Top", "", nullptr) )    { update_appdc_location(WindowLocation::Top, drawclient_virtualkeyboard_uuid); }
+			if ( ImGui::MenuItem("Bottom", "", nullptr) ) { update_appdc_location(WindowLocation::Bottom, drawclient_virtualkeyboard_uuid); }
+			if ( ImGui::MenuItem("Right", "", nullptr) )  { update_appdc_location(WindowLocation::Right, drawclient_virtualkeyboard_uuid); }
+			//if ( ImGui::MenuItem("Window", "", nullptr) )  { update_appdc_location(WindowLocation::Window, drawclient_virtualkeyboard_uuid); }
+			ImGui::EndMenu();
+		}
+#endif
 
 		ImGui::EndMenu();
 	}
@@ -235,42 +311,32 @@ ImGuiMenuBar::Draw()
 
 		if ( !disabled )
 		{
-			// workspace-specific draw clients
+			ImGui::Separator();
 
-#if 0 // Code Disabled: idea for future integration, all dock clients can be independent windows, loopable
-			if ( ImGui::BeginMenu("Service Management") )
+			// workspace-specific draw clients
+			std::shared_ptr<ImGuiWorkspace>  imwksp;
+			for ( auto& wksp : _gui_interactions.workspaces )
 			{
-				if ( ImGui::MenuItem("Window", "", nullptr) )
+				if ( wksp.first == _gui_interactions.active_workspace )
 				{
-					workspace_svcm.enabled = !workspace_svcm.enabled;
-					_gui_interactions.service_management_is_draw_client = false;
+					imwksp = wksp.second.first;
 				}
-				ImGui::Separator();
-				if ( ImGui::MenuItem("Hidden", "", nullptr) ) { update_window_location(WindowLocation::Hidden, svcmgmt_id); }
-				if ( ImGui::MenuItem("Left", "", nullptr) )   { update_window_location(WindowLocation::Left, svcmgmt_id); }
-				if ( ImGui::MenuItem("Top", "", nullptr) )    { update_window_location(WindowLocation::Top, svcmgmt_id); }
-				if ( ImGui::MenuItem("Bottom", "", nullptr) ) { update_window_location(WindowLocation::Bottom, svcmgmt_id); }
-				if ( ImGui::MenuItem("Right", "", nullptr) )  { update_window_location(WindowLocation::Right, svcmgmt_id); }
-				ImGui::EndMenu();
 			}
-#endif
-			if ( ImGui::BeginMenu("Property View") )
+			if ( imwksp != nullptr )
 			{
-				if ( ImGui::MenuItem("Hidden", "", nullptr) ) { update_window_location(WindowLocation::Hidden, propview_id); }
-				if ( ImGui::MenuItem("Left", "", nullptr) )   { update_window_location(WindowLocation::Left, propview_id); }
-				if ( ImGui::MenuItem("Top", "", nullptr) )    { update_window_location(WindowLocation::Top, propview_id); }
-				if ( ImGui::MenuItem("Bottom", "", nullptr) ) { update_window_location(WindowLocation::Bottom, propview_id); }
-				if ( ImGui::MenuItem("Right", "", nullptr) )  { update_window_location(WindowLocation::Right, propview_id); }
-				ImGui::EndMenu();
-			}
-			if ( ImGui::BeginMenu("Canvas Debug") )
-			{
-				if ( ImGui::MenuItem("Hidden", "", nullptr) ) { update_window_location(WindowLocation::Hidden, canvasdbg_id); }
-				if ( ImGui::MenuItem("Left", "", nullptr) )   { update_window_location(WindowLocation::Left, canvasdbg_id); }
-				if ( ImGui::MenuItem("Top", "", nullptr) )    { update_window_location(WindowLocation::Top, canvasdbg_id); }
-				if ( ImGui::MenuItem("Bottom", "", nullptr) ) { update_window_location(WindowLocation::Bottom, canvasdbg_id); }
-				if ( ImGui::MenuItem("Right", "", nullptr) )  { update_window_location(WindowLocation::Right, canvasdbg_id); }
-				ImGui::EndMenu();
+				for ( auto& dc : imwksp->GetDrawClients() )
+				{
+					if ( ImGui::BeginMenu(dc->menu_name.c_str()) )
+					{
+						if ( ImGui::MenuItem("Hidden", "", nullptr) ) { update_window_location(WindowLocation::Hidden, dc->id); }
+						if ( ImGui::MenuItem("Left", "", nullptr) )   { update_window_location(WindowLocation::Left, dc->id); }
+						if ( ImGui::MenuItem("Top", "", nullptr) )    { update_window_location(WindowLocation::Top, dc->id); }
+						if ( ImGui::MenuItem("Bottom", "", nullptr) ) { update_window_location(WindowLocation::Bottom, dc->id); }
+						if ( ImGui::MenuItem("Right", "", nullptr) )  { update_window_location(WindowLocation::Right, dc->id); }
+						// never permit dedicated windows for workspace draw clients
+						ImGui::EndMenu();
+					}
+				}
 			}
 		}
 

@@ -86,10 +86,13 @@ struct grid_colours
 /**
  * Style settings for the grid
  */
-struct grid_style
+struct grid_settings
 {
 	/** Boolean for actually drawing the grid */
 	bool  draw;
+
+	/** Boolean for drawing the origin marker (0,0) */
+	bool  draw_origin;
 
 	/** Size of grid spacing; must be divisible by 10 with no remainder */
 	int  size;
@@ -296,8 +299,6 @@ private:
 	/// All the links between pins within this graph
 	std::vector<std::shared_ptr<Link>>  my_links;
 
-	/// The style to be used for the grid
-	grid_style  my_grid_style;
 
 	// yes, these are all going to be flag based eventually!
 
@@ -405,6 +406,23 @@ private:
 
 protected:
 public:
+	/**
+	* All configurable settings, read from and written to the settings nodes in
+	* the workspace file.
+	* 
+	* Every setting needs initializing, as it will be directly used upon the
+	* creation of a new workspace. User amendments are then saved to the file
+	* and reloaded when opened.
+	* These are also the values used if no setting is specified at all in the
+	* file, which is default; only written if modified.
+	*/
+	struct {
+		grid_settings  grid_style;
+		bool  node_draw_headers = true;
+		bool  node_drag_from_headers_only = true;
+	} settings;
+
+	
 	/**
 	 * Standard constructor
 	 */
@@ -621,12 +639,12 @@ public:
 	 * Acquires the grid style
 	 *
 	 * @return
-	 *  Reference to the grid style object
+	 *  Reference to the grid_settings style object
 	 */
-	grid_style&
+	grid_settings&
 	GetGridStyle()
 	{
-		return my_grid_style;
+		return settings.grid_style;
 	}
 
 

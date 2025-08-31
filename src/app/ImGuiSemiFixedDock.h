@@ -30,25 +30,6 @@ namespace trezanik {
 namespace app {
 
 
-struct GuiInteractions;
-
-
-/**
- * The location of the dock window
- * 
- * Default initialization to Hidden
- */
-enum class WindowLocation
-{
-	Invalid, //< only used for type conversion
-	Hidden,  //< Do not draw the dock
-	Top,     //< Top of the screen, beneath menu bar
-	Left,    //< Left of the screen
-	Bottom,  //< Bottom of the screen, above status bar
-	Right    //< Right of the screen
-	//Window   //< As independent window
-};
-
 using client_draw_function = std::function<void()>;
 
 
@@ -71,6 +52,10 @@ struct DrawClient
 	client_draw_function  func;
 	/** the window id (presently declared in AppImGui.h) */
 	trezanik::core::UUID  id;
+	/** which dock this is currently assigned to */
+	WindowLocation  dock;
+	/** name as displayed in the menubar */
+	std::string  menu_name;
 };
 
 

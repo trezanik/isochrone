@@ -19,6 +19,7 @@
 #include "app/IImGui.h"
 #include "app/AppImGui.h"
 #include "app/Workspace.h"
+#include "app/ImGuiSemiFixedDock.h"
 
 #include "imgui/ImNodeGraph.h"
 #include "imgui/BaseNode.h"
@@ -600,29 +601,6 @@ enum class PropertyRowType
 
 
 /**
- * Per-Workspace configuration
- * 
- * Settings here will not be command or configserver-accessible, it will be via
- * Workspace properties only.
- * 
- * These are intended for preferences that retain in scope for an individual
- * workspace, such as drawing headers or showing the grid. which will be irksome
- * if switching between workspaces and it affects functionality
- */
-struct workspace_config
-{
-	/** Draws the header bar, which will contain the node title as text */
-	bool  draw_header;
-
-	/** Move a node by dragging from its header only; main body drag will be ignored */
-	bool  drag_from_header_only;
-
-	/** Canvas-specific */
-	//canvas_config  canvas;
-};
-
-
-/**
  * Graphical representation of a Workspace
  *
  * Since loading and visualization is different, this does result in essentially
@@ -792,22 +770,32 @@ private:
 	 */
 	size_t  my_commands_pos;
 
-	/** Property View draw client */
-	std::shared_ptr<DrawClient>  my_drawclient_propview;
 
-	/** Canvas Debug draw client */
-	std::shared_ptr<DrawClient>  my_drawclient_canvasdbg;
+	/**
+	 * All dock draw clients associated with this workspace
+	 */
+	std::vector<std::shared_ptr<DrawClient>>  my_draw_clients;
+
 
 	/**
 	 * Set of all the registered event callback IDs
 	 */
 	std::set<uint64_t>  my_reg_ids;
 
-	/** Dock to use for the Property View draw client */
-	WindowLocation  my_propview_dock;
+#if 0  // Code Disabled: consideration for permanent state, versus relying on events dispatch
+	/**
+	 * Project scope settings
+	 * 
+	 * Node graph settings are within the NodeGraph instance for this workspace,
+	 * as they're in a project this depends on
+	 */
+	struct {
 
-	/** Dock to use for the Canvas Debug draw client */
-	WindowLocation  my_canvasdbg_dock;
+		WindowLocation  dock_propview = WindowLocation::Left;
+		WindowLocation  dock_canvasdbg = WindowLocation::Left;
+
+	} my_settings;
+#endif
 
 
 	/**
@@ -937,14 +925,29 @@ private:
 
 
 	/**
-	 * Creates and assigns the draw clients for this workspace
+	 * Assigns a workspace-specific dock draw client
 	 * 
-	 * This includes:
-	 * - Property View
-	 * - Canvas Debug
+	 * Creates the draw client object, populated based on the input parameters.
+	 * Will automatically add to the dock stated (skipping if hidden).
+	 * 
+	 * @param[in] menu_name
+	 *  The name as displayed in the menubar and tab
+	 * @param[in] dock
+	 *  The dock to add the client to (or stay hidden)
+	 * @param[in] bind_func
+	 *  The binded std::function object that will be called each frame when this
+	 *  client is marked as active for that dock
+	 * @param[in] client_id
+	 *  The UUID of the dock client. Required in order to map to settings for
+	 *  persistence
 	 */
 	void
-	AssignDockClients();
+	AssignDockClient(
+		const char* menu_name,
+		WindowLocation dock,
+		client_draw_function bind_func,
+		const trezanik::core::UUID& client_id
+	);
 
 
 	/**
@@ -1618,6 +1621,19 @@ public:
 
 
 	/**
+	 * Gets a copy of all DrawClient objects within this workspace
+	 * 
+	 * @return
+	 *  A collection of DrawClient shared_ptrs
+	 */
+	std::vector<std::shared_ptr<DrawClient>>
+	GetDrawClients()
+	{
+		return my_draw_clients;
+	}
+
+
+	/**
 	 * Gets the Workspace linked with this object
 	 * 
 	 * @return
@@ -1643,8 +1659,31 @@ public:
 	);
 
 
-	/** Configuration settings for this workspace. Currently NOT saved on closure */
-	workspace_config  wksp_cfg;
+	/**
+	 * Updates the setting value for the dock location for a client only
+	 * 
+	 * AppImGui already has a consistent method for performing updates - which
+	 * is why we provide these return values - and the dock itself updates the
+	 * location tracking for each draw client at point of switch.
+	 * 
+	 * We only need these to negate the need for AppImGui to have private access
+	 * and to update the setting value for the workspace data, so the preference
+	 * can be saved.
+	 * 
+	 * @param[in] drawclient_id
+	 *  The draw client UUID
+	 * @param[in] newloc
+	 *  The new location setting
+	 * @return
+	 *  A tuple containing the draw client to be updated, and its present (old)
+	 *  dock location.
+	 *  If not found, the tuple will contain {nullptr, WindowLocation::Invalid}
+	 */
+	std::tuple<std::shared_ptr<DrawClient>, WindowLocation>
+	UpdateDrawClientDockLocation(
+		const trezanik::core::UUID& drawclient_id,
+		WindowLocation newloc
+	);
 
 
 	/**

@@ -71,10 +71,12 @@ enum class WindowLocation;
 struct DrawClient;
 
 // cth or ids??? can switch on hashes...
-static trezanik::core::UUID  propview_id("2e1ee664-2e7a-4d46-aca8-eea523a85cc5");
-static trezanik::core::UUID  canvasdbg_id("b7c7a899-7a91-48c5-a6c0-a5f29e64130c");
-static trezanik::core::UUID  svcmgmt_id("6adf273a-4886-4bfd-969e-e5571d49a84e");
-//static uint32_t  canvasdbg_hash = trezanik::core::aux::compile_time_hash();
+static trezanik::core::UUID  drawclient_log_uuid("2e1ee664-2e7a-4d46-aca8-eea523a85cc5");
+static trezanik::core::UUID  drawclient_virtualkeyboard_uuid("b7c7a899-7a91-48c5-a6c0-a5f29e64130c");
+static trezanik::core::UUID  drawclient_rss_uuid("212c97f6-16a9-4be7-979f-b894d4a62c35");
+static trezanik::core::UUID  drawclient_console_uuid("ffb0709f-88cd-41cb-9b50-7d84b0537373");
+static trezanik::core::UUID  drawclient_svcmgmt_uuid("6adf273a-4886-4bfd-969e-e5571d49a84e");
+
 
 
 /**
@@ -331,10 +333,7 @@ private:
 	std::shared_ptr<DrawClient>  my_drawclient_log;
 	/** Draw client (dock-based window) for the virtual keyboard */
 	std::shared_ptr<DrawClient>  my_drawclient_vkb;
-	/** Log draw client dock */
-	WindowLocation  my_drawclient_log_location;
-	/** Virtual keyboard draw client dock */
-	WindowLocation  my_drawclient_vkb_location;
+	
 
 	/**
 	 * Handles configuration change events
@@ -520,7 +519,31 @@ private:
 
 
 	/**
+	 * Common implementation for relocating a draw client dock position
+	 * 
+	 * Usable for both application single-instance and workspace clients, for
+	 * consistency.
+	 * 
+	 * Only expected to be called from a HandleWindowLocation call; assumes the
+	 * input parameters are valid.
+	 * 
+	 * The old location parameter should be effectively redundant as we've moved
+	 * the updating action into the dock addition itself, but we'll retain it
+	 * for potential future use. Otherwise, always expect it to equal dc->dock.
+	 * 
+	 * @param[in] dc
+	 *  The draw client being updated
+	 * @param[in] new_loc
+	 *  The new location of the draw client
+	 * @param[in] old_loc
+	 *  The original location of the draw client
 	 */
+	void
+	UpdateDrawClientLocation(
+		std::shared_ptr<DrawClient> dc,
+		WindowLocation new_loc,
+		WindowLocation old_loc
+	);
 
 protected:
 public:

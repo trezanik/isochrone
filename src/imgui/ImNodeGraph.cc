@@ -42,19 +42,17 @@ ImNodeGraph::ImNodeGraph()
 
 	TZK_LOG(LogLevel::Trace, "Constructor starting");
 	{
+		// these are external configuration items, here for sane initialization values
+		settings.grid_style.colours.background = IM_COL32( 33,  41,  45, 255);
+		settings.grid_style.colours.primary    = IM_COL32(200, 200, 200,  28);
+		settings.grid_style.colours.secondary  = IM_COL32(100, 100,   0,  28);
+		settings.grid_style.colours.origins    = IM_COL32(200,   0,   0, 128);
+		settings.grid_style.size = 50;
+		settings.grid_style.subdivisions = settings.grid_style.size / 10;
+		settings.grid_style.draw = true;
+		settings.grid_style.draw_origin = false;
 
-		// these should now be workspace configuration items, passed down to canvas config
-		my_grid_style.colours.background = IM_COL32( 33,  41,  45, 255);
-		my_grid_style.colours.primary    = IM_COL32(200, 200, 200,  28);
-		my_grid_style.colours.secondary  = IM_COL32(100, 100,   0,  28);
-		my_grid_style.colours.origins    = IM_COL32(200,   0,   0, 128);
-		my_grid_style.size = 50;
-		my_grid_style.subdivisions = my_grid_style.size / 10;
-		my_grid_style.draw = true;
-
-		// eek
-		my_canvas.configuration.colour = my_grid_style.colours.background;
-
+		my_canvas.configuration.colour = settings.grid_style.colours.background;
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
@@ -157,34 +155,34 @@ TZK_VC_DISABLE_WARNINGS(4244) // int to float, and float to int conversion data 
 	// Display grid - default to full current window size
 	ImVec2  origin = my_canvas.GetOrigin(); // == ImGui::GetWindowPos()
 	ImVec2  grid_size = my_canvas.GetSize(); // == ImGui::GetWindowSize()
-	float   grid_sub_step = my_grid_style.size / my_grid_style.subdivisions;
+	float   grid_sub_step = settings.grid_style.size / settings.grid_style.subdivisions;
 	ImVec2  scroll = my_canvas.GetScroll();
 	
 	// if first time, center the grid origin within the canvas?
 	// akin to my_scroll.x + y = my_size / 2;
 	
-	if ( my_grid_style.draw )
+	if ( settings.grid_style.draw )
 	{
 		int  x_end = grid_size.x + origin.x;
 		int  y_end = grid_size.y + origin.y;
 
-		for ( int x = origin.x + fmodf(scroll.x, my_grid_style.size); x < x_end; x += my_grid_style.size )
+		for ( int x = origin.x + fmodf(scroll.x, settings.grid_style.size); x < x_end; x += settings.grid_style.size )
 		{
-			draw_list->AddLine(ImVec2(x, origin.y), ImVec2(x, y_end), my_grid_style.colours.primary);
+			draw_list->AddLine(ImVec2(x, origin.y), ImVec2(x, y_end), settings.grid_style.colours.primary);
 		}
-		for ( int y = origin.y + fmodf(scroll.y, my_grid_style.size); y < y_end; y += my_grid_style.size )
+		for ( int y = origin.y + fmodf(scroll.y, settings.grid_style.size); y < y_end; y += settings.grid_style.size )
 		{
-			draw_list->AddLine(ImVec2(origin.x, y), ImVec2(x_end, y), my_grid_style.colours.primary);
+			draw_list->AddLine(ImVec2(origin.x, y), ImVec2(x_end, y), settings.grid_style.colours.primary);
 		}
 		if ( my_canvas.Scale() > 0.7f )
 		{
 			for ( int x = origin.x + fmodf(scroll.x, grid_sub_step); x < x_end; x += grid_sub_step )
 			{
-				draw_list->AddLine(ImVec2(x, origin.y), ImVec2(x, y_end), my_grid_style.colours.secondary);
+				draw_list->AddLine(ImVec2(x, origin.y), ImVec2(x, y_end), settings.grid_style.colours.secondary);
 			}
 			for ( int y = origin.y + fmodf(scroll.y, grid_sub_step); y < y_end; y += grid_sub_step )
 			{
-				draw_list->AddLine(ImVec2(origin.x, y), ImVec2(x_end, y), my_grid_style.colours.secondary);
+				draw_list->AddLine(ImVec2(origin.x, y), ImVec2(x_end, y), settings.grid_style.colours.secondary);
 			}
 		}
 	}
@@ -198,46 +196,63 @@ ImNodeGraph::DrawDebug()
 {
 	if ( ImGui::CollapsingHeader("Style") )
 	{
+		ImGui::Indent();
+
 		ImGui::Text("Grid.Draw");
 		ImGui::SameLine();
-		ImGui::ToggleButton("Grid.Draw", &my_grid_style.draw);
-		ImVec4  fb = ImGui::ColorConvertU32ToFloat4(my_grid_style.colours.background);
-		ImVec4  fp = ImGui::ColorConvertU32ToFloat4(my_grid_style.colours.primary);
-		ImVec4  fs = ImGui::ColorConvertU32ToFloat4(my_grid_style.colours.secondary);
-		ImVec4  fo = ImGui::ColorConvertU32ToFloat4(my_grid_style.colours.origins);
+		ImGui::ToggleButton("##Grid.Draw", &settings.grid_style.draw);
+
+		ImGui::Text("Grid.DrawOrigin");
+		ImGui::SameLine();
+	ImGui::BeginDisabled();
+		ImGui::ToggleButton("##Grid.DrawOrigin", &settings.grid_style.draw_origin);
+	ImGui::EndDisabled();
+
+		ImVec4  fb = ImGui::ColorConvertU32ToFloat4(settings.grid_style.colours.background);
+		ImVec4  fp = ImGui::ColorConvertU32ToFloat4(settings.grid_style.colours.primary);
+		ImVec4  fs = ImGui::ColorConvertU32ToFloat4(settings.grid_style.colours.secondary);
+		ImVec4  fo = ImGui::ColorConvertU32ToFloat4(settings.grid_style.colours.origins);
 		if ( ImGui::ColorEdit4("Grid.Primary", &fp.x, ImGuiColorEditFlags_None) )
 		{
-			my_grid_style.colours.primary = ImGui::ColorConvertFloat4ToU32(fp);
+			settings.grid_style.colours.primary = ImGui::ColorConvertFloat4ToU32(fp);
 		}
 		if ( ImGui::ColorEdit4("Grid.Secondary", &fs.x, ImGuiColorEditFlags_None) )
 		{
-			my_grid_style.colours.secondary = ImGui::ColorConvertFloat4ToU32(fs);
+			settings.grid_style.colours.secondary = ImGui::ColorConvertFloat4ToU32(fs);
 		}
 		if ( ImGui::ColorEdit4("Grid.Origins", &fo.x, ImGuiColorEditFlags_None) )
 		{
-			my_grid_style.colours.origins = ImGui::ColorConvertFloat4ToU32(fo);
+			settings.grid_style.colours.origins = ImGui::ColorConvertFloat4ToU32(fo);
 		}
 		if ( ImGui::ColorEdit4("Grid.Background", &fb.x, ImGuiColorEditFlags_None) )
 		{
 			// as noted elsewhere, these need consistent location/storage
 			my_canvas.configuration.colour = ImGui::ColorConvertFloat4ToU32(fb);
-			my_grid_style.colours.background = my_canvas.configuration.colour;
+			settings.grid_style.colours.background = my_canvas.configuration.colour;
 		}
-		int  sz = my_grid_style.size;
+		int  sz = settings.grid_style.size;
 		if ( ImGui::SliderInt("Grid.Size", &sz, 10, 100) )
 		{
 			if ( sz % 10 == 0 )
-				my_grid_style.size = sz;
+				settings.grid_style.size = sz;
 		}
-		int  subdiv = my_grid_style.subdivisions;
+		ImGui::SameLine();
+		ImGui::HelpMarker("Valid values are bases of 10");
+		int  subdiv = settings.grid_style.subdivisions;
 		if ( ImGui::SliderInt("Grid.Subdivisions", &subdiv, 1, 10) )
 		{
 			if ( subdiv == 1 || subdiv == 2 || subdiv == 5 || subdiv == 10 )
-				my_grid_style.subdivisions = subdiv;
+				settings.grid_style.subdivisions = subdiv;
 		}
+		ImGui::SameLine();
+		ImGui::HelpMarker("Valid values are: 1, 2, 5, or 10");
+
+		ImGui::Unindent();
 	}
 	if ( ImGui::CollapsingHeader("Canvas") )
 	{
+		ImGui::Indent();
+
 		auto corigin = my_canvas.GetOrigin();
 		auto cscroll = my_canvas.GetScroll();
 		auto cscale = my_canvas.Scale();
@@ -312,6 +327,8 @@ ImNodeGraph::DrawDebug()
 		{
 			ImGui::TextDisabled("Selected Nodes: %zu", num_selected);
 		}
+
+		ImGui::Unindent();
 	}
 }
 

@@ -173,6 +173,9 @@ BaseNode::Draw()
 	// container
 	ImGui::BeginGroup();
 
+	/// @todo add drawing without headers (consider node types that might mandate a header!)
+	//my_ng->settings.node_draw_headers
+
 	// ImVec4 is Left(x),Top(y),Right(z),Bottom(w)
 	float   margin_l_header = my_style->margin_header.x;
 	float   margin_t_header = my_style->margin_header.y;
@@ -597,15 +600,8 @@ BaseNode::HandleInteraction()
 		NotifyListeners(NodeUpdate::MarkedForDeletion);
 	}
 	
-	/*
-	 * How can we access workspace configuration?
-	 * Make data available through nodegraph (egh), service it up a la cfg (huge
-	 * work, non-standard and unconsidered), or pass funcptr for shifting the
-	 * handling to anything set/optional override, uses this by default
-	 */
-	static bool  drag_from_header_only = false;
 	
-	if ( drag_from_header_only )
+	if ( my_ng->settings.node_drag_from_headers_only )
 	{
 		bool on_header = ImGui::IsMouseHoveringRect(_inner_header_rect_clipped.Min, _inner_header_rect_clipped.Max, false);
 		if ( on_header 

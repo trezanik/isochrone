@@ -93,6 +93,8 @@ ImGuiSemiFixedDock::AddDrawClient(
 		// restore intended location if we were hidden before due to no entries
 		my_location = _location;
 	}
+
+	client->dock = _location;
 }
 
 

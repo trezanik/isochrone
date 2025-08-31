@@ -836,7 +836,26 @@ struct workspace_data
 
 	/** Backend service definitions */
 	std::vector<std::shared_ptr<service>>  services;
+
+	/** User-defined settings */
+	std::map<std::string, std::string>  settings;
+
+	// to add: custom operating system definitions
 };
+
+
+static const char  settingname_dock_canvasdbg[] = "dock.canvasdbg";
+static const char  settingname_dock_propview[] = "dock.propview";
+static const char  settingname_grid_colour_background[] = "grid.colour.background";
+static const char  settingname_grid_colour_primary[] = "grid.colour.primary";
+static const char  settingname_grid_colour_secondary[] = "grid.colour.secondary";
+static const char  settingname_grid_colour_origin[] = "grid.colour.origin";
+static const char  settingname_grid_draw[] = "grid.draw";
+static const char  settingname_grid_draworigin[] = "grid.draw_origin";
+static const char  settingname_grid_size[] = "grid.size";
+static const char  settingname_grid_subdivisions[] = "grid.subdivisions";
+static const char  settingname_node_dragfromheadersonly[] = "node.drag_from_headers_only";
+static const char  settingname_node_drawheaders[] = "node.draw_headers";
 
 
 /**

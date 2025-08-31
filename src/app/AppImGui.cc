@@ -254,7 +254,7 @@ AppImGui::~AppImGui()
 		if ( log_window != nullptr )
 		{
 			// never been an issue, but proper cleanup; remove all items from docks
-			switch ( my_drawclient_log_location )
+			switch ( my_drawclient_log->dock )
 			{
 			case WindowLocation::Bottom:  my_gui.dock_bottom->RemoveDrawClient(my_drawclient_log); break;
 			case WindowLocation::Left:    my_gui.dock_left->RemoveDrawClient(my_drawclient_log); break;
@@ -264,6 +264,7 @@ AppImGui::~AppImGui()
 			}
 			core::ServiceLocator::Log()->RemoveTarget(std::dynamic_pointer_cast<trezanik::core::LogTarget>(log_window));
 			log_window.reset();
+			my_drawclient_log.reset();
 		}
 
 		my_gui.dock_bottom.reset();
@@ -1424,10 +1425,10 @@ AppImGui::PostEnd()
 		my_drawclient_log = std::make_shared<DrawClient>();
 		my_drawclient_log->func = [this](){ log_window->Draw(); };
 		my_drawclient_log->name = "Log";
+		my_drawclient_log->dock = TConverter<WindowLocation>::FromString(ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION));
+		my_drawclient_log->id = drawclient_log_uuid;
 
-		my_drawclient_log_location = TConverter<WindowLocation>::FromString(ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION));
-
-		switch ( my_drawclient_log_location )
+		switch ( my_drawclient_log->dock )
 		{
 		case WindowLocation::Bottom:  my_gui.dock_bottom->AddDrawClient(my_drawclient_log); break;
 		case WindowLocation::Left:    my_gui.dock_left->AddDrawClient(my_drawclient_log); break;
@@ -1440,7 +1441,7 @@ AppImGui::PostEnd()
 	{
 		std::lock_guard<std::mutex> lock(my_gui.mutex);
 
-		switch ( my_drawclient_log_location )
+		switch ( my_drawclient_log->dock )
 		{
 		case WindowLocation::Bottom:  my_gui.dock_bottom->RemoveDrawClient(my_drawclient_log); break;
 		case WindowLocation::Left:    my_gui.dock_left->RemoveDrawClient(my_drawclient_log); break;
@@ -1452,6 +1453,7 @@ AppImGui::PostEnd()
 		core::ServiceLocator::Log()->RemoveTarget(std::dynamic_pointer_cast<trezanik::core::LogTarget>(log_window));
 		log_window.reset();
 		log_window = nullptr;
+		my_drawclient_log.reset();
 	}
 	// vkbd, rss, console, etc.
 }
@@ -2020,6 +2022,40 @@ AppImGui::UpdateDimensions()
 		);
 	}
 #endif
+}
+
+
+void
+AppImGui::UpdateDrawClientLocation(
+	std::shared_ptr<DrawClient> dc,
+	WindowLocation new_loc,
+	WindowLocation old_loc
+)
+{
+	if ( new_loc == old_loc )
+	{
+		// reselected current location; no-op
+		return;
+	}
+
+	// remove the old draw client if it wasn't already hidden
+	switch ( old_loc )
+	{
+	case WindowLocation::Bottom: my_gui.dock_bottom->RemoveDrawClient(dc); break;
+	case WindowLocation::Left:   my_gui.dock_left->RemoveDrawClient(dc); break;
+	case WindowLocation::Right:  my_gui.dock_right->RemoveDrawClient(dc); break;
+	case WindowLocation::Top:    my_gui.dock_top->RemoveDrawClient(dc); break;
+	default: break;
+	}
+	// apply to the new location
+	switch ( new_loc )
+	{
+	case WindowLocation::Bottom: my_gui.dock_bottom->AddDrawClient(dc); break;
+	case WindowLocation::Left:   my_gui.dock_left->AddDrawClient(dc); break;
+	case WindowLocation::Right:  my_gui.dock_right->AddDrawClient(dc); break;
+	case WindowLocation::Top:    my_gui.dock_top->AddDrawClient(dc); break;
+	default: break;
+	}
 }
 
 

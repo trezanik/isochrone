@@ -22,6 +22,12 @@ namespace imgui {
 
 /**
  * Dedicated structure for holding the canvas configuration
+ * 
+ * @note
+ *  While we're not aware of them in this project, the idea is for the Workspace
+ *  to provide the background colour, keys provided by the application (not
+ *  workspace) configuration, and the rest fully canvas-internal (but modifiable
+ *  within the nodegraph).
  */
 struct canvas_config
 {
