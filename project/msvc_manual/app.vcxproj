@@ -32,7 +32,9 @@
     <ClCompile Include="..\..\src\app\ImGuiMenuBar.cc" />
     <ClCompile Include="..\..\src\app\ImGuiPreferencesDialog.cc" />
     <ClCompile Include="..\..\src\app\ImGuiRSS.cc" />
+    <ClCompile Include="..\..\src\app\ImGuiSearchDialog.cc" />
     <ClCompile Include="..\..\src\app\ImGuiSemiFixedDock.cc" />
+    <ClCompile Include="..\..\src\app\ImGuiStyleEditor.cc" />
     <ClCompile Include="..\..\src\app\ImGuiUpdateDialog.cc" />
     <ClCompile Include="..\..\src\app\ImGuiVirtualKeyboard.cc" />
     <ClCompile Include="..\..\src\app\ImGuiWorkspace.cc" />
@@ -62,7 +64,9 @@
     <ClInclude Include="..\..\src\app\ImGuiMenuBar.h" />
     <ClInclude Include="..\..\src\app\ImGuiPreferencesDialog.h" />
     <ClInclude Include="..\..\src\app\ImGuiRSS.h" />
+    <ClInclude Include="..\..\src\app\ImGuiSearchDialog.h" />
     <ClInclude Include="..\..\src\app\ImGuiSemiFixedDock.h" />
+    <ClInclude Include="..\..\src\app\ImGuiStyleEditor.h" />
     <ClInclude Include="..\..\src\app\ImGuiUpdateDialog.h" />
     <ClInclude Include="..\..\src\app\ImGuiVirtualKeyboard.h" />
     <ClInclude Include="..\..\src\app\ImGuiWorkspace.h" />

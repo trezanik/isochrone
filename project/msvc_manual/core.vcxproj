@@ -24,6 +24,9 @@
     <ClInclude Include="..\..\src\core\services\config\Config.h" />
     <ClInclude Include="..\..\src\core\services\config\ConfigServer.h" />
     <ClInclude Include="..\..\src\core\services\config\IConfig.h" />
+    <ClInclude Include="..\..\src\core\services\event\CoreEvent.h" />
+    <ClInclude Include="..\..\src\core\services\event\Event.h" />
+    <ClInclude Include="..\..\src\core\services\event\EventDispatcher.h" />
     <ClInclude Include="..\..\src\core\services\log\ILogTarget.h" />
     <ClInclude Include="..\..\src\core\services\log\Log.h" />
     <ClInclude Include="..\..\src\core\services\log\LogEvent.h" />

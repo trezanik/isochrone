@@ -79,6 +79,9 @@
     <Filter Include="Source Files\services\threading">
       <UniqueIdentifier>{014b9936-ea0b-40e4-ae72-911677451f34}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\services\event">
+      <UniqueIdentifier>{a3a507ca-cd8e-4449-9c53-44b1ec266952}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\core\error.h">
@@ -266,6 +269,15 @@
     </ClInclude>
     <ClInclude Include="..\..\sys\win\src\core\util\net\win32net.h">
       <Filter>Header Files\util\net</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\event\CoreEvent.h">
+      <Filter>Header Files\services\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\event\Event.h">
+      <Filter>Header Files\services\event</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\services\event\EventDispatcher.h">
+      <Filter>Header Files\services\event</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
