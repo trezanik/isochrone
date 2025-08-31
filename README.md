@@ -15,6 +15,7 @@ It is geared for suitability for small to medium sized networks.
 - [Building](#Creating-a-Workspace)
 - [Contributions](#Contributions)
 - [Assets](#Assets)
+- [FAQ](#FAQ)
 - [Miscellaneous](#Miscellaneous)
 
 
@@ -149,6 +150,49 @@ We believe in being completely open and attribute credit to authors - fonts, ima
 These are supplied alongside the assets as an additional file of the same name, but with a `.license` extension instead. If the license is not found, the asset will not be loaded - and should not be distributed.
 
 We are not yet compliant with this, but it will be a goal for release.
+
+
+## <a id="FAQ"></a>FAQ
+
+> Is this project still alive?
+
+Yes! Due to my 'working practices' I have multiple machines used for development, which is unsuitable for pushing directly into a public repository. I periodically sync my private repo with this public one.
+
+I will mark this repository as abandoned if I do cease work on it; if that occurs, or upon my death, I give full consent for adjusting the license into the public domain/MIT, as long as no contributions conflict with the licensing.
+
+> Why are you not officially supporting Windows 11?
+
+I despise the operating system. Windows 10 is irksome but just about tolerable, and undeniably has improved security structure.
+
+Windows 11 offers nothing new of any value beyond further shoving undesired applications, advertisements, and AI towards the user, and lacks key customization desires that existed in prior versions. I expect so much better from enterprise software and do not reward shabby work/cashgrab mentaility, just like games and films in the 'modern' world.
+
+While we won't support the graph node with Windows 11 right now, the security functions will be kept up, otherwise it'd be nigh useless - and there's no reason to suspect anything else will fail to function.
+
+> Why use C++, and why not anything C++20 or newer?
+
+Familiarity. Programming has only ever been a hobby of mine, and I started learning with C++03 and slowly delving into 11/14/17 features (some C++11 items I've only discovered in 2025!). I simply do not have the time to keep up with every new language/development/feature addition, even if I could understand it all.
+
+I've used many other languages (not limited to Ada, Delphi, Java, Perl, Ruby...), but they're not my forté, and with scripting I always feel like something is missing if I'm not speaking to the underlying system natively by going through additional wrappers.
+
+With scripts, I design as a means-to-an-end - whereas native projects I architect. It just feels the right way to do things.
+
+> How long is the NT5 support going to last for? Will this support impact newer systems?
+
+Unknown, but realistically as long as tenable, with no impact on newer systems - it was never in my original design or goals, it simply emerged as an unanticipated option via retaining a lesser C++ version.
+
+I previously had supporting code, so the effort to integrate it was minimal - a few new methods and adjusting legacy code for better modern practices.
+
+With that said, the kernel and API function exposure offers everything we need, and no newer version has (yet) introduced any critical methods to include - things like the new compression algorithms are supporting those specific operating systems for data extraction, so doesn't count towards this.
+
+XP/2003 will obviously become a burden and outright unusable in future - my main minimal support goal is Windows 7 (NT 6.1), preferably retaining NT 6.0, until Windows internals undergoes another significant rewrite or third-party dependencies cause grief.
+
+> Why use imgui as the GUI?
+
+Ah. I needed something cross-platform, and wanted to support Windows 7 still. I've always been fond of the classic GLUI and imgui has a nice consistent UI itself, while directly integrating into 3D applications, such as games - which is a desire I still have. It pretty much served the right purpose at the right time.
+
+Protip if you're thinking of doing this yourself: prepare for pain. After experiencing it, take ocornut at this word - I also do not recommend it for a full-blown UI like we've done!
+
+It's by no means horrible but you will have to handle things like click/drag/contextual operations, which most people will take the existing OS/app library implementations for granted. And as expected, if you want a widget that doesn't yet exist (e.g. vertical tabs), you have to be prepared to implement it yourself - optionally replacing it if imgui introduces it in future - or live without.
 
 
 ## <a id="Miscellaneous"></a>Miscellaneous
