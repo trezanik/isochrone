@@ -289,17 +289,21 @@ Application::Cleanup()
 	 * destroy on it, as there's no internal checks.
 	 */
 
+	TZK_LOG(LogLevel::Info, "Beginning application cleanup");
 
-	switch ( my_context->EngineState() )
+	if ( my_context != nullptr )
 	{
-		// full fall through, change engine state only if needed
-	case State::Aborted:
-	case State::Crashed:
-	case State::Quitting:
-		break;
-	default:
-		my_context->SetEngineState(State::Quitting);
-	};
+		switch ( my_context->EngineState() )
+		{
+			// full fall through, change engine state only if needed
+		case State::Aborted:
+		case State::Crashed:
+		case State::Quitting:
+			break;
+		default:
+			my_context->SetEngineState(State::Quitting);
+		};
+	}
 	
 
 	// if pong is live, discard

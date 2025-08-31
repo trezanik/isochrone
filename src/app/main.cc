@@ -65,8 +65,6 @@ app_terminate()
 	// to add: CaptureStackBackTrace();
 
 #endif
-	
-	//TZK_DEBUG_BREAK;
 
 	if ( log != nullptr )
 	{
@@ -84,22 +82,26 @@ app_terminate()
 	 * own crashes due to invalid access.
 	 * This is not a great check, but should catch most cases!
 	 */
-	else if ( trezanik::engine::ServiceLocator::GetSingletonPtr() != nullptr )
+	if ( trezanik::engine::ServiceLocator::GetSingletonPtr() != nullptr )
 	{
 		trezanik::engine::ServiceLocator::DestroyAllServices();
 	}
-
-	trezanik::core::ServiceLocator::DestroyAllServices();
+	if ( trezanik::core::ServiceLocator::GetSingletonPtr() != nullptr )
+	{
+		trezanik::core::ServiceLocator::DestroyAllServices();
+	}
 
 	/*
 	 * If we have the original, default implementation terminate handler then
 	 * invoke it. Expected flow.
 	 */
+#if 1
 	if ( old_terminate_handler != nullptr )
 	{
 		old_terminate_handler();
 	}
 	else
+#endif
 	{
 		std::abort();
 	}
@@ -142,7 +144,7 @@ app_signal(
 	}
 
 	// reinstall handler as resets to SIG_DFL (sigaction preferred, still have this for Windows)
-	std::signal(signal, app_signal);
+	//std::signal(signal, app_signal);
 
 	/*
 	 * For assurance of user notification in the event of signalling, we'll
@@ -159,8 +161,6 @@ app_signal(
 		ServiceLocator::Log()->SetEventStorage(false);
 		ServiceLocator::Log()->PushStoredEvents();
 	}
-
-	//TZK_DEBUG_BREAK;
 
 	// debug build: resume execution if signal was an interrupt
 	if ( TZK_IS_DEBUG_BUILD && signal == SIGINT )
@@ -216,6 +216,7 @@ main(
 	std::signal(SIGSEGV, app_signal);
 	std::signal(SIGINT, app_signal);
 	std::signal(SIGILL, app_signal);
+	std::signal(SIGABRT, app_signal);
 
 
 	// log the build details, noting if a tagged release
