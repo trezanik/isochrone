@@ -1459,6 +1459,9 @@ TZK_CC_RESTORE_WARNING // -Wmissing-field-initializers
 		my_cfg.ui.fixed_width_font.pt_size
 	);
 
+	// first time run/nothing custom, and this won't exist
+	my_app_imgui->LoadUserData(my_context->UserDataPath());
+
 
 	TZK_LOG(LogLevel::Debug, "ImGui Initialization complete");
 

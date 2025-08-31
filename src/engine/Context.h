@@ -14,6 +14,7 @@
 #include "engine/resources/ResourceCache.h"
 #include "engine/resources/ResourceLoader.h"
 #include "core/util/Singleton.h"
+#include "core/util/filesystem/Path.h"
 #include "imgui/IImGuiImpl.h"
 
 #include <memory>
@@ -145,16 +146,21 @@ private:
 	ResourceLoader  my_resource_loader;
 
 	/**
-	 * The path to the 'installation' directory, which will be where our
-	 * binary resides, and is our current working directory.
+	 * The path to the 'installation' directory
+	 *
+	 * Is where our application binary resides, and is our current working
+	 * directory.
 	 */
 	std::string  my_install_path;
 
 	/**
-	 * The userdata path. Is where our configuration file resides, and by
-	 * default, the log & 'save' folders too.
+	 * The user profile data directory path
+	 *
+	 * Is where our configuration file & userdata resides, and by default, the
+	 * log and workspaces folders too.
+	 * 
 	 * As the name suggests, it is intended to be per-user, so will usually
-	 * be within %APPDATA% (Windows) or $HOME/.config/xxx (Unix-like)
+	 * be within %APPDATA% (Windows) or $HOME/.config/ (Unix-like)
 	 */
 	std::string  my_userdata_path;
 
@@ -760,6 +766,19 @@ public:
 	 */
 	void
 	Update();
+
+
+	/**
+	 * Gets the userdata filepath
+	 *
+	 * This is the user profile data path, as setup in the constructor, with
+	 * the userdata filename appended.
+	 *
+	 * @return
+	 *  The absolute file path
+	 */
+	trezanik::core::aux::Path
+	UserDataPath() const;
 
 
 	/**

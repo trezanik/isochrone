@@ -47,6 +47,59 @@ namespace trezanik {
 namespace app {
 
 
+// styles
+char  nodename_colours[] = "colours";
+char  nodename_rendering[] = "rendering";
+char  nodename_sizes[] = "sizes";
+char  nodename_style[] = "style";
+char  nodename_styles[] = "styles";
+
+// rendering
+char  nodename_antialiased_lines[] = "antialiased_lines";
+char  nodename_antialiased_lines_use_texture[] = "antialiased_lines_use_texture";
+char  nodename_antialiased_fill[] = "antialiased_fill";
+char  nodename_curve_tessellation_tolerance[] = "curve_tessellation_tolerance";
+char  nodename_circle_tessellation_max_error[] = "circle_tessellation_max_error";
+char  nodename_global_alpha[] = "global_alpha";
+char  nodename_disabled_alpha[] = "disabled_alpha";
+
+// sizes
+char  nodename_window_padding[] = "window_padding";
+char  nodename_frame_padding[] = "frame_padding";
+char  nodename_item_spacing[] = "item_spacing";
+char  nodename_item_inner_spacing[] = "item_inner_spacing";
+char  nodename_touch_extra_padding[] = "touch_extra_padding";
+char  nodename_indent_spacing[] = "indent_spacing";
+char  nodename_scrollbar_size[] = "scrollbar_size";
+char  nodename_grab_min_size[] = "grab_min_size";
+char  nodename_window_border_size[] = "window_border_size";
+char  nodename_child_border_size[] = "child_border_size";
+char  nodename_popup_border_size[] = "popup_border_size";
+char  nodename_frame_border_size[] = "frame_border_size";
+char  nodename_tab_border_size[] = "tab_border_size";
+char  nodename_tabbar_border_size[] = "tabbar_border_size";
+char  nodename_window_rounding[] = "window_rounding";
+char  nodename_child_rounding[] = "child_rounding";
+char  nodename_frame_rounding[] = "frame_rounding";
+char  nodename_popup_rounding[] = "popup_rounding";
+char  nodename_scrollbar_rounding[] = "scrollbar_rounding";
+char  nodename_grab_rounding[] = "grab_rounding";
+char  nodename_tab_rounding[] = "tab_rounding";
+char  nodename_cell_padding[] = "cell_padding";
+char  nodename_table_angled_headers_angle[] = "table_angled_headers_angle";
+char  nodename_window_title_align[] = "window_title_align";
+char  nodename_window_menu_button_position[] = "window_menu_button_position";
+char  nodename_color_button_position[] = "color_button_position";
+char  nodename_button_text_align[] = "button_text_align";
+char  nodename_selectable_text_align[] = "selectable_text_align";
+char  nodename_separator_text_padding[] = "separator_text_padding";
+char  nodename_log_slider_deadzone[] = "log_slider_deadzone";
+char  nodename_display_safe_area_padding[] = "display_safe_area_padding";
+
+// general
+char  nodename_window_border[] = "window_border";
+char  nodename_frame_border[] = "frame_border";
+char  nodename_popup_border[] = "popup_border";
 AppImGui::AppImGui(
 	GuiInteractions& gui_interactions
 )
@@ -54,6 +107,7 @@ AppImGui::AppImGui(
 , my_pause_on_nofocus(trezanik::core::TConverter<bool>::FromString(core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_PAUSE_ON_FOCUS_LOSS_ENABLED)))
 , my_has_focus(true)
 , my_skip_next_frame(false)
+, my_udata_loaded(false)
 , main_menu_bar(std::make_unique<ImGuiMenuBar>(gui_interactions)) // menu exists from the outset
 , console_window(nullptr)
 , log_window(nullptr)
@@ -100,6 +154,10 @@ AppImGui::AppImGui(
 		engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::Engine);
 		engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::External);
 		engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::System);
+
+		my_known_versions.emplace_back(trezanik::core::UUID("783d1279-05ca-40af-b1c2-cfc40c212658")); // 1.0 [Non-Final]
+		// ..additional versions for stable releases..
+
 
 		auto  evtdsp = core::ServiceLocator::EventDispatcher();
 
@@ -550,6 +608,172 @@ AppImGui::HandleWindowLocation(
 }
 
 
+int
+AppImGui::LoadUserData(
+	const core::aux::Path& path
+)
+{
+	using namespace trezanik::core;
+
+	// Set this now so it's valid for the save, regardless of current existence
+	my_userdata_fpath = path;
+
+	if ( !path.Exists() )
+	{
+		TZK_LOG_FORMAT(LogLevel::Warning, "No custom userdata at: %s", path());
+		return ENOENT;
+	}
+
+	FILE*  fp = aux::file::open(path(), aux::file::OpenFlag_ReadOnly);
+
+	if ( fp == nullptr )
+	{
+		// file exists but we can't open it read-only? something is up
+		return errno;
+	}
+	if ( aux::file::size(fp) == 0 )
+	{
+		aux::file::close(fp);
+		// optional, but good to have logged if fs issues by trying to delete it
+		if ( aux::file::remove(path()) == ErrNONE )
+			return ENOENT;
+		return ENODATA;
+	}
+
+	aux::file::close(fp);
+
+
+	/*
+	 * File format - mandatory across all versions
+	 * 
+	 * <?xml version="1.0" encoding="UTF-8"?>
+	 * <userdata version="$(version_identifer)">
+	 *   ...per-version data...
+	 * </userdata>
+	 */
+#if TZK_USING_PUGIXML
+	pugi::xml_document  doc;
+	pugi::xml_parse_result  res;
+
+	res = doc.load_file(path.String().c_str());
+
+	if ( res.status != pugi::status_ok )
+	{
+		TZK_LOG_FORMAT(LogLevel::Warning,
+			"[pugixml] Failed to load '%s' - %s",
+			path(), res.description()
+		);
+		return ErrEXTERN;
+	}
+
+	/*
+	 * file loaded and parsed successfully, so is valid XML. Read and validate
+	 * the version GUID so we can verify it is a structure we support
+	 * and then modify any handlers to accommodate particular layouts
+	 */
+
+	pugi::xml_node  node_udata = doc.child("userdata");
+	pugi::xml_attribute  udata_ver = node_udata.attribute("version");
+
+	if ( node_udata.empty() || udata_ver.empty() )
+	{
+		TZK_LOG(LogLevel::Error, "No configuration version found in root node");
+		return ErrDATA;
+	}
+
+	if ( !UUID::IsStringUUID(udata_ver.value()) )
+	{
+		TZK_LOG_FORMAT(LogLevel::Error,
+			"Version UUID is not valid: '%s'",
+			udata_ver.value()
+		);
+		return ErrDATA;
+	}
+
+	UUID  ver_id(udata_ver.value());
+	bool  ver_ok = false;
+
+	for ( auto& kv : my_known_versions )
+	{
+		if ( ver_id == kv )
+		{
+			// can provide proper mapping once we have multiple versions
+			TZK_LOG_FORMAT(LogLevel::Info,
+				"Configuration file version '%s'",
+				ver_id.GetCanonical()
+			);
+			// assign any handler specifics here
+
+			ver_ok = true;
+			
+			if ( STR_compare(ver_id.GetCanonical(), "783d1279-05ca-40af-b1c2-cfc40c212658", false) == 0 )
+			{
+				LoadUserData_783d1279_05ca_40af_b1c2_cfc40c212658(node_udata);
+			}
+			// ..additional versions..
+			break;
+		}
+	}
+
+	if ( !ver_ok )
+	{
+		TZK_LOG_FORMAT(LogLevel::Error,
+			"Unknown userdata file version: '%s'",
+			ver_id.GetCanonical()
+		);
+		return ErrDATA;
+	}
+	
+	doc.reset();
+
+#else
+
+	TZK_LOG(LogLevel::Warning, "No loader implementation");
+	return ErrIMPL;
+
+#endif // TZK_USING_PUGIXML
+
+	my_udata_loaded = true;
+
+	return ErrNONE;
+}
+
+
+void
+AppImGui::LoadUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
+	pugi::xml_node node_udata
+)
+{
+	/*
+	 * File format
+	 * 
+	 * <userdata version="783d1279-05ca-40af-b1c2-cfc40c212658">
+	 * <styles>
+	 *   <style name="xxx">
+	 *     ...
+	 *   </style>
+	 * </styles>
+	 * <operating_systems>
+	 *   <operating_system>
+	 *     ...
+	 *   <operating_system>
+	 * </operating_systems>
+	 * </userdata>
+	 */
+	pugi::xml_node  node_styles = node_udata.child(nodename_styles);
+	pugi::xml_node  node_os = node_udata.child(nodename_opsyss);
+	// ..other resource roots..
+
+	if ( node_styles )
+	{
+	}
+	if ( node_os )
+	{
+	}
+	// ..other loaders..
+}
+
+
 void
 AppImGui::PostBegin()
 {
@@ -924,6 +1148,88 @@ AppImGui::PreEnd()
 	{
 		ImGui::ShowDemoWindow(&my_gui.show_demo);
 	}
+}
+
+
+int
+AppImGui::SaveUserData()
+{
+	using namespace trezanik::core;
+
+	bool  success = false;
+
+#if TZK_USING_PUGIXML
+
+	// Generate new XML document within memory
+	pugi::xml_document  doc;
+
+	// Generate XML declaration
+	auto decl_node = doc.append_child(pugi::node_declaration);
+	decl_node.append_attribute("version") = "1.0";
+	decl_node.append_attribute("encoding") = "UTF-8";
+
+	// root node is our data, with the writer version
+	auto root = doc.append_child("userdata");
+	root.append_attribute("version") = my_known_versions.back().GetCanonical();
+
+	// we only have 1 version at present, split out as needed
+	SaveUserData_783d1279_05ca_40af_b1c2_cfc40c212658(root);
+
+	/*
+	 * check - write file only if at least one item is to be written - unless
+	 * this was a loaded file and we've purged all entries, in which case,
+	 * remove the file entirely so the user changes are retained
+	 */
+	if ( !root.first_child() )
+	{
+		if ( my_udata_loaded )
+		{
+			core::aux::file::remove(my_userdata_fpath());
+		}
+
+		doc.reset();
+		return ErrNOOP;
+	}
+
+	success = doc.save_file(my_userdata_fpath());
+
+	if ( !success )
+	{
+		/*
+		 * pugixml as-is does not provide a way to get more info, return value
+		 * is (ferror(file) == 0). Live without unless modifying external lib
+		 */
+		TZK_LOG_FORMAT(
+			LogLevel::Warning,
+			"Failed to save XML document '%s'",
+			my_userdata_fpath()
+		);
+	}
+	else
+	{
+		TZK_LOG_FORMAT(
+			LogLevel::Info,
+			"Saved XML document '%s'",
+			my_userdata_fpath()
+		);
+	}
+
+#else
+	return ErrIMPL;
+#endif  // TZK_USING_PUGIXML
+
+	return success ? ErrNONE : ErrFAILED;
+}
+
+
+void
+AppImGui::SaveUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
+	pugi::xml_node root
+) const
+{
+	//
+	// ## Styles
+	//
 }
 
 

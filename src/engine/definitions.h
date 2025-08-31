@@ -97,3 +97,8 @@
 	// maximum number of bytes that can be sent in an HTTP request
 #	define TZK_HTTP_MAX_SEND  8192  // 8K
 #endif
+
+#if !defined(TZK_USERDATA_FILE_NAME)
+	// file within the users profile data path holding customization data
+#	define TZK_USERDATA_FILE_NAME  "userdata.xml"
+#endif

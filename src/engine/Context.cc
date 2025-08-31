@@ -861,6 +861,13 @@ Context::UpdateThread(
 #endif
 
 
+trezanik::core::aux::Path
+Context::UserDataPath() const
+{
+	return core::aux::BuildPath(my_userdata_path, TZK_USERDATA_FILE_NAME);
+}
+
+
 bool
 Context::WantGarbageCollect() const
 {

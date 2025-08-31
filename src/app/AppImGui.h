@@ -71,6 +71,31 @@ static trezanik::core::UUID  svcmgmt_id("6adf273a-4886-4bfd-969e-e5571d49a84e");
 
 
 /**
+ * Application ImGui core style
+ */
+struct AppImGuiStyle
+{
+	/**
+	 * Human-readable name; despite using IDs, these must not conflict
+	 */
+	std::string  name;
+
+	/**
+	 * Unique ID for this style
+	 * 
+	 * @note
+	 *  Not saved to file and presently redundant; could be removed
+	 */
+	trezanik::core::UUID  id = core::blank_uuid;
+
+	/**
+	 * The imgui style with values applied
+	 */
+	ImGuiStyle  style;
+};
+
+
+/**
  * Structure used for sharing and interacting with app and imgui directly
  *
  * References have lifetimes exceeding that of the struct.
@@ -257,6 +282,19 @@ private:
 	/** ID of the resource presently marked for/being loaded */
 	trezanik::engine::ResourceID  my_loading_workspace_resid;
 
+	/** Filepath of the userdata configuration */
+	trezanik::core::aux::Path  my_userdata_fpath;
+	
+	/** Flag indicating if the userdata was loaded from file */
+	bool  my_udata_loaded;
+
+	/**
+	 * All known UUIDs for userdata XML versions
+	 * 
+	 * Order must be oldest first, newest last, so the last element can be used
+	 * to always write the latest available version
+	 */
+	std::vector<trezanik::core::UUID>  my_known_versions;
 
 	/**
 	 * Set of all the registered event callback IDs
@@ -349,7 +387,28 @@ private:
 	);
 
 
+	/**
+	 * Version-specific userdata loader
+	 * 
+	 * @param[in] node_udata
+	 *  The root userdata node
+	 */
+	void
+	LoadUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
+		pugi::xml_node node_udata
+	);
 
+
+	/**
+	 * Version-specific userdata saver
+	 * 
+	 * @param[in] root
+	 *  The root userdata node
+	 */
+	void
+	SaveUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
+		pugi::xml_node root
+	) const;
 	/**
 	 * Determines positional data for ImGui windows, docks, etc.
 	 * 
@@ -423,6 +482,33 @@ public:
 
 
 	/**
+	 * Loads the userdata from file
+	 * 
+	 * By default, the filepath will be the users application data userdata.xml
+	 * 
+	 * Every userdata.xml must have a 'userdata' root element, with a 'version'
+	 * attribute that contains the UUID of the dataset version
+	 * 
+	 * @warning
+	 *  TOCTOU flaw, as we can't pass the FILE pointer into the XML opener
+	 * 
+	 * @sa SaveUserData
+	 * @param[in] path
+	 *  Reference to the filepath to load from
+	 * @return
+	 *  - ErrNONE on success
+	 *  - ErrEXTERN on parsing failure
+	 *  - ENOENT if the file does not exist
+	 *  - ErrDATA if the XML structure does not contain minimum requirements
+	 *  - ErrIMPL if no implementation exists
+	 */
+	int
+	LoadUserData(
+		const core::aux::Path& path
+	);
+
+
+	/**
 	 * Implementation of IFrameListener::PostBegin
 	 */
 	virtual void
@@ -445,6 +531,22 @@ public:
 	 */
 	virtual void
 	PreEnd() override;
+
+
+	/**
+	 * Saves the current user data content to storage
+	 * 
+	 * Writes out to the path originally loaded from in LoadUserData
+	 * 
+	 * @sa LoadUserData
+	 * @return
+	 *  - ErrNONE on success
+	 *  - ErrFAILED on failure
+	 *  - ErrNOOP if the save was unneccessary (i.e. no elements to be written)
+	 *  - ErrIMPL if no implementation was found
+	 */
+	int
+	SaveUserData();
 
 
 	/*
