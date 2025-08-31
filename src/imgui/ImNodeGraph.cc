@@ -701,6 +701,7 @@ ImNodeGraph::Update()
 	 * Activate the context menu if:
 	 * 1) No popup is open (window should not have focus interaction)
 	 * 2) Right-click was released, and was not previously dragging (default scroll)
+	 * 3) Canvas has focus/hovered
 	 * 
 	 * note - checking for clicked is not suitable here, as drag is not picked
 	 * up until enough movement is applied (imgui drag threshold), so it always
@@ -708,6 +709,7 @@ ImNodeGraph::Update()
 	 */
 	if ( my_popup
 	  && !my_rclick_was_dragging_prerelease
+	  && my_canvas.IsHovered()
 	  && ImGui::IsMouseReleased(ImGuiMouseButton_Right) )
 	{
 		ConsumeClick(ImGuiMouseButton_Right);
