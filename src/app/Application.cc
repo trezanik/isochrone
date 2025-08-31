@@ -2206,15 +2206,16 @@ Application::MapSettingsFromMemberVars()
 	cfg->Set(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_SIZE, TConverter<uint8_t>::ToString(my_cfg.ui.fixed_width_font.pt_size));
 	cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_BOTTOM_EXTEND, TConverter<bool>::ToString(my_cfg.ui.layout.bottom.extend));
 	cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_BOTTOM_RATIO, float_string_precision(my_cfg.ui.layout.bottom.ratio, 2));
-	cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_CANVASDBG_LOCATION, app::TConverter<WindowLocation>::ToString(my_cfg.ui.layout.canvasdbg_location));
+	//cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_CONSOLE_LOCATION, app::TConverter<WindowLocation>::ToString(my_cfg.ui.layout.console_location));
 	cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_LEFT_EXTEND, TConverter<bool>::ToString(my_cfg.ui.layout.left.extend));
 	cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_LEFT_RATIO, float_string_precision(my_cfg.ui.layout.left.ratio, 2));
 	cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION, app::TConverter<WindowLocation>::ToString(my_cfg.ui.layout.log_location));
-	cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_PROPERTIES_LOCATION, app::TConverter<WindowLocation>::ToString(my_cfg.ui.layout.properties_location));
 	cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_EXTEND, TConverter<bool>::ToString(my_cfg.ui.layout.right.extend));
 	cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_RATIO, float_string_precision(my_cfg.ui.layout.right.ratio, 2));
+	//cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_RSS_LOCATION, app::TConverter<WindowLocation>::ToString(my_cfg.ui.layout.rss_location));
 	cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_TOP_EXTEND, TConverter<bool>::ToString(my_cfg.ui.layout.top.extend));
 	cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_TOP_RATIO, float_string_precision(my_cfg.ui.layout.top.ratio, 2));
+	//cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_VKBD_LOCATION, app::TConverter<WindowLocation>::ToString(my_cfg.ui.layout.vkbd_location));
 	cfg->Set(TZK_CVAR_SETTING_UI_PAUSE_ON_FOCUS_LOSS_ENABLED, TConverter<bool>::ToString(my_cfg.ui.pause_on_focus_loss.enabled));
 	cfg->Set(TZK_CVAR_SETTING_UI_SDL_RENDERER_TYPE, my_cfg.ui.sdl_renderer.type);
 	cfg->Set(TZK_CVAR_SETTING_UI_STYLE_NAME, my_cfg.ui.style.name);
@@ -2291,15 +2292,16 @@ Application::MapSettingsToMemberVars()
 	TZK_UNUSED(my_cfg.ui.theme)
 	my_cfg.ui.layout.bottom.extend = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_LAYOUT_BOTTOM_EXTEND));
 	my_cfg.ui.layout.bottom.ratio = TConverter<float>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_LAYOUT_BOTTOM_RATIO));
-	my_cfg.ui.layout.canvasdbg_location = app::TConverter<WindowLocation>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_LAYOUT_CANVASDBG_LOCATION));
+	//my_cfg.ui.layout.console_location = app::TConverter<WindowLocation>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_LAYOUT_CONSOLE_LOCATION));
 	my_cfg.ui.layout.left.extend = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_LAYOUT_LEFT_EXTEND));
 	my_cfg.ui.layout.left.ratio = TConverter<float>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_LAYOUT_LEFT_RATIO));
 	my_cfg.ui.layout.log_location = app::TConverter<WindowLocation>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION));
-	my_cfg.ui.layout.properties_location = app::TConverter<WindowLocation>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_LAYOUT_PROPERTIES_LOCATION));
 	my_cfg.ui.layout.right.extend = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_EXTEND));
 	my_cfg.ui.layout.right.ratio = TConverter<float>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_RATIO));
+	//my_cfg.ui.layout.rss_location = app::TConverter<WindowLocation>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_LAYOUT_RSS_LOCATION));
 	my_cfg.ui.layout.top.extend = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_LAYOUT_TOP_EXTEND));
 	my_cfg.ui.layout.top.ratio = TConverter<float>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_LAYOUT_TOP_RATIO));
+	//my_cfg.ui.layout.vkbd_location = app::TConverter<WindowLocation>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_LAYOUT_VKBD_LOCATION));
 	my_cfg.ui.window.attributes.fullscreen = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_WINDOW_ATTR_FULLSCREEN));
 	my_cfg.ui.window.attributes.maximized = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_WINDOW_ATTR_MAXIMIZED));
 	my_cfg.ui.window.attributes.windowed_fullscreen = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_UI_WINDOW_ATTR_WINDOWEDFULLSCREEN));

@@ -887,25 +887,30 @@ ImGuiPreferencesDialog::Draw_Display()
 				return selection;
 			};
 
-			int  log_pos = -1;
-			int  log_sel = -1;
-			int  props_pos = -1;
-			int  props_sel = -1;
-			int  cdbg_pos = -1;
-			int  cdbg_sel = -1;
-
+			int  wnd_pos = -1;
+			int  wnd_sel = -1;
+			/*location_item(
+				get<std::string>(my_current_settings[TZK_CVAR_SETTING_UI_LAYOUT_CONSOLE_LOCATION]),
+				TZK_CVAR_SETTING_UI_LAYOUT_CONSOLE_LOCATION, wnd_pos, wnd_sel
+			);*/
+			wnd_pos = -1;
+			wnd_sel = -1;
 			location_item(
 				get<std::string>(my_current_settings[TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION]),
-				TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION, log_pos, log_sel
+				TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION, wnd_pos, wnd_sel
 			);
+			/*wnd_pos = -1;
+			wnd_sel = -1;
 			location_item(
-				get<std::string>(my_current_settings[TZK_CVAR_SETTING_UI_LAYOUT_PROPERTIES_LOCATION]),
-				TZK_CVAR_SETTING_UI_LAYOUT_PROPERTIES_LOCATION, props_pos, props_sel
+				get<std::string>(my_current_settings[TZK_CVAR_SETTING_UI_LAYOUT_RSS_LOCATION]),
+				TZK_CVAR_SETTING_UI_LAYOUT_RSS_LOCATION, wnd_pos, wnd_sel
 			);
+			wnd_pos = -1;
+			wnd_sel = -1;
 			location_item(
-				get<std::string>(my_current_settings[TZK_CVAR_SETTING_UI_LAYOUT_CANVASDBG_LOCATION]),
-				TZK_CVAR_SETTING_UI_LAYOUT_CANVASDBG_LOCATION, cdbg_pos, cdbg_sel
-			);
+				get<std::string>(my_current_settings[TZK_CVAR_SETTING_UI_LAYOUT_VKBD_LOCATION]),
+				TZK_CVAR_SETTING_UI_LAYOUT_VKBD_LOCATION, wnd_pos, wnd_sel
+			);*/
 
 			ImGui::Unindent();
 		}
@@ -1753,9 +1758,10 @@ ImGuiPreferencesDialog::LoadPreferences()
 		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_RATIO] = TConverter<float>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_RATIO]);
 		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_TOP_RATIO] = TConverter<float>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_TOP_RATIO]);
 
-		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_CANVASDBG_LOCATION] = inflight[TZK_CVAR_SETTING_UI_LAYOUT_CANVASDBG_LOCATION];
+		//my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_CONSOLE_LOCATION] = inflight[TZK_CVAR_SETTING_UI_LAYOUT_CONSOLE_LOCATION];
 		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION] = inflight[TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION];
-		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_PROPERTIES_LOCATION] = inflight[TZK_CVAR_SETTING_UI_LAYOUT_PROPERTIES_LOCATION];
+		//my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_RSS_LOCATION] = inflight[TZK_CVAR_SETTING_UI_LAYOUT_RSS_LOCATION];
+		//my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_VKBD_LOCATION] = inflight[TZK_CVAR_SETTING_UI_LAYOUT_VKBD_LOCATION];
 
 		my_loaded_settings[TZK_CVAR_SETTING_UI_PAUSE_ON_FOCUS_LOSS_ENABLED] = TConverter<bool>::FromString(inflight[TZK_CVAR_SETTING_UI_PAUSE_ON_FOCUS_LOSS_ENABLED]);
 

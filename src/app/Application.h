@@ -322,9 +322,10 @@ private:
 					float  ratio;
 				} bottom;
 
-				WindowLocation  canvasdbg_location;
+				WindowLocation  console_location;
 				WindowLocation  log_location;
-				WindowLocation  properties_location;
+				WindowLocation  rss_location;
+				WindowLocation  vkbd_location;
 
 			} layout;
 
