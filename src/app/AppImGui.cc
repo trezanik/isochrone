@@ -178,9 +178,6 @@ AppImGui::AppImGui(
 		my_gui.app_styles.emplace_back(std::move(appstyle_inbuilt_dark));
 		my_gui.app_styles.emplace_back(std::move(appstyle_inbuilt_light));
 
-		engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::Engine);
-		engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::External);
-		engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::System);
 
 		my_known_versions.emplace_back(trezanik::core::UUID("783d1279-05ca-40af-b1c2-cfc40c212658")); // 1.0 [Non-Final]
 		// ..additional versions for stable releases..

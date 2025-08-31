@@ -361,15 +361,12 @@ private:
 	/**
 	 * Handles modifications to resources
 	 * 
-	 * @param[in] rid
-	 *  The resource identifier
-	 * @param[in] state
-	 *  The new state of the resource
+	 * @param[in] rstate
+	 *  The resource state data to interpret
 	 */
 	void
 	HandleResourceState(
-		trezanik::engine::ResourceID rid,
-		trezanik::engine::ResourceState state
+		trezanik::engine::EventData::resource_state rstate
 	);
 
 
