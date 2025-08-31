@@ -43,9 +43,10 @@ Config::Config()
 // local impl?
 {
 	TZK_LOG(LogLevel::Trace, "Constructor starting");
-
-
-
+	{
+		my_known_versions.emplace_back(trezanik::core::UUID("60714a3a-dc6c-437b-a4a1-f897c7d46998"));
+		// ..additional versions for stable releases..
+	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
 
@@ -254,6 +255,15 @@ Config::FileLoad(
 	my_file_path = path;
 
 
+	/*
+	 * File format - mandatory across all versions
+	 * 
+	 * <?xml version="1.0" encoding="UTF-8"?>
+	 * <Configuration version="$(version_identifer)">
+	 *   ...per-version data...
+	 * </Configuration>
+	 */
+
 #if TZK_USING_PUGIXML
 	/*
 	 * Our responsibility here is simple.
@@ -294,29 +304,25 @@ Config::FileLoad(
 		return ErrDATA;
 	}
 
-	std::vector<UUID>  known_versions {/// @todo make member var, needed for writing too
-		"60714a3a-dc6c-437b-a4a1-f897c7d46998" // "0.1"
-	};
-	UUID  ver_id(config_ver.value());
-	bool  ver_ok = false;
-
-	if ( !ver_id.IsStringUUID(ver_id.GetCanonical()) )
+	if ( !UUID::IsStringUUID(config_ver.value()) )
 	{
 		TZK_LOG_FORMAT(LogLevel::Error,
 			"Version UUID is not valid: '%s'",
-			ver_id.GetCanonical()
+			config_ver.value()
 		);
 		return ErrDATA;
 	}
+	
+	UUID  ver_id(config_ver.value());
+	bool  ver_ok = false;
 
-	for ( auto& kv : known_versions )
+	for ( auto& kv : my_known_versions )
 	{
 		if ( ver_id == kv )
 		{
-			// can provide proper mapping once we have multiple versions
 			TZK_LOG_FORMAT(LogLevel::Info,
-				"Configuration file version '%s' (%s)",
-				ver_id.GetCanonical(), "0.1"
+				"Configuration file version '%s'",
+				ver_id.GetCanonical()
 			);
 			// assign any handler specifics here
 
@@ -388,7 +394,7 @@ Config::FileSave()
 
 	// root node is our Configuration, with the writer version
 	auto root = doc.append_child("Configuration");
-	root.append_attribute("version") = "60714a3a-dc6c-437b-a4a1-f897c7d46998";
+	root.append_attribute("version") = my_known_versions.back().GetCanonical();
 
 	for ( auto& setting : my_settings )
 	{
