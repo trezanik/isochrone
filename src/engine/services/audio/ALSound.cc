@@ -12,11 +12,10 @@
 #include "engine/services/audio/ALSound.h"
 #include "engine/services/audio/ALAudio.h"
 #include "engine/services/audio/AudioFile.h"
-#include "engine/Context.h"
-#include "engine/services/event/EventManager.h"
 #include "engine/resources/Resource_Audio.h"
 #include "engine/resources/ResourceCache.h"
 #include "engine/objects/AudioComponent.h"
+#include "engine/Context.h"
 
 #include "core/services/log/Log.h"
 #include "core/services/log/LogEvent.h"

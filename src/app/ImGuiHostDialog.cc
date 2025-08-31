@@ -12,7 +12,6 @@
 #include "app/ImGuiHostDialog.h"
 #include "app/AppConfigDefs.h"
 
-#include "engine/services/event/EventManager.h"
 #include "engine/services/ServiceLocator.h"
 #include "engine/resources/ResourceCache.h"
 #include "engine/resources/ResourceLoader.h"
@@ -20,6 +19,7 @@
 
 #include "core/util/string/string.h"
 #include "core/services/log/Log.h"
+#include "core/error.h"
 
 
 namespace trezanik {
@@ -40,7 +40,7 @@ ImGuiHostDialog::ImGuiHostDialog(
 		_gui_interactions.host_dialog = this;
 
 		// we need to receive resource load notifications
-		engine::ServiceLocator::EventManager()->AddListener(this, EventType::Domain::Engine);
+		// pending addition
 
 		std::string  fpath_win2k  = aux::BuildPath(my_context.AssetPath() + assetdir_images, "icon_win2k.png");
 		std::string  fpath_winxp  = aux::BuildPath(my_context.AssetPath() + assetdir_images, "icon_winxp.png");
@@ -102,7 +102,7 @@ ImGuiHostDialog::~ImGuiHostDialog()
 	{
 		_gui_interactions.host_dialog = nullptr;
 
-		engine::ServiceLocator::EventManager()->RemoveListener(this);
+
 	}
 	TZK_LOG(LogLevel::Trace, "Destructor finished");
 }

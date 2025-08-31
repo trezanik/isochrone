@@ -2,7 +2,7 @@
 
 /**
  * @file        src/app/event/AppEvent.h
- * @brief       App-specific Event
+ * @brief       App-specific Events
  * @license     zlib (view the LICENSE file for details)
  * @copyright   Trezanik Developers, 2014-2025
  */
@@ -10,73 +10,35 @@
 
 #include "app/definitions.h"
 
-#include "engine/services/event/Event.h"
-#include "engine/services/event/EventData.h"
-#include "engine/services/event/EventType.h"
-#include "engine/services/event/External.h"
+#include "core/UUID.h"
 
 
 namespace trezanik {
 namespace app {
 
 
-namespace EventType
-{
-	using Value = engine::EventType::Value;
-
-	/*
-	 * Be warned; engine::EventType::External is application-wide, conflicts
-	 * will occur if you were to define this equivalently elsewhere. Some
-	 * nasty workarounds possible, but desire is for extensible enums...
-	 * 
-	 * Watch the values used. Recommend a single reference file if planning to
-	 * use this in more than one location, so values can be guaranteed unique.
-	 */
-	enum External
-	{
-		Invalid = 0,  //< 0 is always deemed invalid, use 1..UINT16_MAX
-		// 1-99 - Node graph related
-		NodeCreate,
-		NodeDelete,
-		NodeUpdate,
-		LinkCreate,
-		LinkDelete,
-		LinkUpdate,
-		// 100-199 - UI related
-		UIButtonPress = 100,
-		UIWindowLocation,
-		// 200-249 - feature related
-		RSSCreate = 200,
-		RSSDelete,
-		RSSUpdate,
-	};
-}
-
-
-/**
- * Base class for an App event
+/*
+ * These could easily be in a standalone, dedicated file to save including UUID,
+ * however we use it pretty much everywhere that'd need this already anyway.
  */
-class AppEvent : public trezanik::engine::External
-{
-	TZK_NO_CLASS_ASSIGNMENT(AppEvent);
-	TZK_NO_CLASS_COPY(AppEvent);
-	TZK_NO_CLASS_MOVEASSIGNMENT(AppEvent);
-	TZK_NO_CLASS_MOVECOPY(AppEvent);
+static trezanik::core::UUID  uuid_buttonpress("b4a4256a-86e0-4688-b956-d751ce21e924");
+static trezanik::core::UUID  uuid_filedialog_cancel("f0961c70-e21A-4f13-848e-5a23af015d5c");
+static trezanik::core::UUID  uuid_filedialog_confirm("97997a0c-0a31-455e-bd97-5d43474786f1");
+static trezanik::core::UUID  uuid_linkcreate("a3e2f351-f497-41df-a8c3-e885e5a8428a");
+static trezanik::core::UUID  uuid_linkdelete("560a0935-b1C9-4212-a5b3-1e2373938f65");
+static trezanik::core::UUID  uuid_linkestablish("812285f4-2e0e-4616-8d2e-39089ebd25e0");
+static trezanik::core::UUID  uuid_linkupdate("38902343-6d75-4dfd-8a75-3cb7f36bb924");
+static trezanik::core::UUID  uuid_nodecreate("9be93411-2c9a-498f-bce2-932a223a588f");
+static trezanik::core::UUID  uuid_nodedelete("640dc606-9949-4773-a6d0-d64dda21719b");
+static trezanik::core::UUID  uuid_nodeupdate("dcf2d845-096b-4923-86c5-b89014ba3b7f");
+static trezanik::core::UUID  uuid_process_aborted("30143875-970b-4538-8873-aaf17d693519");
+static trezanik::core::UUID  uuid_process_created("25f6e3cf-0f6b-4f67-8dff-d6e3c800Bf12");
+static trezanik::core::UUID  uuid_process_stoppedfailure("f351235f-e4de-45fc-a21c-7b0873d97c28");
+static trezanik::core::UUID  uuid_process_stoppedsuccess("bbb8c4a7-64b8-4e67-90bf-0224e0381205");
+static trezanik::core::UUID  uuid_userdata_update("dde82b54-382b-4710-a859-b0701d275b8f");
 
-public:
-	/**
-	 * Standard constructor
-	 *
-	 * @param[in] type
-	 *  The type of event
-	 */
-	AppEvent(
-		EventType::Value type
-	)
-	: trezanik::engine::External(type)
-	{
-	}
-};
+
+enum class WindowLocation;  // ImGuiSemiFixedDock.h
 
 
 /**
@@ -112,14 +74,14 @@ typedef uint8_t NodeUpdateFlags;
 
 
 
-// mirror the engine::EventData  layout
+// common form namespace
 namespace EventData {
 
 
 /**
  * Base struct for link events
  */
-struct AppEvent_LinkBaselineData
+struct link_baseline
 {
 	/** ID of the workspace the link is in */
 	core::UUID   workspace_uuid;
@@ -134,7 +96,7 @@ struct AppEvent_LinkBaselineData
 /**
  * Structure for providing Link updates
  */
-struct AppEvent_LinkUpdateData : public AppEvent_LinkBaselineData
+struct link_update : public link_baseline
 {
 	// no text relay for link text, waiting for new event management
 
@@ -145,7 +107,7 @@ struct AppEvent_LinkUpdateData : public AppEvent_LinkBaselineData
 /**
  * Base struct for node events
  */
-struct AppEvent_NodeBaselineData
+struct node_baseline
 {
 	/** ID of the workspace the node is in */
 	core::UUID   workspace_uuid;
@@ -156,7 +118,7 @@ struct AppEvent_NodeBaselineData
 /**
  * Structure for providing Node updates
  */
-struct AppEvent_NodeUpdateData : public AppEvent_NodeBaselineData
+struct node_update : public node_baseline
 {
 	// no text relay for e.g. name/data, waiting for new event management
 
@@ -168,7 +130,7 @@ struct AppEvent_NodeUpdateData : public AppEvent_NodeBaselineData
 /**
  * Button press event data
  */
-struct AppEvent_UIButtonPressData
+struct button_press
 {
 	/** text displayed on the button that was pressed */
 	std::string  button_label;
@@ -181,7 +143,7 @@ struct AppEvent_UIButtonPressData
 /**
  * Window location event data (for docks)
  */
-struct AppEvent_UIWindowLocationData
+struct window_location
 {
 	/** the new window location */
 	WindowLocation  location;
@@ -194,348 +156,45 @@ struct AppEvent_UIWindowLocationData
 };
 
 
-}  // namespace EventData
 
-
-/**
- * Link creation event
- */
-class AppEvent_LinkCreate : public AppEvent
+struct process_aborted
 {
-	TZK_NO_CLASS_ASSIGNMENT(AppEvent_LinkCreate);
-	TZK_NO_CLASS_COPY(AppEvent_LinkCreate);
-	TZK_NO_CLASS_MOVEASSIGNMENT(AppEvent_LinkCreate);
-	TZK_NO_CLASS_MOVECOPY(AppEvent_LinkCreate);
-
-private:
-protected:
-
-	/** Baseline data for a link event */
-	EventData::AppEvent_LinkBaselineData  _event_data;
-
-public:
-	/**
-	 * Standard constructor
-	 *
-	 * @param[in] wkspid
-	 *  The workspace identifier
-	 * @param[in] linkid
-	 *  The link identifier
-	 * @param[in] srcid
-	 *  The source identifier
-	 * @param[in] tgtid
-	 *  The target identifier
-	 */
-	AppEvent_LinkCreate(
-		const trezanik::core::UUID& wkspid,
-		const trezanik::core::UUID& linkid,
-		const trezanik::core::UUID& srcid,
-		const trezanik::core::UUID& tgtid
-	)
-	: AppEvent(EventType::LinkCreate)
-	{
-		_event_data.workspace_uuid = wkspid;
-		_event_data.link_uuid = linkid;
-		_event_data.source_uuid = srcid;
-		_event_data.target_uuid = tgtid;
-		_data = &_event_data;
-	}
+	unsigned int  pid;
+	std::string   process_name;
+	std::string   process_path;
+	std::string   command_line;
 };
 
 
-/**
- * Link deletion event
- */
-class AppEvent_LinkDelete : public AppEvent
+struct process_created
 {
-	TZK_NO_CLASS_ASSIGNMENT(AppEvent_LinkDelete);
-	TZK_NO_CLASS_COPY(AppEvent_LinkDelete);
-	TZK_NO_CLASS_MOVEASSIGNMENT(AppEvent_LinkDelete);
-	TZK_NO_CLASS_MOVECOPY(AppEvent_LinkDelete);
-
-private:
-protected:
-
-	/** Baseline data for a link event */
-	EventData::AppEvent_LinkBaselineData  _event_data;
-
-public:
-	/**
-	 * Standard constructor
-	 *
-	 * @param[in] wkspid
-	 *  The workspace identifier
-	 * @param[in] linkid
-	 *  The link identifier
-	 * @param[in] srcid
-	 *  The source identifier
-	 * @param[in] tgtid
-	 *  The target identifier
-	 */
-	AppEvent_LinkDelete(
-		const trezanik::core::UUID& wkspid,
-		const trezanik::core::UUID& linkid,
-		const trezanik::core::UUID& srcid,
-		const trezanik::core::UUID& tgtid
-	)
-	: AppEvent(EventType::LinkDelete)
-	{
-		_event_data.workspace_uuid = wkspid;
-		_event_data.link_uuid = linkid;
-		_event_data.source_uuid = srcid;
-		_event_data.target_uuid = tgtid;
-		_data = &_event_data;
-	}
+	unsigned int  pid;
+	std::string   process_name;
+	std::string   process_path;
+	std::string   command_line;
 };
 
 
-/**
- * Link update event
- */
-class AppEvent_LinkUpdate : public AppEvent
+struct process_stopped_failure
 {
-	TZK_NO_CLASS_ASSIGNMENT(AppEvent_LinkUpdate);
-	TZK_NO_CLASS_COPY(AppEvent_LinkUpdate);
-	TZK_NO_CLASS_MOVEASSIGNMENT(AppEvent_LinkUpdate);
-	TZK_NO_CLASS_MOVECOPY(AppEvent_LinkUpdate);
-
-private:
-protected:
-
-	/** Data for a link update event */
-	EventData::AppEvent_LinkUpdateData  _event_data;
-
-public:
-	/**
-	 * Standard constructor
-	 *
-	  * @param[in] wkspid
-	 *  The workspace identifier
-	 * @param[in] linkid
-	 *  The link identifier
-	 * @param[in] srcid
-	 *  The source identifier
-	 * @param[in] tgtid
-	 *  The target identifier
-	 * @param[in] flags
-	 *  Associated event flags
-	 */
-	AppEvent_LinkUpdate(
-		const trezanik::core::UUID& wkspid,
-		const trezanik::core::UUID& linkid,
-		const trezanik::core::UUID& srcid,
-		const trezanik::core::UUID& tgtid,
-		LinkUpdateFlags flags
-	)
-	: AppEvent(EventType::LinkUpdate)
-	{
-		_event_data.workspace_uuid = wkspid;
-		_event_data.link_uuid = linkid;
-		_event_data.source_uuid = srcid;
-		_event_data.target_uuid = tgtid;
-		_event_data.flags = flags;
-		_data = &_event_data;
-	}
+	unsigned int  pid;
+	std::string   process_name;
+	std::string   process_path;
+	std::string   command_line;
+	int           exit_code;
 };
 
 
-/**
- * Node creation event
- */
-class AppEvent_NodeCreate : public AppEvent
+struct process_stopped_success
 {
-	TZK_NO_CLASS_ASSIGNMENT(AppEvent_NodeCreate);
-	TZK_NO_CLASS_COPY(AppEvent_NodeCreate);
-	TZK_NO_CLASS_MOVEASSIGNMENT(AppEvent_NodeCreate);
-	TZK_NO_CLASS_MOVECOPY(AppEvent_NodeCreate);
-
-private:
-protected:
-
-	/** Baseline data for a node event */
-	EventData::AppEvent_NodeBaselineData  _event_data;
-
-public:
-	/**
-	 * Standard constructor
-	 *
-	 * @param[in] wkspid
-	 *  The unique workspace identifier
-	 * @param[in] uuid
-	 *  The unique node identifier
-	 */
-	AppEvent_NodeCreate(
-		const trezanik::core::UUID& wkspid,
-		const trezanik::core::UUID& nodeid
-	)
-	: AppEvent(EventType::NodeCreate)
-	{
-		_event_data.workspace_uuid = wkspid;
-		_event_data.node_uuid = nodeid;
-		_data = &_event_data;
-	}
+	unsigned int  pid;
+	std::string   process_name;
+	std::string   process_path;
+	std::string   command_line;
 };
 
 
-/**
- * Node deletion event
- */
-class AppEvent_NodeDelete : public AppEvent
-{
-	TZK_NO_CLASS_ASSIGNMENT(AppEvent_NodeDelete);
-	TZK_NO_CLASS_COPY(AppEvent_NodeDelete);
-	TZK_NO_CLASS_MOVEASSIGNMENT(AppEvent_NodeDelete);
-	TZK_NO_CLASS_MOVECOPY(AppEvent_NodeDelete);
-
-private:
-protected:
-
-	/** Baseline data for a node event */
-	EventData::AppEvent_NodeBaselineData  _event_data;
-
-public:
-	/**
-	 * Standard constructor
-	 *
-	 * @param[in] wkspid
-	 *  The unique workspace identifier
-	 * @param[in] uuid
-	 *  The unique node identifier
-	 */
-	AppEvent_NodeDelete(
-		const trezanik::core::UUID& wkspid,
-		const trezanik::core::UUID& nodeid
-	)
-	: AppEvent(EventType::NodeDelete)
-	{
-		_event_data.workspace_uuid = wkspid;
-		_event_data.node_uuid = nodeid;
-		_data = &_event_data;
-	}
-};
-
-
-/**
- * Node update event
- */
-class AppEvent_NodeUpdate : public AppEvent
-{
-	TZK_NO_CLASS_ASSIGNMENT(AppEvent_NodeUpdate);
-	TZK_NO_CLASS_COPY(AppEvent_NodeUpdate);
-	TZK_NO_CLASS_MOVEASSIGNMENT(AppEvent_NodeUpdate);
-	TZK_NO_CLASS_MOVECOPY(AppEvent_NodeUpdate);
-
-private:
-protected:
-
-	/** Data for a node update event */
-	EventData::AppEvent_NodeUpdateData  _event_data;
-
-public:
-	/**
-	 * Standard constructor
-	 *
-	 * @param[in] wkspid
-	 *  The unique workspace identifier
-	 * @param[in] nodeid
-	 *  The unique node identifier
-	 * @param[in] flags
-	 *  The update flags
-	 */
-	AppEvent_NodeUpdate(
-		const trezanik::core::UUID& wkspid,
-		const trezanik::core::UUID& nodeid,
-		NodeUpdateFlags flags
-	)
-	: AppEvent(EventType::NodeUpdate)
-	{
-		_event_data.workspace_uuid = wkspid;
-		_event_data.node_uuid = nodeid;
-		_event_data.flags = flags;
-		_data = &_event_data;
-	}
-};
-
-
-/**
- * (UI) Button press event
- */
-class AppEvent_UIButtonPress : public AppEvent
-{
-	TZK_NO_CLASS_ASSIGNMENT(AppEvent_UIButtonPress);
-	TZK_NO_CLASS_COPY(AppEvent_UIButtonPress);
-	TZK_NO_CLASS_MOVEASSIGNMENT(AppEvent_UIButtonPress);
-	TZK_NO_CLASS_MOVECOPY(AppEvent_UIButtonPress);
-
-private:
-protected:
-
-	/** Data for a button press event */
-	EventData::AppEvent_UIButtonPressData  _event_data;
-
-public:
-	/**
-	 * Standard constructor
-	 *
-	 * @param[in] button_label
-	 *  The text displayed on the button label
-	 * @param[in] custom
-	 *  Additional custom data
-	 */
-	AppEvent_UIButtonPress(
-		const char* button_label,
-		const char* custom
-	)
-	: AppEvent(EventType::UIButtonPress)
-	{
-		_event_data.button_label = button_label;
-		_event_data.custom = custom;
-		_data = &_event_data;
-	}
-};
-
-
-/**
- * (UI) Window location change event
- */
-class AppEvent_UIWindowLocation : public AppEvent
-{
-	TZK_NO_CLASS_ASSIGNMENT(AppEvent_UIWindowLocation);
-	TZK_NO_CLASS_COPY(AppEvent_UIWindowLocation);
-	TZK_NO_CLASS_MOVEASSIGNMENT(AppEvent_UIWindowLocation);
-	TZK_NO_CLASS_MOVECOPY(AppEvent_UIWindowLocation);
-
-private:
-protected:
-
-	/** Data for a window location change event */
-	EventData::AppEvent_UIWindowLocationData  _event_data;
-
-public:
-	/**
-	 * Standard constructor
-	 *
-	 * @param[in] location
-	 *  The new window location
-	 * @param[in] workspace_id
-	 *  The workspace UUID this is applying to
-	 * @param[in] window_id
-	 *  The window UUID being updated
-	 */
-	AppEvent_UIWindowLocation(
-		WindowLocation location,
-		trezanik::core::UUID& workspace_id,
-		trezanik::core::UUID& window_id
-	)
-	: AppEvent(EventType::UIWindowLocation)
-	{
-		_event_data.location = location;
-		_event_data.workspace_id = workspace_id;
-		_event_data.window_id = window_id;
-		_data = &_event_data;
-	}
-};
-
+} // namespace EventData
 
 } // namespace app
 } // namespace trezanik

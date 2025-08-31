@@ -23,6 +23,7 @@
 
 #include "core/error.h"
 #include "core/services/config/IConfig.h"
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/services/log/LogTarget_File.h"
 #include "core/services/log/LogTarget_Terminal.h"
@@ -51,8 +52,8 @@
 #include "engine/resources/Resource_Audio.h"
 #include "engine/services/audio/IAudio.h"
 #include "engine/services/audio/ALSound.h"
-#include "engine/services/event/EventManager.h"
-#include "engine/services/event/EventData.h"
+//#include "engine/services/event/EventManager.h"
+#include "engine/services/event/EngineEvent.h"
 #include "engine/services/event/KeyConversion.h"
 #include "engine/services/net/INet.h"
 #include "engine/services/ServiceLocator.h"
@@ -203,6 +204,25 @@ Application::Application()
 	// locale worth calling here???
 	
 
+	auto  evtdsp = core::ServiceLocator::EventDispatcher();
+	
+	/*
+	 * These handlers may make use of objects that don't exist yet, if one of
+	 * the events was to be received (e.g. Context) - however there's no code
+	 * that establishes that trigger. Those events can't be generated (outside
+	 * of manually creating a fake one) without the resources already existing
+	 */
+	my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::DelayedEvent<std::shared_ptr<engine::EventData::config_change>>>(uuid_configchange, std::bind(&Application::HandleConfigChange, this, std::placeholders::_1))));
+	my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<engine::EventData::resource_state>>(uuid_resourcestate, std::bind(&Application::HandleResourceState, this, std::placeholders::_1))));
+	my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<engine::EventData::window_move>>(uuid_windowmove, std::bind(&Application::HandleWindowMove, this, std::placeholders::_1))));
+	my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<engine::EventData::window_size>>(uuid_windowsize, std::bind(&Application::HandleWindowSize, this, std::placeholders::_1))));
+	my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<>>(uuid_windowactivate, std::bind(&Application::HandleWindowActivate, this))));
+	my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<>>(uuid_windowdeactivate, std::bind(&Application::HandleWindowDeactivate, this))));
+	// tempted to macro this so the types are enforced, less error-prone
+	//EVTREG_DELAYED(engine::EventData::config_change, uuid_configchange, &Application::HandleConfigChange);
+	//EVTREG(engine::EventData::window_move, uuid_windowmove, &Application::HandleWindowMove);
+	
+
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
 
@@ -214,6 +234,13 @@ Application::~Application()
 
 	TZK_LOG(LogLevel::Trace, "Destructor starting");
 	{
+		auto  evtmgr = core::ServiceLocator::EventDispatcher();
+
+		for ( auto& id : my_reg_ids )
+		{
+			evtmgr->Unregister(id);
+		}
+
 		if ( my_context != nullptr )
 		{
 			if ( !my_quit )
@@ -394,7 +421,6 @@ Application::Cleanup()
 	// unassignment, won't be destroyed
 	my_logfile_target.reset();
 
-	engine::ServiceLocator::EventManager()->RemoveListener(this, engine::EventType::Domain::AllDomains);
 	engine::ServiceLocator::DestroyAllServices();
 }
 
@@ -712,11 +738,9 @@ Application::GetWorkspace(
 }
 
 
-/// @todo Make all Handle* functions App_EventHandler class beyond, pass in this through depinj
-
 void
 Application::HandleConfigChange(
-	trezanik::engine::EventData::Engine_Config* cfg
+	std::shared_ptr<trezanik::engine::EventData::config_change> cfg
 )
 {
 	// we don't need to do anything with cfg, as we already have our own structs
@@ -752,15 +776,13 @@ Application::HandleConfigChange(
 
 void
 Application::HandleResourceState(
-	trezanik::engine::EventData::Engine_ResourceState* res_state
+	trezanik::engine::EventData::resource_state res_state
 )
 {
 	using namespace trezanik::core;
 	using namespace trezanik::engine;
 
-	auto&  res_cache = my_context->GetResourceCache();
-
-	switch ( res_state->state )
+	switch ( res_state.state )
 	{
 	case ResourceState::Ready:
 		{
@@ -769,7 +791,7 @@ Application::HandleResourceState(
 			 * to attempt a dynamic cast. Can think of others but no committal
 			 * to a particular desire, so will leave it for now.
 			 */
-			auto res = res_cache.GetResource(res_state->id);
+			auto res = res_state.resource;
 			auto reswksp = std::dynamic_pointer_cast<Resource_Workspace>(res);
 
 			if ( reswksp != nullptr )
@@ -795,7 +817,7 @@ Application::HandleResourceState(
 				TZK_LOG_FORMAT(LogLevel::Trace, "Workspace '%s' tracked", reswksp->GetFilepath().c_str());
 
 				// now tracked by us
-				my_workspaces[res_state->id] = wksp;
+				my_workspaces[res_state.resource->GetResourceID()] = wksp;
 
 				// hmmm
 				wksp->SetSaveDirectory(core::aux::Path(my_cfg.workspaces.path));
@@ -837,24 +859,54 @@ Application::HandleResourceState(
 
 
 void
+Application::HandleWindowActivate()
+{
+	using namespace trezanik::core;
+
+	TZK_LOG(LogLevel::Info, "Window focus acquired");
+
+	// resume execution
+	if ( my_cfg.ui.pause_on_focus_loss.enabled )
+	{
+		my_context->SetEngineState(engine::State::Running);
+	}
+}
+
+
+void
+Application::HandleWindowDeactivate()
+{
+	using namespace trezanik::core;
+
+	TZK_LOG(LogLevel::Info, "Window focus lost");
+
+	// pause execution unless configured
+	if ( my_cfg.ui.pause_on_focus_loss.enabled )
+	{
+		my_context->SetEngineState(engine::State::Paused);
+	}
+}
+
+
+void
 Application::HandleWindowMove(
-	trezanik::engine::EventData::System_WindowMove* wndmv
+	trezanik::engine::EventData::window_move wndmv
 )
 {
 	using namespace trezanik::core;
 
-	my_cfg.ui.window.pos_x = wndmv->pos_x;
-	my_cfg.ui.window.pos_y = wndmv->pos_y;
+	my_cfg.ui.window.pos_x = wndmv.pos_x;
+	my_cfg.ui.window.pos_y = wndmv.pos_y;
 	// no-one has more than 255 displays?
 	my_cfg.ui.window.display = static_cast<uint8_t>(SDL_GetWindowDisplayIndex(my_window));
-	
+
 	TZK_LOG_FORMAT(LogLevel::Debug, "New window position: %ux%u:%d", my_cfg.ui.window.pos_x, my_cfg.ui.window.pos_y, my_cfg.ui.window.display);
 }
 
 
 void
 Application::HandleWindowSize(
-	trezanik::engine::EventData::System_WindowSize* wndsiz
+	trezanik::engine::EventData::window_size wndsiz
 )
 {
 	using namespace trezanik::core;
@@ -864,7 +916,7 @@ Application::HandleWindowSize(
 
 #if TZK_THREADED_RENDER
 	// don't trigger renderer ops if we're already at the right size
-	if ( my_cfg.ui.window.h == wndsiz->height && my_cfg.ui.window.w == wndsiz->width )
+	if ( my_cfg.ui.window.h == wndsiz.height && my_cfg.ui.window.w == wndsiz.width )
 		return;
 
 	/*
@@ -940,8 +992,8 @@ Application::HandleWindowSize(
 #endif
 
 	// update config, but rest of SDL and imgui is already aware and handled it
-	my_cfg.ui.window.h = wndsiz->height;
-	my_cfg.ui.window.w = wndsiz->width;
+	my_cfg.ui.window.h = wndsiz.height;
+	my_cfg.ui.window.w = wndsiz.width;
 }
 
 
@@ -1105,12 +1157,6 @@ Application::Initialize(
 	{
 		engine::ServiceLocator::CreateDefaultServices();
 
-		// check this first as it'll be the cause of other failures if not existing
-		if ( engine::ServiceLocator::EventManager() == nullptr )
-		{
-			TZK_LOG_FORMAT(LogLevel::Error, "Engine initialization failure: %s service failed creation", "EventManager");
-			return ErrFAILED;
-		}
 		// even if these are disabled, 'null' implementations should exist
 		if ( engine::ServiceLocator::Audio() == nullptr )
 		{
@@ -1123,20 +1169,9 @@ Application::Initialize(
 			return ErrFAILED;
 		}
 
-		// we now receive events
-		// use AllDomains for now, dial back unused stuff around release
-		engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::AllDomains);
-		//engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::Engine);
-		//engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::System);
-
 		// context must be the first non-service object to be created, last to be deleted
 		my_context = std::make_unique<Context>();
 
-		if ( my_context == nullptr )
-		{
-			TZK_LOG(LogLevel::Error, "Engine initialization failure: context creation failed");
-			return ErrFAILED;
-		}
 
 		/// @todo check cl args, direct launch if provided
 		// SetAssetPath() needed too
@@ -1968,7 +2003,7 @@ Application::LoadConfiguration()
 	
 	// apply anything that doesn't dynamically read from variables now
 	{
-
+		
 	}
 
 	// we don't actually use this anywhere, but is an indicator for usage
@@ -2412,126 +2447,6 @@ Application::PrintHelp()
 }
 
 
-int
-Application::ProcessEvent(
-	trezanik::engine::IEvent* event
-)
-{
-	using namespace trezanik::core;
-	using namespace trezanik::engine;
-	using namespace trezanik::engine::EventType;
-
-	switch ( event->GetDomain() )
-	{
-	case Domain::Engine:
-		switch ( event->GetType() )
-		{
-		case Engine::Cleanup:
-			break;
-		case Engine::ConfigChange:
-			HandleConfigChange(reinterpret_cast<engine::EventData::Engine_Config*>(event->GetData()));
-			break;
-		case Engine::Command:
-			//HandleCommand(reinterpret_cast<EventData::Engine_Command*>(event->GetData()));
-			break;
-		case Engine::EngineState:
-			// use for aborted termination
-			//HandleStateChange(reinterpret_cast<EventData::Engine_State*>(event->GetData()));
-			if ( reinterpret_cast<engine::EventData::Engine_State*>(event->GetData())->entered == engine::State::Aborted )
-			{
-				// ensure the main loop breaks
-				my_quit = true;
-			}
-			break;
-		case Engine::HaltUpdate:
-		case Engine::LowMemory:
-		case Engine::Quit:
-			break;
-		case Engine::ResourceState:
-			HandleResourceState(reinterpret_cast<engine::EventData::Engine_ResourceState*>(event->GetData()));
-			break;
-		case Engine::ResumeUpdate:
-		case Engine::Script:
-		case Engine::Timer:
-		default:
-			break;
-		}
-		break;
-	case Domain::External:
-		switch ( event->GetType() )
-		{
-		case app::EventType::UIButtonPress:
-			PlaySound(InbuiltSound::ButtonSelect);
-			break;
-		default:
-			break;
-		}
-		break;
-	case Domain::Network:
-		switch ( event->GetType() )
-		{
-		case Network::TcpClosed:
-		case Network::TcpEstablished:
-		case Network::TcpRecv:
-		case Network::TcpSend:
-		case Network::UdpRecv:
-		case Network::UdpSend:
-		default:
-			break;
-		}
-		break;
-	case Domain::System:
-		switch ( event->GetType() )
-		{
-		case System::WindowActivate:
-			{
-				TZK_LOG(LogLevel::Info, "Window focus acquired");
-
-				// resume execution
-				if ( my_cfg.ui.pause_on_focus_loss.enabled )
-				{
-					my_context->SetEngineState(engine::State::Running);
-				}
-			}
-			break;
-		case System::WindowClose:
-			break;
-		case System::WindowDeactivate:
-			{
-				TZK_LOG(LogLevel::Info, "Window focus lost");
-
-				// pause execution unless configured
-				if ( my_cfg.ui.pause_on_focus_loss.enabled )
-				{
-					my_context->SetEngineState(engine::State::Paused);
-				}
-			}
-			break;
-		case System::WindowMove:
-			{
-				TZK_LOG(LogLevel::Info, "Window moved");
-				HandleWindowMove(reinterpret_cast<engine::EventData::System_WindowMove*>(event->GetData()));
-			}
-			break;
-		case System::WindowSize:
-			{
-				TZK_LOG(LogLevel::Info, "Window resized");
-				HandleWindowSize(reinterpret_cast<engine::EventData::System_WindowSize*>(event->GetData()));
-			}
-			break;
-		case System::WindowUpdate:
-		default:
-			break;
-		}
-		break;
-	default:
-		break;
-	}
-
-	return ErrNONE;
-}
-
-
 void
 Application::Quit()
 {
@@ -2603,9 +2518,8 @@ Application::RunSDL()
 	using namespace trezanik::core;
 	using namespace trezanik::engine;
 	using namespace trezanik::engine::EventData;
-	using namespace trezanik::engine::EventType;
 
-	auto  evtmgr = engine::ServiceLocator::EventManager();
+	auto  evtmgr = core::ServiceLocator::EventDispatcher();
 	int   retval = ErrNONE;
 
 	/*
@@ -2759,31 +2673,38 @@ Application::RunSDL()
 						case SDL_WINDOWEVENT_RESIZED:
 							{
 								// window size change; != resolution change
-								System_WindowSize  data;
+								window_size  data;
 								data.width  = evt.window.data1;
 								data.height = evt.window.data2;
-								evtmgr->PushEvent(Domain::System, WindowSize, &data);
+								evtmgr->DispatchEvent(uuid_windowsize, data);
 							}
 							break;
 						case SDL_WINDOWEVENT_MOVED:
 							{
-								System_WindowMove  data;
+								window_move  data;
 								data.pos_x = evt.window.data1;
 								data.pos_y = evt.window.data2;
-								evtmgr->PushEvent(Domain::System, WindowMove, &data);
+								evtmgr->DispatchEvent(uuid_windowmove, data);
 							}
 							break;
 						case SDL_WINDOWEVENT_ENTER:
-							evtmgr->PushEvent(Domain::System, MouseEnter, nullptr);
+							//mouse_  wa;
+							//evtmgr->PushEvent(Domain::System, MouseEnter, nullptr);
+							//evtmgr->DispatchEvent(uuid_windowenter, nullptr);
 							break;
 						case SDL_WINDOWEVENT_LEAVE:
-							evtmgr->PushEvent(Domain::System, MouseLeave, nullptr);
+							//evtmgr->PushEvent(Domain::System, MouseLeave, nullptr);
+							//evtmgr->DispatchEvent(uuid_windowleave, nullptr);
 							break;
 						case SDL_WINDOWEVENT_FOCUS_GAINED:
-							evtmgr->PushEvent(Domain::System, WindowActivate, nullptr);
+							//window_activation  wa;
+							//wa.focus_lost = false;
+							evtmgr->DispatchEvent(uuid_windowactivate);
 							break;
 						case SDL_WINDOWEVENT_FOCUS_LOST:
-							evtmgr->PushEvent(Domain::System, WindowDeactivate, nullptr);
+							//window_activation  wa;
+							//wa.focus_lost = true;
+							evtmgr->DispatchEvent(uuid_windowdeactivate);
 							break;
 						case SDL_WINDOWEVENT_SHOWN:
 							break;
@@ -2821,45 +2742,42 @@ Application::RunSDL()
 					break;
 				case SDL_MOUSEMOTION:
 					{
-						Input_MouseMove  data;
+						mouse_move  data;
 						data.pos_x = evt.motion.x;
 						data.pos_y = evt.motion.y;
 						data.rel_x = evt.motion.xrel;
 						data.rel_y = evt.motion.yrel;
-						evtmgr->PushEvent(Domain::Input, MouseMove, &data);
+						evtmgr->DispatchEvent(uuid_mousemove, data);
 					}
 					break;
 				case SDL_MOUSEWHEEL:
 					{
-						Input_MouseWheel  data{ evt.wheel.y, evt.wheel.x };
+						mouse_wheel  data{ evt.wheel.y, evt.wheel.x };
 
-						evtmgr->PushEvent(Domain::Input, MouseWheel, &data);
+						evtmgr->DispatchEvent(uuid_mousewheel, data);
 					}
 					break;
 				case SDL_MOUSEBUTTONDOWN:
 				case SDL_MOUSEBUTTONUP:
 					{
-						Input_MouseButton  data{ SDLMouseToInternal(evt.button.button) };
+						mouse_button  data{ SDLMouseToInternal(evt.button.button) };
 
-						evtmgr->PushEvent(Domain::Input,
-							evt.type == SDL_MOUSEBUTTONDOWN ? Input::MouseDown : Input::MouseUp,
-							&data
-						);
+						evtmgr->DispatchEvent(evt.type == SDL_MOUSEBUTTONDOWN ? uuid_mousedown : uuid_mouseup, data);
 					}
 					break;
 				case SDL_TEXTINPUT:
 					{
-						Input_KeyChar  data = { 0 };
+						key_char  data = { 0 };
 
 						std::memcpy(data.utf8, evt.text.text, sizeof(data.utf8));
 
-						evtmgr->PushEvent(Domain::Input, Input::KeyChar, &data);
+						evtmgr->DispatchEvent(uuid_keychar, data);
 					}
 					break;
 				case SDL_KEYDOWN:
 				case SDL_KEYUP:
 					{
-						Input_Key  data;
+						key_press  data;
 
 						/// @todo (future) can check with current window id, verify focus
 						//evt.key.windowID;
@@ -2899,10 +2817,7 @@ Application::RunSDL()
 							data.scancode, data.key ///@todo our own SDL_GetKeyName equivalent desired
 						);
 
-						evtmgr->PushEvent(Domain::Input,
-							evt.type == SDL_KEYUP ? Input::KeyUp : Input::KeyDown,
-							&data
-						);
+						evtmgr->DispatchEvent(evt.type == SDL_KEYUP ? uuid_keyup : uuid_keydown, data);
 					}
 					break;
 				default:
@@ -2940,7 +2855,7 @@ Application::RunSDL()
 		 * events if there was input, or the system/third-party app was
 		 * manipulating the windows. We handle many other things!
 		 */
-		evtmgr->DispatchEvents();
+		evtmgr->DispatchQueuedEvents();
 
 #if !TZK_THREADED_RENDER
 		/*

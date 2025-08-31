@@ -29,14 +29,15 @@
 #include "app/resources/Resource_Workspace.h"
 
 #include "core/services/config/IConfig.h"
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/util/filesystem/Path.h"
 #include "core/util/filesystem/file.h"
 #include "core/util/string/string.h"
 #include "core/TConverter.h"
+#include "core/error.h"
 
-#include "engine/services/event/Event.h"
-#include "engine/services/event/EventManager.h"
+#include "engine/services/event/EngineEvent.h"
 #include "engine/services/ServiceLocator.h"
 #include "engine/resources/Resource.h"
 #include "engine/Context.h"
@@ -53,8 +54,6 @@ AppImGui::AppImGui(
 , my_pause_on_nofocus(trezanik::core::TConverter<bool>::FromString(core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_PAUSE_ON_FOCUS_LOSS_ENABLED)))
 , my_has_focus(true)
 , my_skip_next_frame(false)
-, my_drawclient_log_location(WindowLocation::Bottom)
-, my_drawclient_vkb_location(WindowLocation::Hidden)
 , main_menu_bar(std::make_unique<ImGuiMenuBar>(gui_interactions)) // menu exists from the outset
 , console_window(nullptr)
 , log_window(nullptr)
@@ -66,6 +65,7 @@ AppImGui::AppImGui(
 , update_dialog(nullptr)
 {
 	using namespace trezanik::core;
+	using namespace trezanik::engine;
 
 	TZK_LOG(LogLevel::Trace, "Constructor starting");
 	{
@@ -101,6 +101,15 @@ AppImGui::AppImGui(
 		engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::Engine);
 		engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::External);
 		engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::System);
+
+		auto  evtdsp = core::ServiceLocator::EventDispatcher();
+
+		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::DelayedEvent<std::shared_ptr<engine::EventData::config_change>>>(uuid_configchange, std::bind(&AppImGui::HandleConfigChange, this, std::placeholders::_1))));
+		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<engine::EventData::resource_state>>(uuid_resourcestate, std::bind(&AppImGui::HandleResourceState, this, std::placeholders::_1))));
+		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<app::EventData::window_location>>(uuid_windowlocation, std::bind(&AppImGui::HandleWindowLocation, this, std::placeholders::_1))));
+		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<>>(uuid_windowactivate, std::bind(&AppImGui::HandleWindowActivate, this))));
+		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<>>(uuid_windowdeactivate, std::bind(&AppImGui::HandleWindowDeactivate, this))));
+		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<>>(uuid_userdata_update, std::bind(&AppImGui::HandleUserdataUpdate, this))));
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
@@ -112,6 +121,13 @@ AppImGui::~AppImGui()
 
 	TZK_LOG(LogLevel::Trace, "Destructor starting");
 	{
+		auto  evtmgr = core::ServiceLocator::EventDispatcher();
+
+		for ( auto& id : my_reg_ids )
+		{
+			evtmgr->Unregister(id);
+		}
+
 		/*
 		 * These are expected to be the final references to any workspaces that
 		 * were opened but not closed (letting the application auto-close).
@@ -162,8 +178,6 @@ AppImGui::~AppImGui()
 		my_gui.dock_right.reset();
 		my_gui.dock_top.reset();
 		my_gui.dock_left.reset();
-
-		engine::ServiceLocator::EventManager()->RemoveListener(this);
 	}
 	TZK_LOG(LogLevel::Trace, "Destructor finished");
 }
@@ -187,10 +201,15 @@ AppImGui::BuildFonts(
 		return;
 	}
 
+	/*
+	 * Be warned for the threaded render build, or event manager direct dispatch
+	 * as the renderer could be in flow, either resulting in deadlock via race
+	 * condition, or an outright crash as the font atlas cannot be destroyed or
+	 * otherwise updated between BeginFrame and EndFrame/Render calls
+	 */
 	my_gui.context.GetRenderLock();
 
 	// no harm on init, these are already empty
-
 	io.Fonts->Clear();
 	// releases font texture. next frame will recreate with the new data
 	imimpl->ReleaseResources();
@@ -251,6 +270,280 @@ AppImGui::BuildFonts(
 	}
 
 	my_gui.context.ReleaseRenderLock();
+}
+
+
+void
+AppImGui::HandleConfigChange(
+	std::shared_ptr<trezanik::engine::EventData::config_change> cc
+)
+{
+	using namespace trezanik::core;
+
+	// post-detection operation to accumulate everything
+	bool  font_change = false;
+
+	if ( cc->new_config.count(TZK_CVAR_SETTING_UI_PAUSE_ON_FOCUS_LOSS_ENABLED) > 0 )
+	{
+		// saves checking this periodically/every frame...
+		my_pause_on_nofocus = core::TConverter<bool>::FromString(
+			cc->new_config[TZK_CVAR_SETTING_UI_PAUSE_ON_FOCUS_LOSS_ENABLED]
+		);
+	}
+	if ( cc->new_config.count(TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION) > 0 )
+	{
+		// don't process if log is not being shown, destroyed in separate thread
+		std::lock_guard<std::mutex> lock(my_gui.mutex);
+
+		if ( my_drawclient_log != nullptr && my_gui.show_log )
+		{
+			WindowLocation  newloc = TConverter<WindowLocation>::FromString(cc->new_config[TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION]);
+
+			UpdateDrawClientLocation(my_drawclient_log, newloc, my_drawclient_log->dock);
+			my_drawclient_log->dock = newloc;
+		}
+	}
+// @todo common handling for the others??
+
+	if ( cc->new_config.count(TZK_CVAR_SETTING_UI_LAYOUT_BOTTOM_EXTEND) > 0 )
+	{
+		my_gui.dock_bottom->Extend(core::TConverter<bool>::FromString(cc->new_config[TZK_CVAR_SETTING_UI_LAYOUT_BOTTOM_EXTEND]));
+	}
+	if ( cc->new_config.count(TZK_CVAR_SETTING_UI_LAYOUT_LEFT_EXTEND) > 0 )
+	{
+		my_gui.dock_left->Extend(core::TConverter<bool>::FromString(cc->new_config[TZK_CVAR_SETTING_UI_LAYOUT_LEFT_EXTEND]));
+	}
+	if ( cc->new_config.count(TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_EXTEND) > 0 )
+	{
+		my_gui.dock_right->Extend(core::TConverter<bool>::FromString(cc->new_config[TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_EXTEND]));
+	}
+	if ( cc->new_config.count(TZK_CVAR_SETTING_UI_LAYOUT_TOP_EXTEND) > 0 )
+	{
+		my_gui.dock_top->Extend(core::TConverter<bool>::FromString(cc->new_config[TZK_CVAR_SETTING_UI_LAYOUT_TOP_EXTEND]));
+	}
+	if ( cc->new_config.count(TZK_CVAR_SETTING_UI_STYLE_NAME) > 0 )
+	{
+		auto& st = ImGui::GetStyle();
+
+		/*
+		* When changing the style, the expectation is the active
+		* app style is updated to the new value, and the config
+		* entry set & then event dispatched of the change.
+		* 
+		* This will be the case if the change is made via the
+		* preferences dialog, and we don't handle it explicitly,
+		* which I don't want to.
+		* So, making it an info and not a warning log entry.
+		*/
+		if ( cc->new_config[TZK_CVAR_SETTING_UI_STYLE_NAME] != my_gui.active_app_style )
+		{
+			TZK_LOG_FORMAT(LogLevel::Info, "Application active app style ('%s') not updated to configuration ('%s')",
+				cc->new_config[TZK_CVAR_SETTING_UI_STYLE_NAME].c_str(), my_gui.active_app_style.c_str()
+			);
+			// forcefully set
+			my_gui.active_app_style = cc->new_config[TZK_CVAR_SETTING_UI_STYLE_NAME];
+		}
+
+		for ( auto& ast : my_gui.app_styles )
+		{
+			if ( ast->name == my_gui.active_app_style )
+			{
+				TZK_LOG_FORMAT(LogLevel::Info, "Updating active style to '%s'", ast->name.c_str());
+				memcpy(&st, &ast->style, sizeof(ImGuiStyle));
+				break;
+			}
+		}
+
+		/*
+		 * Special case; debug and warning look unreadable in light
+		 * theme, so adjust.
+		 * We can't do this for anything else beyond making these
+		 * additional configuration values in the application.
+		 * Something to add in future then.
+		 */
+		bool  light_theme = cc->new_config[TZK_CVAR_SETTING_UI_STYLE_NAME] == "Inbuilt:Light";
+
+		uint32_t  debug_colour = light_theme ? IM_COL32(117,  45, 142, 255) : IM_COL32(205, 195, 242, 255);
+		uint32_t  error_colour = light_theme ? IM_COL32(255,  77,  77, 255) : IM_COL32(255,  77,  77, 255);
+		uint32_t  info_colour  = light_theme ? IM_COL32(  0, 153, 255, 255) : IM_COL32(  0, 153, 255, 255);
+		uint32_t  warn_colour  = light_theme ? IM_COL32(145, 155,  15, 255) : IM_COL32(242, 212,   0, 255);
+		uint32_t  trace_colour = light_theme ? IM_COL32(111, 153, 146, 255) : IM_COL32(111, 153, 146, 255);
+
+		auto  lw = std::dynamic_pointer_cast<ImGuiLog>(log_window);
+		if ( lw != nullptr )
+		{
+			lw->SetLogLevelColour(LogLevel::Debug, debug_colour);
+			lw->SetLogLevelColour(LogLevel::Error, error_colour);
+			lw->SetLogLevelColour(LogLevel::Info, info_colour);
+			lw->SetLogLevelColour(LogLevel::Warning, warn_colour);
+			lw->SetLogLevelColour(LogLevel::Trace, trace_colour);
+		}
+	}
+	if ( cc->new_config.count(TZK_CVAR_SETTING_UI_DEFAULT_FONT_FILE) > 0 
+	  || cc->new_config.count(TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE) > 0
+	  || cc->new_config.count(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_FILE) > 0
+	  || cc->new_config.count(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_SIZE) > 0 )
+	{
+		font_change = true;
+	}
+
+	if ( font_change )
+	{
+		// assign current values
+		std::string  def_font_file = core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_DEFAULT_FONT_FILE);
+		std::string  fix_font_file = core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_FILE);
+		float  font_size_def = core::TConverter<float>::FromString(core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE));
+		float  font_size_fix = core::TConverter<float>::FromString(core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_SIZE));
+
+		// overwrite with new values
+		if ( cc->new_config.count(TZK_CVAR_SETTING_UI_DEFAULT_FONT_FILE) > 0 )
+		{
+			def_font_file = cc->new_config[TZK_CVAR_SETTING_UI_DEFAULT_FONT_FILE];
+		}
+		if ( cc->new_config.count(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_FILE) > 0 )
+		{
+			fix_font_file = cc->new_config[TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_FILE];
+		}
+		if ( cc->new_config.count(TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE) > 0 )
+		{
+			font_size_def = core::TConverter<float>::FromString(cc->new_config[TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE]);
+		}
+		if ( cc->new_config.count(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_SIZE) > 0 )
+		{
+			font_size_fix = core::TConverter<float>::FromString(cc->new_config[TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_SIZE]);
+		}
+
+		BuildFonts(
+			def_font_file.empty() ? nullptr : core::aux::BuildPath(std::string(my_gui.context.AssetPath() + assetdir_fonts), def_font_file).c_str(),
+			font_size_def,
+			fix_font_file.empty() ? nullptr : core::aux::BuildPath(std::string(my_gui.context.AssetPath() + assetdir_fonts), fix_font_file).c_str(),
+			font_size_fix
+		);
+	}
+}
+
+
+void
+AppImGui::HandleResourceState(
+	trezanik::engine::EventData::resource_state res_state
+)
+{
+	using namespace trezanik::core;
+	using namespace trezanik::engine;
+
+	switch ( res_state.state )
+	{
+	case ResourceState::Ready:
+	{
+		if ( res_state.resource->GetResourceID() == my_loading_workspace_resid )
+		{
+			auto  reswksp = std::dynamic_pointer_cast<Resource_Workspace>(res_state.resource);
+			auto  wksp = reswksp->GetWorkspace();
+
+			if ( wksp != nullptr )
+			{
+				// prevent race conditions with other threads, could be drawing
+				std::lock_guard<std::mutex>  lock(my_gui.mutex);
+
+				auto   imguiwksp = std::make_shared<ImGuiWorkspace>(my_gui);
+				auto&  uuid = wksp->GetID();
+				my_gui.workspaces[uuid] = std::make_pair<>(imguiwksp, wksp);
+				my_gui.workspaces[uuid].first->SetWorkspace(wksp);
+				my_gui.active_workspace = uuid;
+			}
+
+			// make available for future load calls
+			my_loading_workspace_resid = blank_uuid;
+		}
+	}
+	break;
+	case ResourceState::Loading:
+		if ( res_state.resource->GetResourceID() == my_loading_workspace_resid )
+		{
+			// future: open loading dialog
+		}
+		break;
+	case ResourceState::Failed:
+	case ResourceState::Invalid:
+	{
+		if ( res_state.resource->GetResourceID() == my_loading_workspace_resid )
+		{
+			my_loading_workspace_resid = blank_uuid;
+		}
+	}
+	break;
+	case ResourceState::Unloaded:
+	{
+		// no actions needed
+	}
+	default:
+		break;
+	}
+}
+
+
+void
+AppImGui::HandleUserdataUpdate()
+{
+	SaveUserData();
+}
+
+
+void
+AppImGui::HandleWindowActivate()
+{
+	my_has_focus = true;
+}
+
+
+void
+AppImGui::HandleWindowDeactivate()
+{
+	my_has_focus = false;
+}
+
+
+void
+AppImGui::HandleWindowLocation(
+	app::EventData::window_location wloc
+)
+{
+	using namespace trezanik::core;
+
+	std::lock_guard<std::mutex>  lock(my_gui.mutex);
+
+	std::shared_ptr<ImGuiWorkspace>  imguiwksp;
+	std::shared_ptr<DrawClient>  draw_client;
+	WindowLocation  old = WindowLocation::Invalid;
+
+	for ( auto& w : my_gui.workspaces )
+	{
+		if ( w.second.second->ID() == wloc.workspace_id )
+		{
+			imguiwksp = w.second.first;
+			break;
+		}
+	}
+	if ( imguiwksp == nullptr )
+	{
+		TZK_LOG_FORMAT(LogLevel::Warning, "Workspace %s not found", wloc.workspace_id.GetCanonical());
+		TZK_DEBUG_BREAK;
+		return;
+	}
+
+	// Need to advise the workspace of a draw_client location change
+	auto  rv = imguiwksp->UpdateDrawClientDockLocation(wloc.window_id, wloc.location);
+	draw_client = std::get<0>(rv);
+	old = std::get<1>(rv);
+
+	// sanity check
+	if ( draw_client == nullptr || old == WindowLocation::Invalid )
+	{
+		TZK_DEBUG_BREAK;
+		return;
+	}
+
+	UpdateDrawClientLocation(draw_client, wloc.location, old);
 }
 
 
@@ -526,313 +819,7 @@ AppImGui::PostEnd()
 		log_window.reset();
 		log_window = nullptr;
 	}
-}
-
-
-int
-AppImGui::ProcessEvent(
-	trezanik::engine::IEvent* event
-)
-{
-	using namespace trezanik::core;
-	using namespace trezanik::engine;
-	using namespace trezanik::engine::EventType;
-
-	switch ( event->GetDomain() )
-	{
-	case Domain::Engine:
-		switch ( event->GetType() )
-		{
-		case ConfigChange:
-			{
-				auto cfg = reinterpret_cast<engine::EventData::Engine_Config*>(event->GetData());
-
-				// post-detection operation to accumulate everything
-				bool  font_change = false;
-
-				if ( cfg->new_config.count(TZK_CVAR_SETTING_UI_PAUSE_ON_FOCUS_LOSS_ENABLED) > 0 )
-				{
-					// saves checking this periodically/every frame...
-					my_pause_on_nofocus = core::TConverter<bool>::FromString(
-						cfg->new_config[TZK_CVAR_SETTING_UI_PAUSE_ON_FOCUS_LOSS_ENABLED]
-					);
-				}
-				if ( cfg->new_config.count(TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION) > 0 )
-				{
-					// don't process if log is not being shown, destroyed in separate thread
-					std::lock_guard<std::mutex> lock(my_gui.mutex);
-
-					if ( my_drawclient_log != nullptr && my_gui.show_log )
-					{
-						WindowLocation  newloc = TConverter<WindowLocation>::FromString(cfg->new_config[TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION]);
-						if ( newloc == my_drawclient_log_location )
-						{
-							return ErrNONE;
-						}
-						
-						switch ( my_drawclient_log_location )
-						{
-						case WindowLocation::Bottom: my_gui.dock_bottom->RemoveDrawClient(my_drawclient_log); break;
-						case WindowLocation::Left:   my_gui.dock_left->RemoveDrawClient(my_drawclient_log); break;
-						case WindowLocation::Right:  my_gui.dock_right->RemoveDrawClient(my_drawclient_log); break;
-						case WindowLocation::Top:    my_gui.dock_top->RemoveDrawClient(my_drawclient_log); break;
-						default: break;
-						}
-						my_drawclient_log_location = newloc;
-						switch ( newloc )
-						{
-						case WindowLocation::Bottom: my_gui.dock_bottom->AddDrawClient(my_drawclient_log); break;
-						case WindowLocation::Left:   my_gui.dock_left->AddDrawClient(my_drawclient_log); break;
-						case WindowLocation::Right:  my_gui.dock_right->AddDrawClient(my_drawclient_log); break;
-						case WindowLocation::Top:    my_gui.dock_top->AddDrawClient(my_drawclient_log); break;
-						default: break;
-						}
-					}
-				}
-				if ( cfg->new_config.count(TZK_CVAR_SETTING_UI_LAYOUT_BOTTOM_EXTEND) > 0 )
-				{
-					my_gui.dock_bottom->Extend(core::TConverter<bool>::FromString(cfg->new_config[TZK_CVAR_SETTING_UI_LAYOUT_BOTTOM_EXTEND]));
-				}
-				if ( cfg->new_config.count(TZK_CVAR_SETTING_UI_LAYOUT_LEFT_EXTEND) > 0 )
-				{
-					my_gui.dock_left->Extend(core::TConverter<bool>::FromString(cfg->new_config[TZK_CVAR_SETTING_UI_LAYOUT_LEFT_EXTEND]));
-				}
-				if ( cfg->new_config.count(TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_EXTEND) > 0 )
-				{
-					my_gui.dock_right->Extend(core::TConverter<bool>::FromString(cfg->new_config[TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_EXTEND]));
-				}
-				if ( cfg->new_config.count(TZK_CVAR_SETTING_UI_LAYOUT_TOP_EXTEND) > 0 )
-				{
-					my_gui.dock_top->Extend(core::TConverter<bool>::FromString(cfg->new_config[TZK_CVAR_SETTING_UI_LAYOUT_TOP_EXTEND]));
-				}
-				if ( cfg->new_config.count(TZK_CVAR_SETTING_UI_STYLE_NAME) > 0 )
-				{
-					bool  light_theme = cfg->new_config[TZK_CVAR_SETTING_UI_STYLE_NAME] == "light";
-					// debug and warning look unreadable in light theme, so adjust
-					uint32_t  debug_colour = light_theme ? IM_COL32(117,  45, 142, 255) : IM_COL32(205, 195, 242, 255);
-					uint32_t  error_colour = light_theme ? IM_COL32(255,  77,  77, 255) : IM_COL32(255,  77,  77, 255);
-					uint32_t  info_colour  = light_theme ? IM_COL32(  0, 153, 255, 255) : IM_COL32(  0, 153, 255, 255);
-					uint32_t  warn_colour  = light_theme ? IM_COL32(145, 155,  15, 255) : IM_COL32(242, 212,   0, 255);
-					uint32_t  trace_colour = light_theme ? IM_COL32(111, 153, 146, 255) : IM_COL32(111, 153, 146, 255);
-
-					light_theme ? ImGui::StyleColorsLight() : ImGui::StyleColorsDark();
-
-					auto  lw = std::dynamic_pointer_cast<ImGuiLog>(log_window);
-					if ( lw != nullptr )
-					{
-						lw->SetLogLevelColour(LogLevel::Debug, debug_colour);
-						lw->SetLogLevelColour(LogLevel::Error, error_colour);
-						lw->SetLogLevelColour(LogLevel::Info, info_colour);
-						lw->SetLogLevelColour(LogLevel::Warning, warn_colour);
-						lw->SetLogLevelColour(LogLevel::Trace, trace_colour);
-					}
-				}
-				if ( cfg->new_config.count(TZK_CVAR_SETTING_UI_DEFAULT_FONT_FILE) > 0 
-				  || cfg->new_config.count(TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE) > 0
-				  || cfg->new_config.count(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_FILE) > 0
-				  || cfg->new_config.count(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_SIZE) > 0 )
-				{
-					font_change = true;
-				}
-
-				if ( font_change )
-				{
-					// assign current values
-					std::string  def_font_file = core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_DEFAULT_FONT_FILE);
-					std::string  fix_font_file = core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_FILE);
-					float  font_size_def = core::TConverter<float>::FromString(core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE));
-					float  font_size_fix = core::TConverter<float>::FromString(core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_SIZE));
-					
-					// overwrite with new values
-					if ( cfg->new_config.count(TZK_CVAR_SETTING_UI_DEFAULT_FONT_FILE) > 0 )
-					{
-						def_font_file = cfg->new_config[TZK_CVAR_SETTING_UI_DEFAULT_FONT_FILE];
-					}
-					if ( cfg->new_config.count(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_FILE) > 0 )
-					{
-						fix_font_file = cfg->new_config[TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_FILE];
-					}
-					if ( cfg->new_config.count(TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE) > 0 )
-					{
-						font_size_def = core::TConverter<float>::FromString(cfg->new_config[TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE]);
-					}
-					if ( cfg->new_config.count(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_SIZE) > 0 )
-					{
-						font_size_fix = core::TConverter<float>::FromString(cfg->new_config[TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_SIZE]);
-					}
-
-					BuildFonts(
-						def_font_file.empty() ? nullptr : core::aux::BuildPath(std::string(my_gui.context.AssetPath() + assetdir_fonts), def_font_file).c_str(),
-						font_size_def,
-						fix_font_file.empty() ? nullptr : core::aux::BuildPath(std::string(my_gui.context.AssetPath() + assetdir_fonts), fix_font_file).c_str(),
-						font_size_fix
-					);
-				}
-			}
-			break;
-		case engine::EventType::ResourceState:
-			{
-				auto ptr = reinterpret_cast<engine::EventData::Engine_ResourceState*>(event->GetData());
-				switch ( ptr->state )
-				{
-				case ResourceState::Ready:
-					{
-						if ( ptr->id == my_loading_workspace_resid )
-						{
-							auto  res = my_gui.resource_cache.GetResource(my_loading_workspace_resid);
-							auto  reswksp = std::dynamic_pointer_cast<Resource_Workspace>(res);
-							auto  wksp = reswksp->GetWorkspace();
-							
-							if ( wksp != nullptr )
-							{
-								// prevent race conditions with other threads, could be drawing
-								std::lock_guard<std::mutex>  lock(my_gui.mutex);
-
-								auto   imguiwksp = std::make_shared<ImGuiWorkspace>(my_gui);
-								auto&  uuid = wksp->GetID();
-								my_gui.workspaces[uuid] = std::make_pair<>(imguiwksp, wksp);
-								my_gui.workspaces[uuid].first->SetWorkspace(wksp);
-								my_gui.active_workspace = uuid;
-							}
-
-							// make available for future load calls
-							my_loading_workspace_resid = blank_uuid;
-						}
-					}
-					break;
-				case ResourceState::Loading:
-					if ( ptr->id == my_loading_workspace_resid )
-					{
-						// future: open loading dialog
-					}
-					break;
-				case ResourceState::Failed:
-				case ResourceState::Invalid:
-					{
-						if ( ptr->id == my_loading_workspace_resid )
-						{
-							my_loading_workspace_resid = blank_uuid;
-						}
-					}
-					break;
-				case ResourceState::Unloaded:
-					{
-						// no actions needed
-					}
-				default:
-					break;
-				}
-			}
-			break;
-		default:
-			break;
-		}
-		break;
-	case Domain::External:
-		switch ( event->GetType() )
-		{
-		case EventType::UIWindowLocation:
-			{
-				auto dat = reinterpret_cast<EventData::AppEvent_UIWindowLocationData*>(event->GetData());
-			
-				std::lock_guard<std::mutex>  lock(my_gui.mutex);
-
-				// yes, this is pretty awful. first draft! New evtmgmt should sort
-				std::shared_ptr<ImGuiWorkspace>  imguiwksp;
-				std::shared_ptr<DrawClient>  draw_client;
-				WindowLocation  old = WindowLocation::Invalid;
-			
-				for ( auto& w : my_gui.workspaces )
-				{
-					if ( w.second.second->ID() == dat->workspace_id )
-					{
-						imguiwksp = w.second.first;
-						break;
-					}
-				}
-				if ( imguiwksp == nullptr )
-				{
-					TZK_LOG_FORMAT(LogLevel::Warning, "Workspace %s not found", dat->workspace_id.GetCanonical());
-					TZK_DEBUG_BREAK;
-					break;
-				}
-				if ( dat->window_id == propview_id )
-				{
-					draw_client = imguiwksp->my_drawclient_propview;
-					old = imguiwksp->my_propview_dock;
-					imguiwksp->my_propview_dock = dat->location;
-				}
-				else if ( dat->window_id == canvasdbg_id )
-				{
-					draw_client = imguiwksp->my_drawclient_canvasdbg;
-					old = imguiwksp->my_canvasdbg_dock;
-					imguiwksp->my_canvasdbg_dock = dat->location;
-				}
-				
-				// sanity check
-				if ( draw_client == nullptr || old == WindowLocation::Invalid )
-				{
-					TZK_DEBUG_BREAK;
-					break;
-				}
-
-				if ( dat->location == old )
-				{
-					// reselected current location; no-op
-					break;
-				}
-
-				// remove the old draw client if it wasn't already hidden
-				switch ( old )
-				{
-				case WindowLocation::Bottom: my_gui.dock_bottom->RemoveDrawClient(draw_client); break;
-				case WindowLocation::Left:   my_gui.dock_left->RemoveDrawClient(draw_client); break;
-				case WindowLocation::Right:  my_gui.dock_right->RemoveDrawClient(draw_client); break;
-				case WindowLocation::Top:    my_gui.dock_top->RemoveDrawClient(draw_client); break;
-				default: break;
-				}
-				// apply to the new location
-				switch ( dat->location )
-				{
-				case WindowLocation::Bottom: my_gui.dock_bottom->AddDrawClient(draw_client); break;
-				case WindowLocation::Left:   my_gui.dock_left->AddDrawClient(draw_client); break;
-				case WindowLocation::Right:  my_gui.dock_right->AddDrawClient(draw_client); break;
-				case WindowLocation::Top:    my_gui.dock_top->AddDrawClient(draw_client); break;
-				default: break;
-				}
-			}
-			break;
-		default:
-			break;
-		}
-		break;
-	case Domain::System:
-		switch ( event->GetType() )
-		{
-		case WindowActivate:
-			{
-				my_has_focus = true;
-			}
-			break;
-		case WindowDeactivate:
-			{
-				my_has_focus = false;
-			}
-			break;
-		case WindowSize:
-			{
-				// sdl implementation sets io.DisplaySize each frame, nothing needed here
-			}
-			break;
-		default:
-			break;
-		}
-		break;
-	default:
-		break;
-	}
-
-	return ErrNONE;
+	// vkbd, rss, console, etc.
 }
 
 

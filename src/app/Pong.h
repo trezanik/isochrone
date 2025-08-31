@@ -10,8 +10,7 @@
 
 #include "app/definitions.h"
 
-#include "engine/services/event/IEventListener.h"
-#include "engine/services/event/EventData.h"
+#include "engine/services/event/EngineEvent.h"
 #include "engine/Context.h"
 #include "engine/IFrameListener.h"
 
@@ -26,6 +25,8 @@
 #if TZK_IS_LINUX
 #   include "app/undefs.h"
 #endif
+
+#include <set>
 
 
 namespace trezanik {
@@ -474,7 +475,6 @@ enum PongState : unsigned
  */
 class Pong
 	: private trezanik::core::SingularInstance<Pong>
-	, public trezanik::engine::IEventListener
 	, public trezanik::engine::IFrameListener
 	, public trezanik::engine::IContextUpdate
 {
@@ -502,6 +502,11 @@ private:
 	PlayerScore  my_score_p1;
 	PlayerScore  my_score_p2;
 
+	/**
+	 * Set of all the registered event callback IDs
+	 */
+	std::set<uint64_t>  my_reg_ids;
+
 
 	contact
 	CheckPaddleCollision(
@@ -518,53 +523,44 @@ private:
 
 	void
 	HandleKeyboardChar(
-		trezanik::engine::EventData::Input_KeyChar* inkc
+		trezanik::engine::EventData::key_char inkc
 	);
 
 
 	void
 	HandleKeyboardPress(
-		trezanik::engine::EventData::Input_Key* ink
+		trezanik::engine::EventData::key_press ink
 	);
 
 
 	void
 	HandleKeyboardRelease(
-		trezanik::engine::EventData::Input_Key* ink
+		trezanik::engine::EventData::key_press ink
 	);
 
 
 	void
 	HandleMouseButtonDown(
-		trezanik::engine::EventData::Input_MouseButton* mbutton
+		trezanik::engine::EventData::mouse_button mbutton
 	);
 
 
 	void
 	HandleMouseButtonUp(
-		trezanik::engine::EventData::Input_MouseButton* mbutton
+		trezanik::engine::EventData::mouse_button mbutton
 	);
 
 
 	void
 	HandleMouseMove(
-		trezanik::engine::EventData::Input_MouseMove* input
+		trezanik::engine::EventData::mouse_move input
 	);
 
 
 	void
 	HandleWindowSize(
-		trezanik::engine::EventData::System_WindowSize* wndsz
+		trezanik::engine::EventData::window_size wndsz
 	);
-
-
-	/**
-	 * Implementation of IEventListener::ProcessEvent
-	 */
-	virtual int
-	ProcessEvent(
-		trezanik::engine::IEvent* event
-	) override;
 
 
 	/**

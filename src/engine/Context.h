@@ -10,8 +10,7 @@
 
 #include "engine/definitions.h"
 
-#include "engine/services/event/EventData.h"
-#include "engine/services/event/EventManager.h"
+#include "engine/services/event/EngineEvent.h"
 #include "engine/resources/ResourceCache.h"
 #include "engine/resources/ResourceLoader.h"
 #include "core/util/Singleton.h"

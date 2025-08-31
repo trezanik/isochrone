@@ -9,6 +9,7 @@
 #include "core/definitions.h"
 
 #include "core/services/config/Config.h"
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/services/memory/Memory.h"
 #include "core/services/threading/Threading.h"
@@ -32,6 +33,7 @@ IDataView*        ServiceLocator::my_dv = &my_null_dv;
 
 bool ServiceLocator::my_created = false;
 std::unique_ptr<IConfig> ServiceLocator::my_config = nullptr;
+std::unique_ptr<EventDispatcher> ServiceLocator::my_evt_dispatcher = nullptr;
 std::unique_ptr<Log> ServiceLocator::my_log = nullptr;
 std::unique_ptr<IMemory> ServiceLocator::my_memory = nullptr;
 std::unique_ptr<IThreading> ServiceLocator::my_threading = nullptr;
@@ -136,6 +138,7 @@ ServiceLocator::CreateDefaultServices()
 	 * performance and live image use...
 	 */
 	my_log = std::make_unique<trezanik::core::Log>();
+	my_evt_dispatcher = std::make_unique<trezanik::core::EventDispatcher>();
 	my_memory = std::make_unique<trezanik::core::Memory>();
 	my_config = std::make_unique<trezanik::core::Config>();
 	my_threading = std::make_unique<trezanik::core::Threading>();
@@ -150,8 +153,16 @@ ServiceLocator::DestroyAllServices()
 	my_threading.reset();
 	// clear as long as pending logs/events don't require dynamic allocation
 	my_memory.reset();
+	my_evt_dispatcher.reset();
 	// log must always be last, as the others log
 	my_log.reset();
+}
+
+
+trezanik::core::EventDispatcher*
+ServiceLocator::EventDispatcher()
+{
+	return my_evt_dispatcher.get();
 }
 
 

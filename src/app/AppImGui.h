@@ -12,12 +12,14 @@
 
 #if TZK_USING_IMGUI
 
+#include "app/event/AppEvent.h"
+
 #include "core/util/SingularInstance.h"
 #include "core/util/hash/compile_time_hash.h"
 #include "core/UUID.h"
 
 #include "engine/IFrameListener.h"
-#include "engine/services/event/IEventListener.h"
+#include "engine/services/event/EngineEvent.h"
 #include "engine/resources/Resource.h"
 
 #include "imgui/dear_imgui/imgui.h"
@@ -221,7 +223,6 @@ struct GuiInteractions
  */
 class AppImGui
 	: public trezanik::engine::IFrameListener
-	, public trezanik::engine::IEventListener
 	, private trezanik::core::SingularInstance<AppImGui>
 {
 	TZK_NO_CLASS_ASSIGNMENT(AppImGui);
@@ -244,6 +245,13 @@ private:
 	/** ID of the resource presently marked for/being loaded */
 	trezanik::engine::ResourceID  my_loading_workspace_resid;
 
+
+	/**
+	 * Set of all the registered event callback IDs
+	 */
+	std::set<uint64_t>  my_reg_ids;
+
+
 	// ---- application-level draw clients ----
 
 	/** Draw client (dock-based window) for the log */
@@ -254,6 +262,81 @@ private:
 	WindowLocation  my_drawclient_log_location;
 	/** Virtual keyboard draw client dock */
 	WindowLocation  my_drawclient_vkb_location;
+
+	/**
+	 * Handles configuration change events
+	 * 
+	 * If any audio settings are modified, audio is reloaded directly by calling
+	 * LoadAudio() again.
+	 * 
+	 * @warning
+	 *  Will invoke BuildFonts if the font selection is changed; if this is done
+	 *  mid-render, imgui will crash. Ensure these are delay-dispatched
+	 * 
+	 * @param[in] cc
+	 *  The configuration change data
+	 */
+	void
+	HandleConfigChange(
+		std::shared_ptr<trezanik::engine::EventData::config_change> cc
+	);
+
+
+	/**
+	 * Handles resource state change events
+	 * 
+	 * Primary purpose here is to link and unlink Workspaces, as they are
+	 * loaded as resources external to our knowledge and interaction.
+	 * 
+	 * @param[in] res_state
+	 *  The resource state data
+	 */
+	void
+	HandleResourceState(
+		trezanik::engine::EventData::resource_state res_state
+	);
+
+
+	/**
+	 * Handles userdata update events
+	 */
+	void
+	HandleUserdataUpdate();
+
+
+	/**
+	 * Handles window activation events
+	 */
+	void
+	HandleWindowActivate();
+
+
+	/**
+	 * Handles window deactivation events
+	 */
+	void
+	HandleWindowDeactivate();
+
+
+	/**
+	 * Handles window location events
+	 * 
+	 * @note
+	 *  This does NOT receive single-instance dock draw clients, as they update
+	 *  the configuration directly, and immediately; this only handles draw
+	 *  clients in workspaces.
+	 *  We can easily add them here though! Only needs an ID check and skip the
+	 *  workspace handling if we want it all consistent.
+	 * 
+	 * @param[in] wloc
+	 *  The window location details
+	 */
+	void
+	HandleWindowLocation(
+		app::EventData::window_location wloc
+	);
+
+
 
 	/**
 	 * Determines positional data for ImGui windows, docks, etc.
@@ -267,16 +350,11 @@ private:
 	void
 	UpdateDimensions();
 
-protected:
 
 	/**
-	 * Implementation of IEventListener::ProcessEvent
 	 */
-	virtual int
-	ProcessEvent(
-		trezanik::engine::IEvent* evt
-	) override;
 
+protected:
 public:
 	/**
 	 * Standard constructor

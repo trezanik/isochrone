@@ -10,8 +10,8 @@
 
 #include "app/definitions.h"
 
-#include "engine/services/event/IEventListener.h"
-#include "engine/services/event/EventData.h"
+#include "app/event/AppEvent.h"
+#include "engine/services/event/EngineEvent.h"
 #include "core/services/log/LogLevel.h"
 #include "core/util/filesystem/Path.h"
 #include "core/util/SingularInstance.h"
@@ -86,7 +86,6 @@ enum class WindowDetails : uint8_t
  */
 class Application
 	: private trezanik::core::SingularInstance<Application>
-	, public trezanik::engine::IEventListener
 {
 	TZK_NO_CLASS_ASSIGNMENT(Application);
 	TZK_NO_CLASS_COPY(Application);
@@ -161,6 +160,11 @@ private:
 	 * entries and handling
 	 */
 	trezanik::core::UUID  my_typeloader_uuid;
+
+	/**
+	 * Set of all the registered event callback IDs
+	 */
+	std::set<uint64_t>  my_reg_ids;
 
 
 	/**
@@ -420,6 +424,17 @@ private:
 	std::shared_ptr<trezanik::engine::AudioComponent>  my_audio_component;
 
 
+	/**
+	 * Handles UI button press events
+	 * 
+	 * @param[in] bp
+	 *  Button-press data
+	 */
+	void
+	HandleButtonPress(
+		trezanik::app::EventData::button_press bp
+	);
+
 
 	/**
 	 * Handles configuration change events
@@ -432,8 +447,21 @@ private:
 	 */
 	void
 	HandleConfigChange(
-		trezanik::engine::EventData::Engine_Config* cfg
+		std::shared_ptr<trezanik::engine::EventData::config_change> cfg
 	);
+
+
+	/**
+	 * Handles engine state change events
+	 * 
+	 * @param[in] eng_state
+	 *  The engine state data
+	 */
+	void
+	HandleEngineState(
+		trezanik::engine::EventData::engine_state eng_state
+	);
+
 
 	/**
 	 * Handles resource state change events
@@ -446,8 +474,23 @@ private:
 	 */
 	void
 	HandleResourceState(
-		trezanik::engine::EventData::Engine_ResourceState* res_state
+		trezanik::engine::EventData::resource_state res_state
 	);
+
+
+	/**
+	 * Handles window activation events
+	 */
+	void
+	HandleWindowActivate();
+
+
+	/**
+	 * Handles window deactivation events
+	 */
+	void
+	HandleWindowDeactivate();
+
 
 	/**
 	 * Handles window movement events
@@ -457,8 +500,9 @@ private:
 	 */
 	void
 	HandleWindowMove(
-		trezanik::engine::EventData::System_WindowMove* wndmv
+		trezanik::engine::EventData::window_move wndmv
 	);
+
 
 	/**
 	 * Handles window resize events
@@ -468,7 +512,7 @@ private:
 	 */
 	void
 	HandleWindowSize(
-		trezanik::engine::EventData::System_WindowSize* wndsiz
+		trezanik::engine::EventData::window_size wndsiz
 	);
 
 
@@ -738,15 +782,6 @@ protected:
 	 */
 	void
 	PrintHelp();
-
-
-	/**
-	 * Implementation of IEventListener::ProcessEvent
-	 */
-	virtual int
-	ProcessEvent(
-		trezanik::engine::IEvent* evt
-	) override;
 
 public:
 	/**

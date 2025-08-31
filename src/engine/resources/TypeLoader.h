@@ -12,7 +12,7 @@
 
 #include "engine/resources/IResourceLoader.h"
 #include "engine/resources/ResourceTypes.h"
-#include "engine/services/event/EventData.h"
+#include "engine/services/event/EngineEvent.h"
 
 #include <set>
 
@@ -114,7 +114,7 @@ public:
 	 */
 	void
 	NotifyFailure(
-		EventData::Engine_ResourceState& state_data
+		EventData::resource_state* state_data
 	);
 
 
@@ -126,7 +126,7 @@ public:
 	 */
 	void
 	NotifyLoad(
-		EventData::Engine_ResourceState& state_data
+		EventData::resource_state* state_data
 	);
 
 
@@ -138,7 +138,7 @@ public:
 	 */
 	void
 	NotifySuccess(
-		EventData::Engine_ResourceState& state_data
+		EventData::resource_state* state_data
 	);
 };
 

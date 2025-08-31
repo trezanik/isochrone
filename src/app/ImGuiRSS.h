@@ -20,8 +20,6 @@
 #include "core/services/log/LogEvent.h"
 #include "core/util/SingularInstance.h"
 
-#include "engine/services/event/IEventListener.h"
-
 #include <map>
 #include <vector>
 #include <thread>
@@ -103,7 +101,6 @@ struct RssFeed
 class ImGuiRSS
 	: public IImGui
 	, private trezanik::core::SingularInstance<ImGuiRSS>
-	, public trezanik::engine::IEventListener
 	, public std::enable_shared_from_this<ImGuiRSS>
 {
 	TZK_NO_CLASS_ASSIGNMENT(ImGuiRSS);
@@ -234,15 +231,6 @@ public:
 	 */
 	virtual void
 	Draw() override;
-
-
-	/**
-	 * Reimplementation of EventListener::ProcessEvent
-	 */
-	virtual int
-	ProcessEvent(
-		trezanik::engine::IEvent* evt
-	) override;
 };
 
 

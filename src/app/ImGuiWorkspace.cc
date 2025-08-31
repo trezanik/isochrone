@@ -19,15 +19,16 @@
 #include "app/event/AppEvent.h"
 
 #include "engine/resources/ResourceCache.h"
-#include "engine/services/event/EventManager.h"
-#include "engine/services/ServiceLocator.h"
+#include "engine/services/event/EngineEvent.h"
 
 #include "core/services/config/Config.h"
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/memory/Memory.h"
 #include "core/services/log/Log.h"
 #include "core/util/net/net.h"
 #include "core/util/net/net_structs.h"
 #include "core/TConverter.h"
+#include "core/error.h"
 
 #include "imgui/dear_imgui/imgui_internal.h"
 #include "imgui/CustomImGui.h"
@@ -89,8 +90,7 @@ ImGuiWorkspace::ImGuiWorkspace(
 	GuiInteractions& gui_interactions
 )
 : IImGui(gui_interactions)
-, my_evtmgr(*engine::ServiceLocator::EventManager())
-//, my_nodegraph(&my_wksp_data.canvas)
+, my_evtmgr(*core::ServiceLocator::EventDispatcher())
 , my_context_node(nullptr)
 , my_context_pin(nullptr)
 , my_context_link(nullptr)
@@ -133,6 +133,12 @@ ImGuiWorkspace::~ImGuiWorkspace()
 	{
 		std::lock_guard<std::mutex>  lock(_gui_interactions.mutex);
 
+		auto  evtmgr = core::ServiceLocator::EventDispatcher();
+
+		for ( auto& id : my_reg_ids )
+		{
+			evtmgr->Unregister(id);
+		}
 		/*
 		 * Would never expect these to be executed on application closure!
 		 * AppImGui destructor is the expected purging point, as it brings
@@ -5198,7 +5204,6 @@ ImGuiWorkspace::Notification(
 	}
 
 	auto  gn = node->GetGraphNode();
-	auto  evtmgr = engine::ServiceLocator::EventManager();
 
 #if 0 // Code Disabled: testing PoC for Command pattern
 	ImVec4  v4;
@@ -5269,8 +5274,13 @@ ImGuiWorkspace::Notification(
 		{
 			// no workspace sync needed
 
-			auto  extevt = std::make_unique<AppEvent_NodeUpdate>(my_workspace->GetID(), uuid, NodeUpdateFlags_Position);
-			evtmgr->PushEvent(std::move(extevt));
+			EventData::node_update  nu;
+			
+			nu.flags = NodeUpdateFlags_Position;
+			nu.node_uuid = uuid;
+			nu.workspace_uuid = my_workspace->GetID();
+
+			my_evtmgr.DispatchEvent(uuid_nodeupdate, nu);
 
 #if 0 // Code Disabled: testing PoC for Command pattern
 			auto inode = GetUndoRedoNode(node, NodeUpdate::Position);
@@ -5293,8 +5303,12 @@ ImGuiWorkspace::Notification(
 		{
 			// node deletions are already handled (nodegraph update, pre-draw), but should be done here
 		
-			auto  extevt = std::make_unique<AppEvent_NodeDelete>(my_workspace->GetID(), uuid);
-			evtmgr->PushEvent(std::move(extevt));
+			EventData::node_baseline  n;
+			n.node_uuid = uuid;
+			n.workspace_uuid = my_workspace->GetID();
+
+			// candidate for delayed dispatch, since this isn't 'deleted' yet
+			my_evtmgr.DispatchEvent(uuid_nodedelete, n);
 
 #if 0 // Code Disabled: testing PoC for Command pattern
 			cur.id = uuid;
@@ -5308,10 +5322,14 @@ ImGuiWorkspace::Notification(
 		break;
 	case NodeUpdate::Name:
 		{
-			// this is a reference pass through, new data already available and known
-		 
-			auto  extevt = std::make_unique<AppEvent_NodeUpdate>(my_workspace->GetID(), uuid, NodeUpdateFlags_Name);
-			evtmgr->PushEvent(std::move(extevt));
+		
+			EventData::node_update  nu;
+			
+			nu.flags = NodeUpdateFlags_Name;
+			nu.node_uuid = uuid;
+			nu.workspace_uuid = my_workspace->GetID();
+
+			my_evtmgr.DispatchEvent(uuid_nodeupdate, nu);
 
 			//my_workspace->CommandIssued(NameEdit)
 		}
@@ -5348,9 +5366,14 @@ ImGuiWorkspace::Notification(
 				if ( !found )
 				{
 					gn->pins.emplace_back(NodeGraphPinToWorkspacePin(p.get()));
-					auto  extevt = std::make_unique<AppEvent_NodeUpdate>(my_workspace->GetID(), uuid, NodeUpdateFlags_PinAdd);
-					evtmgr->PushEvent(std::move(extevt));
 
+					EventData::node_update  nu;
+					
+					nu.flags = NodeUpdateFlags_PinAdd;
+					nu.node_uuid = uuid;
+					nu.workspace_uuid = my_workspace->GetID();
+
+					my_evtmgr.DispatchEvent(uuid_nodeupdate, nu);
 					break;
 				}
 			}
@@ -5389,8 +5412,13 @@ ImGuiWorkspace::Notification(
 				{
 					gn->pins.erase(iter);
 
-					auto  extevt = std::make_unique<AppEvent_NodeUpdate>(my_workspace->GetID(), uuid, NodeUpdateFlags_PinDel);
-					evtmgr->PushEvent(std::move(extevt));
+					EventData::node_update  nu;
+					
+					nu.flags = NodeUpdateFlags_PinDel;
+					nu.node_uuid = uuid;
+					nu.workspace_uuid = my_workspace->GetID();
+
+					my_evtmgr.DispatchEvent(uuid_nodeupdate, nu);
 					break;
 				}
 			}
@@ -5417,8 +5445,13 @@ ImGuiWorkspace::Notification(
 			//my_commands.emplace_back(Cmd::NodeMove, datbefore, datnow);
 			//my_workspace->CommandIssued(ChangePosition(id, pos);
 
-			auto  extevt = std::make_unique<AppEvent_NodeUpdate>(my_workspace->GetID(), uuid, NodeUpdateFlags_Position);
-			evtmgr->PushEvent(std::move(extevt));
+			EventData::node_update  nu;
+
+			nu.flags = NodeUpdateFlags_Position;
+			nu.node_uuid = uuid;
+			nu.workspace_uuid = my_workspace->GetID();
+			
+			my_evtmgr.DispatchEvent(uuid_nodeupdate, nu);
 		}
 		break;
 	case NodeUpdate::Selected:
@@ -5435,14 +5468,24 @@ ImGuiWorkspace::Notification(
 
 			//my_workspace->CommandIssued(ChangeSize(gn);
 
-			auto  extevt = std::make_unique<AppEvent_NodeUpdate>(my_workspace->GetID(), uuid, NodeUpdateFlags_Size);
-			evtmgr->PushEvent(std::move(extevt));
+			EventData::node_update  nu;
+
+			nu.flags = NodeUpdateFlags_Size;
+			nu.node_uuid = uuid;
+			nu.workspace_uuid = my_workspace->GetID();
+
+			my_evtmgr.DispatchEvent(uuid_nodeupdate, nu);
 		}
 		break;
 	case NodeUpdate::Style:
 		{
-			auto  extevt = std::make_unique<AppEvent_NodeUpdate>(my_workspace->GetID(), uuid, NodeUpdateFlags_Style);
-			evtmgr->PushEvent(std::move(extevt));
+			EventData::node_update  nu;
+
+			nu.flags = NodeUpdateFlags_Style;
+			nu.node_uuid = uuid;
+			nu.workspace_uuid = my_workspace->GetID();
+
+			my_evtmgr.DispatchEvent(uuid_nodeupdate, nu);
 		}
 		break;
 	case NodeUpdate::Type:
@@ -5469,10 +5512,14 @@ ImGuiWorkspace::RemoveLink(
 		{
 			TZK_LOG_FORMAT(LogLevel::Trace, "Removing link %s", l->id.GetCanonical());
 
-			auto  extevt = std::make_unique<AppEvent_LinkDelete>(my_workspace->GetID(), l->id, l->source, l->target);
-			engine::ServiceLocator::EventManager()->PushEvent(std::move(extevt));
-			my_wksp_data.links.erase(l);
+			EventData::link_baseline  lnk;
+			lnk.workspace_uuid = my_workspace->GetID();
+			lnk.link_uuid = l->id;
+			lnk.source_uuid = l->source;
+			lnk.target_uuid = l->target;
 
+			my_wksp_data.links.erase(l);
+			core::ServiceLocator::EventDispatcher()->DispatchEvent(uuid_linkdelete, lnk);
 			return ErrNONE;
 		}
 	}
@@ -5496,9 +5543,14 @@ ImGuiWorkspace::RemoveLink(
 		{
 			TZK_LOG_FORMAT(LogLevel::Trace, "Removing link %s", l->id.GetCanonical());
 
-			auto  extevt = std::make_unique<AppEvent_LinkDelete>(my_workspace->GetID(), l->id, l->source, l->target);
-			engine::ServiceLocator::EventManager()->PushEvent(std::move(extevt));
+			EventData::link_baseline  lnk;
+			lnk.workspace_uuid = my_workspace->GetID();
+			lnk.link_uuid = l->id;
+			lnk.source_uuid = l->source;
+			lnk.target_uuid = l->target;
+
 			my_wksp_data.links.erase(l);
+			core::ServiceLocator::EventDispatcher()->DispatchEvent(uuid_linkdelete, lnk);
 
 			return ErrNONE;
 		}

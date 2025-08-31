@@ -14,8 +14,7 @@
 #include "engine/services/audio/ALSound.h"
 #include "engine/services/audio/AudioData.h"
 #include "engine/services/audio/AudioFile.h"
-#include "engine/services/event/EventManager.h"
-#include "engine/services/event/Event.h"
+#include "engine/services/event/EngineEvent.h"
 #include "engine/services/ServiceLocator.h"
 #include "engine/resources/Resource_Audio.h"
 #include "engine/resources/ResourceCache.h"
@@ -24,6 +23,7 @@
 #include "engine/EngineConfigDefs.h"
 
 #include "core/services/config/IConfig.h"
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/services/log/LogEvent.h"
 #include "core/services/log/LogLevel.h"
@@ -180,7 +180,10 @@ ALAudio::ALAudio()
 		my_music_volume   = core::TConverter<float>::FromString(core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_AUDIO_VOLUME_MUSIC));
 
 		// we need to receive config changes to detect volume modifications and enable/disable of our system
-		engine::ServiceLocator::EventManager()->AddListener(this, EventType::Domain::Engine);
+		auto  evtdsp = core::ServiceLocator::EventDispatcher();
+
+		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::DelayedEvent<std::shared_ptr<engine::EventData::config_change>>>(uuid_configchange, std::bind(&ALAudio::HandleConfigChange, this, std::placeholders::_1))));
+
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
@@ -197,8 +200,12 @@ ALAudio::~ALAudio()
 			GlobalStop();
 		}
 
-		// note: potential crash point for abnormal cleanup
-		engine::ServiceLocator::EventManager()->RemoveListener(this);
+		auto  evtmgr = core::ServiceLocator::EventDispatcher();
+
+		for ( auto& id : my_reg_ids )
+		{
+			evtmgr->Unregister(id);
+		}
 
 		for ( auto i = 0; i < al_source_count; i++ )
 		{
@@ -520,6 +527,66 @@ ALAudio::GetAllOutputDevices() const
 }
 
 
+void
+ALAudio::HandleConfigChange(
+	std::shared_ptr<trezanik::engine::EventData::config_change> cc
+)
+{
+	using namespace trezanik::core;
+
+	/*
+	 * Handle audio being turned on/off at a global level. Turning
+	 * off will require reinitialization to make available again;
+	 * only tracking needed for this is the context and device.
+	 */
+	if ( cc->new_config.find(TZK_CVAR_SETTING_AUDIO_ENABLED) != cc->new_config.end() )
+	{
+		bool  enabled = core::TConverter<bool>::FromString(cc->new_config[TZK_CVAR_SETTING_AUDIO_ENABLED]);
+		if ( !enabled )
+		{
+			if ( my_al_context != nullptr )
+			{
+				GlobalStop();
+				alcMakeContextCurrent(nullptr);
+				alcDestroyContext(my_al_context);
+				my_al_context = nullptr;
+			}
+			if ( my_al_device != nullptr )
+			{
+				alcCloseDevice(my_al_device);
+				my_al_device = nullptr;
+			}
+		}
+		else
+		{
+			// cover erroneous re-initialization
+			if ( my_al_context == nullptr && my_al_device == nullptr )
+			{
+				Initialize();
+			}
+		}
+	}
+
+	bool  volume_changed = false;
+
+	if ( cc->new_config.count(TZK_CVAR_SETTING_AUDIO_VOLUME_EFFECTS) > 0 )
+	{
+		my_effects_volume = core::TConverter<float>::FromString(cc->new_config[TZK_CVAR_SETTING_AUDIO_VOLUME_EFFECTS]);
+		volume_changed = true;
+	}
+	if ( cc->new_config.count(TZK_CVAR_SETTING_AUDIO_VOLUME_MUSIC) > 0 )
+	{
+		my_music_volume   = core::TConverter<float>::FromString(cc->new_config[TZK_CVAR_SETTING_AUDIO_VOLUME_MUSIC]);
+		volume_changed = true;
+	}
+
+	if ( volume_changed )
+	{
+		SetSoundGain(my_effects_volume, my_music_volume);
+	}
+}
+
+
 int
 ALAudio::Initialize()
 {
@@ -620,83 +687,6 @@ ALAudio::Initialize()
 		TZK_LOG_FORMAT(LogLevel::Warning, "[OpenAL] alListenerfv failed: %d (%s)", err, alcGetErrorString(err));
 	}
 #endif
-
-	return ErrNONE;
-}
-
-
-int
-ALAudio::ProcessEvent(
-	trezanik::engine::IEvent* event
-)
-{
-	using namespace trezanik::engine;
-
-	if ( event->GetDomain() == EventType::Domain::Engine )
-	{
-		switch ( event->GetType() )
-		{
-		case EventType::ConfigChange:
-			{
-				auto cfg = reinterpret_cast<EventData::Engine_Config*>(event->GetData());
-
-				/*
-				 * Handle audio being turned on/off at a global level. Turning
-				 * off will require reinitialization to make available again;
-				 * only tracking needed for this is the context and device.
-				 */
-				/// @todo move handling into function
-				if ( cfg->new_config.find(TZK_CVAR_SETTING_AUDIO_ENABLED) != cfg->new_config.end() )
-				{
-					bool  enabled = core::TConverter<bool>::FromString(cfg->new_config[TZK_CVAR_SETTING_AUDIO_ENABLED]);
-					if ( !enabled )
-					{
-						if ( my_al_context != nullptr )
-						{
-							GlobalStop();
-							alcMakeContextCurrent(nullptr);
-							alcDestroyContext(my_al_context);
-							my_al_context = nullptr;
-						}
-						if ( my_al_device != nullptr )
-						{
-							alcCloseDevice(my_al_device);
-							my_al_device = nullptr;
-						}
-					}
-					else
-					{
-						// cover erroneous re-initialization
-						if ( my_al_context == nullptr && my_al_device == nullptr )
-						{
-							Initialize();
-						}
-					}
-				}
-
-				bool  volume_changed = false;
-
-				if ( cfg->new_config.count(TZK_CVAR_SETTING_AUDIO_VOLUME_EFFECTS) > 0 )
-				{
-					my_effects_volume = core::TConverter<float>::FromString(cfg->new_config[TZK_CVAR_SETTING_AUDIO_VOLUME_EFFECTS]);
-					volume_changed = true;
-				}
-				if ( cfg->new_config.count(TZK_CVAR_SETTING_AUDIO_VOLUME_MUSIC) > 0 )
-				{
-					my_music_volume   = core::TConverter<float>::FromString(cfg->new_config[TZK_CVAR_SETTING_AUDIO_VOLUME_MUSIC]);
-					volume_changed = true;
-				}
-
-				if ( volume_changed )
-				{
-					SetSoundGain(my_effects_volume, my_music_volume);
-				}
-			}
-			break;
-		default:
-			break;
-		}
-	}
 
 	return ErrNONE;
 }

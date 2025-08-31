@@ -8,11 +8,11 @@
 #include "engine/definitions.h"
 
 #include "engine/resources/TypeLoader_Font.h"
-#include "engine/resources/IResource.h"
+#include "engine/resources/Resource.h"
 #include "engine/resources/Resource_Font.h"
-#include "engine/services/event/EventManager.h"
-#include "engine/services/event/Engine.h"
+#include "engine/services/event/EngineEvent.h"
 
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/error.h"
 
@@ -87,16 +87,16 @@ TypeLoader_Font::Load(
 {
 	using namespace trezanik::core;
 
-	EventData::Engine_ResourceState  data{ resource->GetResourceID(), ResourceState::Loading };
+	EventData::resource_state  data{ resource, ResourceState::Loading };
 
-	NotifyLoad(data);
+	NotifyLoad(&data);
 
 	auto  resptr = std::dynamic_pointer_cast<Resource_Font>(resource);
 
 	if ( resptr == nullptr )
 	{
 		TZK_LOG(LogLevel::Error, "dynamic_pointer_cast failed on IResource -> Resource_Font");
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return EFAULT;
 	}
 
@@ -112,7 +112,7 @@ TypeLoader_Font::Load(
 		//FT_Err_Unknown_File_Format
 		TZK_LOG_FORMAT(LogLevel::Warning, "[freetype] FT_New_Face returned error %d", err);
 
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrEXTERN;
 	}
 	
@@ -140,12 +140,12 @@ TypeLoader_Font::Load(
 #else
 
 	// no implementation
-	NotifyFailure(data);
+	NotifyFailure(&data);
 	return ErrIMPL;
 
 #endif // TZK_USING_FREETYPE
 
-	NotifySuccess(data);
+	NotifySuccess(&data);
 	return ErrNONE;
 }
 

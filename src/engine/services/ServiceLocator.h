@@ -19,7 +19,6 @@ namespace trezanik {
 namespace engine {
 
 
-class EventManager;
 class IAudio;
 namespace net {
 	class INet;
@@ -36,8 +35,6 @@ private:
 	/// We don't have a constructor, use this to ensure service creation happens once
 	static bool  my_created;
 
-	/// Event Management service - cannot be replaced
-	static std::unique_ptr<trezanik::engine::EventManager>  my_evtmgr;
 	/// Interface to an Audio service
 	static std::unique_ptr<trezanik::engine::IAudio>  my_audiomgr;
 	/// Interface to a Network service
@@ -88,19 +85,6 @@ public:
 	 */
 	static void
 	DestroyAllServices();
-
-
-	/**
-	 * Obtains the event management service
-	 *
-	 * This is a mandatory service constructed alongside application startup and
-	 * can never be deleted/removed at runtime
-	 *
-	 * @return
-	 *  A pointer to the event manager service implementation
-	 */
-	static trezanik::engine::EventManager*
-	EventManager();
 
 
 	/**

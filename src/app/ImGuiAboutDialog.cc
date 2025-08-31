@@ -14,12 +14,13 @@
 #include "app/version.h"
 
 #include "engine/Context.h"
-#include "engine/services/event/Event.h"
-#include "engine/services/event/EventManager.h"
+#include "engine/services/event/EngineEvent.h"
 #include "engine/services/ServiceLocator.h"
 
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/util/string/string.h"
+#include "core/error.h"
 
 
 namespace trezanik {
@@ -40,9 +41,9 @@ ImGuiAboutDialog::ImGuiAboutDialog(
 	{
 		_gui_interactions.about_dialog = this;
 
-
 		// we need to receive resource load notifications
-		engine::ServiceLocator::EventManager()->AddListener(this, EventType::Domain::Engine);
+		auto  evtdsp = core::ServiceLocator::EventDispatcher();
+		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<engine::EventData::resource_state>>(uuid_resourcestate, std::bind(&ImGuiAboutDialog::HandleResourceState, this, std::placeholders::_1))));
 
 
 		Context&     ctx = Context::GetSingleton();
@@ -79,7 +80,12 @@ ImGuiAboutDialog::~ImGuiAboutDialog()
 	{
 		_gui_interactions.about_dialog = nullptr;
 
-		engine::ServiceLocator::EventManager()->RemoveListener(this);
+		auto  evtmgr = core::ServiceLocator::EventDispatcher();
+
+		for ( auto& id : my_reg_ids )
+		{
+			evtmgr->Unregister(id);
+		}
 	}
 	TZK_LOG(LogLevel::Trace, "Destructor finished");
 }
@@ -307,37 +313,18 @@ ImGuiAboutDialog::Draw()
 }
 
 
-int
-ImGuiAboutDialog::ProcessEvent(
-	trezanik::engine::IEvent* event
+void
+ImGuiAboutDialog::HandleResourceState(
+	trezanik::engine::EventData::resource_state res_state
 )
 {
-	using namespace trezanik::engine;
-
-	if ( event->GetDomain() == EventType::Domain::Engine )
+	if ( res_state.state == engine::ResourceState::Ready )
 	{
-		switch ( event->GetType() )
+		if ( res_state.resource->GetResourceID() == my_icon_resource_id )
 		{
-		case EventType::ResourceState:
-			{
-				auto r = reinterpret_cast<EventData::Engine_ResourceState*>(event->GetData());
-				if ( r->state == ResourceState::Ready )
-				{
-					auto res = Context::GetSingletonPtr()->GetResourceCache().GetResource(r->id);
-
-					if ( res->GetResourceID() == my_icon_resource_id )
-					{
-						my_icon = std::dynamic_pointer_cast<Resource_Image>(res);
-					}
-				}
-			}
-			break;
-		default:
-			break;
+			my_icon = std::dynamic_pointer_cast<engine::Resource_Image>(res_state.resource);
 		}
 	}
-
-	return ErrNONE;
 }
 
 

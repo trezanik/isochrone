@@ -8,11 +8,10 @@
 #include "engine/definitions.h"
 
 #include "engine/resources/TypeLoader.h"
-#include "engine/resources/IResource.h"
-#include "engine/services/event/EventManager.h"
-#include "engine/services/event/Engine.h"
+#include "engine/resources/Resource.h"
 #include "engine/services/ServiceLocator.h"
 
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 
 
@@ -84,67 +83,55 @@ TypeLoader::HandlesMediaType(
 
 void
 TypeLoader::NotifyFailure(
-	trezanik::engine::EventData::Engine_ResourceState& state_data
+	trezanik::engine::EventData::resource_state* state_data
 )
 {
 	using namespace trezanik::core;
 
-	state_data.state = ResourceState::Failed;
+	state_data->state = ResourceState::Failed;
 
 	TZK_LOG_FORMAT(LogLevel::Debug,
 		"Resource load failed for %s",
-		state_data.id.GetCanonical()
+		state_data->resource->GetResourceID().GetCanonical()
 	);
 
-	ServiceLocator::EventManager()->PushEvent(
-		EventType::Domain::Engine,
-		EventType::ResourceState,
-		&state_data
-	);
+	core::ServiceLocator::EventDispatcher()->DispatchEvent(uuid_resourcestate, *state_data);
 }
 
 
 void
 TypeLoader::NotifyLoad(
-	trezanik::engine::EventData::Engine_ResourceState& state_data
+	trezanik::engine::EventData::resource_state* state_data
 )
 {
 	using namespace trezanik::core;
 
-	state_data.state = ResourceState::Loading;
+	state_data->state = ResourceState::Loading;
 
 	TZK_LOG_FORMAT(LogLevel::Debug,
 		"Loading resource %s",
-		state_data.id.GetCanonical()
+		state_data->resource->GetResourceID().GetCanonical()
 	);
 
-	ServiceLocator::EventManager()->PushEvent(
-		EventType::Domain::Engine,
-		EventType::ResourceState,
-		&state_data
-	);
+	core::ServiceLocator::EventDispatcher()->DispatchEvent(uuid_resourcestate, *state_data);
 }
 
 
 void
 TypeLoader::NotifySuccess(
-	trezanik::engine::EventData::Engine_ResourceState& state_data
+	trezanik::engine::EventData::resource_state* state_data
 )
 {
 	using namespace trezanik::core;
 
-	state_data.state = ResourceState::Ready;
+	state_data->state = ResourceState::Ready;
 
 	TZK_LOG_FORMAT(LogLevel::Debug,
 		"Resource load complete for %s",
-		state_data.id.GetCanonical()
+		state_data->resource->GetResourceID().GetCanonical()
 	);
 
-	ServiceLocator::EventManager()->PushEvent(
-		EventType::Domain::Engine,
-		EventType::ResourceState,
-		&state_data
-	);
+	core::ServiceLocator::EventDispatcher()->DispatchEvent(uuid_resourcestate, *state_data);
 }
 
 

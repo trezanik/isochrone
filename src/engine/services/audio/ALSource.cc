@@ -13,7 +13,6 @@
 #include "engine/services/audio/ALAudio.h"
 #include "engine/services/audio/AudioData.h"
 #include "engine/services/audio/AudioFile.h"
-#include "engine/services/event/EventManager.h"
 #include "engine/resources/Resource_Audio.h"
 #include "engine/resources/ResourceCache.h"
 #include "engine/objects/AudioComponent.h"

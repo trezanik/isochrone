@@ -10,10 +10,10 @@
 #include "engine/resources/TypeLoader_Image.h"
 #include "engine/resources/IResource.h"
 #include "engine/resources/Resource_Image.h"
-#include "engine/services/event/EventManager.h"
-#include "engine/services/event/Engine.h"
+#include "engine/services/event/EngineEvent.h"
 
 #include "core/util/filesystem/file.h"
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/services/memory/Memory.h"
 #include "core/error.h"
@@ -149,16 +149,16 @@ TypeLoader_Image::Load(
 {
 	using namespace trezanik::core;
 
-	EventData::Engine_ResourceState  data{ resource->GetResourceID(), ResourceState::Loading };
+	EventData::resource_state  data{ resource, ResourceState::Loading };
 
-	NotifyLoad(data);
+	NotifyLoad(&data);
 
 	auto  resptr = std::dynamic_pointer_cast<Resource_Image>(resource);
 
 	if ( resptr == nullptr )
 	{
 		TZK_LOG(LogLevel::Error, "dynamic_pointer_cast failed on IResource -> Resource_Image");
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return EFAULT;
 	}
 
@@ -169,7 +169,7 @@ TypeLoader_Image::Load(
 
 	if ( fp == nullptr )
 	{
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 
@@ -180,14 +180,14 @@ TypeLoader_Image::Load(
 	{
 		TZK_LOG(LogLevel::Warning, "Unable to confirm file signature");
 		aux::file::close(fp);
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 	if ( !is_png_signature(buf, png_header_size) )
 	{
 		TZK_LOG(LogLevel::Warning, "Not a PNG file type signature");
 		aux::file::close(fp);
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 
@@ -199,7 +199,7 @@ TypeLoader_Image::Load(
 			fsize, TZK_IMAGE_MAX_FILE_SIZE
 		);
 		aux::file::close(fp);
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 	
@@ -212,7 +212,7 @@ TypeLoader_Image::Load(
 	{
 		TZK_LOG_FORMAT(LogLevel::Warning, "Failed to allocate %zu bytes", fsize);
 		aux::file::close(fp);
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 
@@ -225,7 +225,7 @@ TypeLoader_Image::Load(
 		TZK_LOG(LogLevel::Warning, "Unable to read full file into memory");
 		TZK_MEM_FREE(mem);
 		aux::file::close(fp);
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 
@@ -233,14 +233,14 @@ TypeLoader_Image::Load(
 	png_structp  png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
 	if ( png_ptr == nullptr )
 	{
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 	png_infop  info_ptr = png_create_info_struct(png_ptr);
 	if ( info_ptr == nullptr )
 	{
 		png_destroy_read_struct(&png_ptr, nullptr, nullptr);
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 
@@ -263,7 +263,7 @@ TypeLoader_Image::Load(
 	if ( rc != 1 )
 	{
 		png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 
@@ -294,7 +294,7 @@ TypeLoader_Image::Load(
 		break;
 	default:
 		png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 
@@ -309,7 +309,7 @@ TypeLoader_Image::Load(
 	/// @todo raw png implementation
 
 	png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
-	NotifyFailure(data);
+	NotifyFailure(&data);
 	return ErrIMPL;
 #endif
 
@@ -320,7 +320,7 @@ TypeLoader_Image::Load(
 
 	if ( pngcon->data == nullptr )
 	{
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 
@@ -334,13 +334,13 @@ TypeLoader_Image::Load(
 #if TZK_USING_STBI
 		stbi_image_free(pngcon->data);
 #endif
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 
 	// pngcon->data must be freed - see Resource_Image.cc destructor
 
-	NotifySuccess(data);
+	NotifySuccess(&data);
 	return ErrNONE;
 }
 

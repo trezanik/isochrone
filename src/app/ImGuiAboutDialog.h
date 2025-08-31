@@ -37,7 +37,6 @@ namespace app {
 class ImGuiAboutDialog
 	: public IImGui
 	, private trezanik::core::SingularInstance<ImGuiAboutDialog>
-	, public trezanik::engine::IEventListener
 {
 	TZK_NO_CLASS_ASSIGNMENT(ImGuiAboutDialog);
 	TZK_NO_CLASS_COPY(ImGuiAboutDialog);
@@ -57,6 +56,23 @@ private:
 
 	/** Source license open flag; replaces the main dialog, but reverts when closed */
 	bool  my_open_source_license;
+
+	/**
+	 * Set of all the registered event callback IDs
+	 */
+	std::set<uint64_t>  my_reg_ids;
+
+
+	/**
+	 * Handles resource state change events
+	 *
+	 * @param[in] res_state
+	 *  The resource state data
+	 */
+	void
+	HandleResourceState(
+		trezanik::engine::EventData::resource_state res_state
+	);
 
 protected:
 public:
@@ -82,15 +98,6 @@ public:
 	 */
 	virtual void
 	Draw() override;
-
-
-	/**
-	 * Implementation of IEventListener::ProcessEvent
-	 */
-	virtual int
-	ProcessEvent(
-		trezanik::engine::IEvent* event
-	) override;
 };
 
 

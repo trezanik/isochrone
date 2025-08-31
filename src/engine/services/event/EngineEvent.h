@@ -1,8 +1,8 @@
 #pragma once
 
 /**
- * @file        src/engine/services/event/EventData.h
- * @brief       The data structures for all the different event types
+ * @file        src/engine/services/event/EngineEvent.h
+ * @brief       Engine-specific event data
  * @license     zlib (view the LICENSE file for details)
  * @copyright   Trezanik Developers, 2014-2025
  */
@@ -18,13 +18,38 @@
 #	include <Windows.h>  // HKL
 #endif
 
-#include <string>
-#include <vector>
 #include <map>
+#include <string>
 
 
 namespace trezanik {
 namespace engine {
+
+
+static trezanik::core::UUID  uuid_audioaction("2b057560-ffea-46bb-a27a-9646162a2ab2");
+static trezanik::core::UUID  uuid_audioglobal("f0ce3048-a70a-4ab6-b5a1-afff8a43c85e");
+static trezanik::core::UUID  uuid_audiovolume("fbc22059-da55-461d-8080-37e8a41a2569");
+static trezanik::core::UUID  uuid_configchange("a87e0504-df52-4930-99bd-7fbb2acc3ef8");
+static trezanik::core::UUID  uuid_command("d1c3c6ef-1769-47db-b593-37408a991b5b");
+static trezanik::core::UUID  uuid_displaychange("0e514517-8368-4b5c-b375-9f723f6974bc");
+static trezanik::core::UUID  uuid_enginestate("667f851f-8439-4b5d-93d6-20be437faa2e");
+static trezanik::core::UUID  uuid_keychar("73b62d51-a325-4f63-a94b-5b0136ef0d90");
+static trezanik::core::UUID  uuid_keydown("1a5477ba-e408-4dfe-bff1-75bc5e318a39");
+static trezanik::core::UUID  uuid_keyup("e25a3106-eb7b-45d7-a88a-a0d220134e34");
+static trezanik::core::UUID  uuid_mousedown("71519254-81a4-45d2-b47e-1108bc6a0a4c");
+static trezanik::core::UUID  uuid_mousemove("0381b965-e6c9-4216-8522-b828c4ceca11");
+static trezanik::core::UUID  uuid_mouseup("084c7871-d0e4-4cb1-be72-d757220ab183");
+static trezanik::core::UUID  uuid_mousewheel("8e6933ca-b5ad-4371-98df-67ee50d8dac6");
+//static trezanik::core::UUID  uuid_tcprecv("401ddac8-3207-4fb7-8aed-ab28fcd74836");
+//static trezanik::core::UUID  uuid_tcpsend("a2d541d9-293b-4eb9-9acb-5e5df6e89af3");
+//static trezanik::core::UUID  uuid_udprecv("055b5ca3-5060-4dba-b9cf-b236206d0427");
+//static trezanik::core::UUID  uuid_udpsend("ccd70506-2b7c-4e92-a878-87fe2f4eb86b");
+static trezanik::core::UUID  uuid_resourcestate("f014e164-9ce5-4cc2-907c-6331e0e2e0a3");
+static trezanik::core::UUID  uuid_windowactivate("5880405f-21f0-499b-83a6-734e91c05b48");
+static trezanik::core::UUID  uuid_windowdeactivate("95c643f8-f061-43ea-a61f-1d64678ae921");
+static trezanik::core::UUID  uuid_windowlocation("ea099d77-7f00-4a3f-8340-219f340ddd83");
+static trezanik::core::UUID  uuid_windowmove("abf90c86-ec6f-4363-8fc0-edab17b61953");
+static trezanik::core::UUID  uuid_windowsize("2b057560-ffea-46BB-a27a-9646162a2ab2");
 
 
 /**
@@ -42,6 +67,7 @@ enum AudioActionFlag_
 	AudioActionFlag_Fade = 1 << 6,    ///< Flag for fade out on finish (hardcoded 3 secs) - future improvement
 };
 
+
 /**
  * Volume modification
  */
@@ -51,6 +77,7 @@ enum AudioVolumeFlag_
 	AudioVolumeFlag_Effects = 1 << 0,  ///< Sound Effects volume
 	AudioVolumeFlag_Music = 1 << 1,  ///< Music volume
 };
+
 
 /**
  * Global audio action
@@ -251,22 +278,9 @@ namespace EventData {
 
 
 /**
- * void pointer to one of the EventData structs, used for interfaces
- * 
- * @note
- *  The EventData::StructurePtr (data) MUST NOT hold pointer/reference values;
- *  for a standard struct, when the event is pushed the appropriate derived type
- *  will copy the contents, thereby making it safe for the caller to forget the
- *  original source data (since a lot of these only need to be local on the stack
- *  and then discarded when out of scope).
+ * Audio action data
  */
-using StructurePtr = void*;
-
-
-/**
- * An audio action event data
- */
-struct Audio_Action
+struct audio_action
 {
 	/**
 	 * The asset ID being operated on.
@@ -285,9 +299,9 @@ struct Audio_Action
 
 
 /**
- * An audio global event data
+ * Audio global data
  */
-struct Audio_Global
+struct audio_global
 {
 	/**
 	 * The global audio option to apply
@@ -297,9 +311,9 @@ struct Audio_Global
 
 
 /**
- * An audio volume event data
+ * Audio volume data
  */
-struct Audio_Volume
+struct audio_volume
 {
 	/**
 	 * The volume type to modify; presently master for effects and music
@@ -315,9 +329,21 @@ struct Audio_Volume
 
 
 /**
+ * A command event data
+ */
+struct command
+{
+	/**
+	 * The engine command to invoke.
+	 */
+	std::string  cmd;
+};
+
+
+/**
  * A configuration modification event data
  */
-struct Engine_Config
+struct config_change
 {
 	/**
 	 * The key-value pair of updated configuration settings
@@ -327,86 +353,9 @@ struct Engine_Config
 
 
 /**
- * A command event data
+ * Resolution change data
  */
-struct Engine_Command
-{
-	/**
-	 * The engine command to invoke.
-	 */
-	std::string  command;
-};
-
-
-/**
- * A generic resource event data
- * 
- * @note Unused, pending removal
- */
-struct Engine_Resource
-{
-	/** The UUID of the resource */
-	core::UUID  id;
-};
-
-
-/**
- * Event data of a resource state change
- *
- * The state is actually a logical concept; it is not maintained anywhere.
- * Instead, it is only passed out via these event notifications to signal that
- * it has loaded/unloaded/failed - handlers need to interpret these.
- */
-struct Engine_ResourceState
-{
-	/** The UUID of the resource */
-	core::UUID  id;
-
-	/** The state of the resource; set to Declared on plain construction */
-	ResourceState  state;
-};
-
-
-/**
- * An engine state change event data
- */
-struct Engine_State
-{
-	/**
-	 * The state that has been entered
-	 */
-	State  entered;
-
-	/**
-	 * The state we left
-	 */
-	State  left;
-};
-
-
-/**
- * A workspace state change event data
- * 
- * @note Unused and inappopriate here, marked for removal
- */
-struct Engine_WorkspaceState
-{
-	/**
-	 * The state entered
-	 */
-	core::UUID  entered;
-
-	/**
-	 * The state left
-	 */
-	core::UUID  left;
-};
-
-
-/**
- * A resolution change event data
- */
-struct Graphics_DisplayChange
+struct display_change
 {
 	/** x-component of the resolution */
 	unsigned int  res_x;
@@ -424,7 +373,24 @@ struct Graphics_DisplayChange
 
 
 /**
- * Keyboard input event data
+ * An engine state change event data
+ */
+struct engine_state
+{
+	/**
+	 * The state that has been entered
+	 */
+	State  entered;
+
+	/**
+	 * The state we left
+	 */
+	State  left;
+};
+
+
+/**
+ * Keyboard input data
  *
  * This concerns only interaction, and must not be used to acquire textual
  * data; use Input_KeyChar for such requirements.
@@ -434,7 +400,7 @@ struct Graphics_DisplayChange
  * Linux/Unix:
  *  TBD - from SDL surely?
  */
-struct Input_Key
+struct key_press
 {
 	/**
 	 * Our internal keycode/identifier
@@ -478,7 +444,7 @@ struct Input_Key
  * Linux/Unix:
  *  TBD - reference SDL
  */
-struct Input_KeyChar
+struct key_char
 {
 	/**
 	 * UTF-8 character
@@ -495,9 +461,9 @@ struct Input_KeyChar
 
 
 /**
- * A mouse button input event data
+ * A mouse button input data
  */
-struct Input_MouseButton
+struct mouse_button
 {
 	/** The mouse button identifier */
 	MouseButtonId  button;
@@ -507,9 +473,9 @@ struct Input_MouseButton
 
 
 /**
- * A mouse movement input event data
+ * A mouse movement input data
  */
-struct Input_MouseMove
+struct mouse_move
 {
 	/** The relative cursor movement on the x-axis, if available */
 	int32_t  rel_x;
@@ -524,9 +490,9 @@ struct Input_MouseMove
 
 
 /**
- * A mouse wheel input event data
+ * A mouse wheel input data
  */
-struct Input_MouseWheel
+struct mouse_wheel
 {
 	/**
 	 * Displacement of the mouse wheel in depth
@@ -545,117 +511,39 @@ struct Input_MouseWheel
 
 
 /**
- * Pending removal
+ * Event data of a resource state change
+ *
+ * The state is actually a logical concept; it is not maintained anywhere.
+ * Instead, it is only passed out via these event notifications to signal that
+ * it has loaded/unloaded/failed - handlers need to interpret these.
  */
-struct Interprocess_ProcessAborted
+struct resource_state
 {
-	unsigned int  pid;
-	std::string   process_name;
-	std::string   process_path;
-	std::string   command_line;
-};
+	/** The resource object of reference */
+	std::shared_ptr<IResource>  resource;
 
-
-/**
- * Pending removal
- */
-struct Interprocess_ProcessCreated
-{
-	unsigned int  pid;
-	std::string   process_name;
-	std::string   process_path;
-	std::string   command_line;
-};
-
-
-/**
- * Pending removal
- */
-struct Interprocess_ProcessStoppedFailure
-{
-	unsigned int  pid;
-	std::string   process_name;
-	std::string   process_path;
-	std::string   command_line;
-	int           exit_code;
-};
-
-
-/**
- * Pending removal
- */
-struct Interprocess_ProcessStoppedSuccess
-{
-	unsigned int  pid;
-	std::string   process_name;
-	std::string   process_path;
-	std::string   command_line;
-
-};
-
-
-/**
- * TCP receive event data
- * 
- * @note Pending implementation
- */
-struct Network_TcpRecv
-{
-	// having raw packet details saves other one-off members if we can?
-};
-
-
-/**
- * TCP send event data
- * 
- * @note Pending implementation
- */
-struct Network_TcpSend
-{
-	// having raw packet details saves other one-off members if we can?
-};
-
-
-/**
- * UDP receive event data
- * 
- * @note Pending implementation
- */
-struct Network_UdpRecv
-{
-	// having raw packet details saves other one-off members if we can?
-};
-
-
-/**
- * UDP send event data
- * 
- * @note Pending implementation
- */
-struct Network_UdpSend
-{
-	// having raw packet details saves other one-off members if we can?
-
+	/** The state of the resource; set to Declared on plain construction */
+	ResourceState  state;
 };
 
 
 /**
  * Window move event
  */
-struct System_WindowMove
+struct window_move
 {
 	/// The windows new x (horizontal) position
-	int  pos_x;
+	int32_t  pos_x;
 
 	/// The windows new y (vertical) position
-	int  pos_y;
+	int32_t  pos_y;
 };
 
 
 /**
  * Window size event
  */
-struct System_WindowSize
+struct window_size
 {
 	/// The windows new width
 	uint32_t  width;

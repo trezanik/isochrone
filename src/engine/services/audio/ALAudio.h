@@ -15,7 +15,7 @@
 #if TZK_USING_OPENALSOFT
 
 #include "engine/services/audio/IAudio.h"
-#include "engine/services/event/IEventListener.h"
+#include "engine/services/event/EngineEvent.h"
 
 #include "core/util/time.h"
 #include "core/UUID.h"
@@ -123,7 +123,6 @@ TZK_CC_RESTORE_WARNING
  */
 class TZK_ENGINE_API ALAudio
 	: public IAudio
-	, public trezanik::engine::IEventListener
 {
 	TZK_NO_CLASS_ASSIGNMENT(ALAudio);
 	TZK_NO_CLASS_COPY(ALAudio);
@@ -150,7 +149,6 @@ private:
 	/** Gain applied to music tracks */
 	ALfloat  my_music_volume;
 
-
 	/**
 	 * All created sounds, available for usage in FindSound() and UseSound()
 	 *
@@ -161,6 +159,11 @@ private:
 		std::shared_ptr<trezanik::engine::Resource_Audio>,
 		std::shared_ptr<trezanik::engine::ALSound>
 	>  my_sounds;
+
+	/**
+	 * Set of all the registered event callback IDs
+	 */
+	std::set<uint64_t>  my_reg_ids;
 
 
 	/**
@@ -189,12 +192,15 @@ private:
 
 
 	/**
-	 * Implementation of IEventListener::ProcessEvent
+	 * Handles configuration change events
+	 * 
+	 * @param[in] cc
+	 *  The configuration change data
 	 */
-	virtual int
-	ProcessEvent(
-		trezanik::engine::IEvent* event
-	) override;
+	void
+	HandleConfigChange(
+		std::shared_ptr<trezanik::engine::EventData::config_change> cc
+	);
 
 protected:
 

@@ -9,10 +9,11 @@
 
 #include "engine/resources/ResourceCache.h"
 #include "engine/resources/Resource.h"
-#include "engine/services/event/EventManager.h"
 #include "engine/services/ServiceLocator.h"
+#include "engine/services/event/EngineEvent.h"
 #include "engine/TConverter.h"
 
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/services/log/LogEvent.h"
 #include "core/error.h"
@@ -161,17 +162,14 @@ ResourceCache::Remove(
 			rid.GetCanonical(), res->use_count()
 		);
 
+		EventData::resource_state  state_data{
+			(*res), ResourceState::Unloaded
+		};
+		core::ServiceLocator::EventDispatcher()->DispatchEvent(uuid_resourcestate, state_data);
+
 		my_cache.erase(res);
 	}
 
-	EventData::Engine_ResourceState  state_data{
-		rid, ResourceState::Unloaded
-	};
-	ServiceLocator::EventManager()->PushEvent(
-		EventType::Domain::Engine,
-		EventType::ResourceState,
-		&state_data
-	);
 	return ErrNONE;
 }
 

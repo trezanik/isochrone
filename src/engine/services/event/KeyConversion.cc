@@ -8,7 +8,7 @@
 #include "engine/definitions.h"
 
 #include "engine/services/event/KeyConversion.h"
-#include "engine/services/event/EventData.h"
+#include "engine/services/event/EngineEvent.h"
 #include "core/services/log/Log.h"
 #include "core/error.h"
 
@@ -33,7 +33,7 @@ int
 ConvertVKey(
 	UINT vkey,
 	WM_KeyInfo* keyinfo,
-	EventData::Input_Key* keydata
+	EventData::key_press* keydata
 )
 {
 	if ( keyinfo == nullptr || keydata == nullptr )
@@ -56,7 +56,7 @@ ConvertVKey(
 	keydata->modifiers.super         = HIBYTE(::GetAsyncKeyState(VK_LWIN    )) != 0;
 	// implement caps as well?? VK_CAPITAL;
 
-#if 0
+#if 0  // Code Disabled: Win32 API usage
 	// convert vkey to ascii & UTF-8
 
 	/*

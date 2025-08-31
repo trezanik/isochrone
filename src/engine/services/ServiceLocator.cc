@@ -2,14 +2,12 @@
  * @file        src/engine/services/ServiceLocator.cc
  * @license     zlib (view the LICENSE file for details)
  * @copyright   Trezanik Developers, 2014-2025
- * @todo        Presently hosts hard-coded services, to replace in due course
  */
 
 
 #include "engine/definitions.h"
 
 #include "engine/services/audio/ALAudio.h"
-#include "engine/services/event/EventManager.h"
 #include "engine/services/net/Net.h"
 #include "engine/services/NullServices.h"
 #include "engine/services/ServiceLocator.h"
@@ -19,91 +17,9 @@ namespace trezanik {
 namespace engine {
 
 
-#if 0 /// @todo re-engage for the current services
-NullDataController  ServiceLocator::my_null_dc;
-NullDataModel       ServiceLocator::my_null_dm;
-NullDataView        ServiceLocator::my_null_dv;
-
-IDataController*  ServiceLocator::my_dc = &my_null_dc;
-IDataModel*       ServiceLocator::my_dm = &my_null_dm;
-IDataView*        ServiceLocator::my_dv = &my_null_dv;
-#endif
-
 bool ServiceLocator::my_created = false;
 std::unique_ptr<IAudio>  ServiceLocator::my_audiomgr = nullptr;
-std::unique_ptr<EventManager>  ServiceLocator::my_evtmgr = nullptr;
 std::unique_ptr<net::INet>  ServiceLocator::my_netmgr = nullptr;
-
-
-#if 0  // concept to be applied to all the services (except Log) in future
-void
-ServiceLocator::AssignDataController(
-	IDataController* dc
-)
-{
-	if ( dc == nullptr )
-	{
-		my_dc = &my_null_dc;
-	}
-	else
-	{
-		my_dc = dc;
-	}
-}
-
-
-void
-ServiceLocator::AssignDataModel(
-	IDataModel* dm
-)
-{
-	if ( dm == nullptr )
-	{
-		my_dm = &my_null_dm;
-	}
-	else
-	{
-		my_dm = dm;
-	}
-}
-
-	
-void
-ServiceLocator::AssignDataView(
-	IDataView* dv
-)
-{
-	if ( dv == nullptr )
-	{
-		my_dv = &my_null_dv;
-	}
-	else
-	{
-		my_dv = dv;
-	}
-}
-	
-	
-IDataController*
-ServiceLocator::DataController()
-{
-	return my_dc;
-}
-
-
-IDataModel*
-ServiceLocator::DataModel()
-{
-	return my_dm;
-}
-
-
-IDataView*
-ServiceLocator::DataView()
-{
-	return my_dv;
-}
-#endif
 
 
 trezanik::engine::IAudio*
@@ -121,10 +37,6 @@ ServiceLocator::CreateDefaultServices()
 
 	// prevent re-execution
 	my_created = true;
-
-	// event manager must be created first, as others listen for events and hook
-	if ( (my_evtmgr = std::make_unique<trezanik::engine::EventManager>()) == nullptr )
-		return;
 
 	/*
 	 * These are all 'optional' services.
@@ -156,18 +68,9 @@ ServiceLocator::CreateDefaultServices()
 void
 ServiceLocator::DestroyAllServices()
 {
-	// no requirements for cleanup ordering beyond event manager being last
+	// no requirements for cleanup ordering
 	my_netmgr.reset(); 
 	my_audiomgr.reset();
-	
-	my_evtmgr.reset();
-}
-
-
-trezanik::engine::EventManager*
-ServiceLocator::EventManager()
-{
-	return my_evtmgr.get();
 }
 
 

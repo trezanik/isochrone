@@ -15,12 +15,12 @@
 #include "engine/services/audio/AudioFile_Opus.h"
 #include "engine/services/audio/AudioFile_Vorbis.h"
 #include "engine/services/audio/AudioFile_Wave.h"
-#include "engine/services/event/EventManager.h"
-#include "engine/services/event/Engine.h"
+#include "engine/services/event/EngineEvent.h"
 #include "engine/services/ServiceLocator.h"
 
 #include "core/util/filesystem/file.h"
 #include "core/util/string/string.h"
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/error.h"
 
@@ -76,16 +76,16 @@ TypeLoader_Audio::Load(
 {
 	using namespace trezanik::core;
 
-	EventData::Engine_ResourceState  data{ resource->GetResourceID(), ResourceState::Loading };
+	EventData::resource_state  data{ resource, ResourceState::Loading };
 
-	NotifyLoad(data);
+	NotifyLoad(&data);
 
 	auto  resptr = std::dynamic_pointer_cast<Resource_Audio>(resource);
 
 	if ( resptr == nullptr )
 	{
 		TZK_LOG(LogLevel::Error, "dynamic_pointer_cast failed on IResource -> Resource_Audio");
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return EFAULT;
 	}
 
@@ -96,7 +96,7 @@ TypeLoader_Audio::Load(
 
 	if ( fp == nullptr )
 	{
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 
@@ -120,13 +120,13 @@ TypeLoader_Audio::Load(
 		if ( lic_fp == nullptr )
 		{
 			TZK_LOG_FORMAT(LogLevel::Error, "No license file for %s", filepath.c_str());
-			NotifyFailure(data);
+			NotifyFailure(&data);
 			return ErrFAILED;
 		}
 		if ( aux::file::size(lic_fp) < 3 )
 		{
 			TZK_LOG_FORMAT(LogLevel::Error, "Invalid license file for %s", filepath.c_str());
-			NotifyFailure(data);
+			NotifyFailure(&data);
 			return ErrFAILED;
 		}
 
@@ -171,7 +171,7 @@ TypeLoader_Audio::Load(
 	if ( audiophile == nullptr || audiophile->Load(fp) != ErrNONE )
 	{
 		aux::file::close(fp);
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 
@@ -185,13 +185,13 @@ TypeLoader_Audio::Load(
 
 	if ( sound == nullptr )
 	{
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 	
 	audiophile->SetSound(sound);
 
-	NotifySuccess(data);
+	NotifySuccess(&data);
 	return ErrNONE;
 }
 

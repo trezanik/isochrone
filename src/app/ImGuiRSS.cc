@@ -18,12 +18,10 @@
 #include "core/util/filesystem/file.h"
 #include "core/util/string/string.h"
 #include "core/TConverter.h"
+#include "core/error.h"
 
-#include "engine/services/event/Event.h"
-#include "engine/services/event/EventManager.h"
 #include "engine/services/net/Net.h"
 #include "engine/services/net/HTTP.h"
-#include "engine/services/ServiceLocator.h"
 
 #if TZK_USING_PUGIXML
 #	include <pugixml.hpp>
@@ -64,7 +62,7 @@ ImGuiRSS::ImGuiRSS(
 
 		my_thread = std::thread(&ImGuiRSS::UpdateThread, this);
 
-		engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::Network);
+		// evtmgr
 
 #if TZK_USING_SQLITE
 		my_db = nullptr;
@@ -107,7 +105,8 @@ ImGuiRSS::~ImGuiRSS()
 			TZK_LOG(LogLevel::Info, "Database for sqlite closed");
 		}
 #endif
-		engine::ServiceLocator::EventManager()->RemoveListener(this);
+		
+		// evtmgr
 
 		_gui_interactions.rss = nullptr;
 	}
@@ -225,45 +224,6 @@ ImGuiRSS::HandleFeedContent(
 	}
 
 	// pending further content interpretation, storage, etc.
-
-	return ErrNONE;
-}
-
-
-int
-ImGuiRSS::ProcessEvent(
-	trezanik::engine::IEvent* evt
-)
-{
-	using namespace trezanik::core;
-
-	if ( evt->GetDomain() != engine::EventType::Domain::Network )
-		return ErrNONE;
-
-	switch ( evt->GetType() )
-	{
-	case engine::EventType::TcpEstablished:
-		break;
-	case engine::EventType::TcpRecv:
-		break;
-	case engine::EventType::TcpSend:
-		break;
-	default:
-		return ErrNONE;
-	}
-
-
-#if 0 // Code Disabled: rough idea for use
-	std::string  output;
-
-	output = data->feed_entry;
-
-	my_feed_entries.emplace_back(data->feed_id, output);
-#endif
-	if ( my_feed_entries.size() > my_max_lines )
-	{
-		my_feed_entries.erase(my_feed_entries.begin());
-	}
 
 	return ErrNONE;
 }

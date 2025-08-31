@@ -10,8 +10,8 @@
 
 #include "app/definitions.h"
 
-#include "engine/services/event/IEventListener.h"
-#include "engine/services/event/EventData.h"
+#include "app/event/AppEvent.h"
+#include "engine/services/event/EngineEvent.h"
 
 #include "core/services/log/LogLevel.h"
 #include "core/util/filesystem/Path.h"
@@ -863,7 +863,6 @@ struct workspace_data
  *     1.0 | 60e18b8b-b4af-4065-af5e-a17c9cb73a41 (not finalized)
  */
 class Workspace
-	: public trezanik::engine::IEventListener
 {
 	TZK_NO_CLASS_ASSIGNMENT(Workspace);
 	TZK_NO_CLASS_COPY(Workspace);
@@ -889,6 +888,11 @@ private:
 
 	/** path to file on disk. Intentionally unset until loaded or saved */
 	core::aux::Path  my_file_path;
+
+	/**
+	 * Set of all the registered event callback IDs
+	 */
+	std::set<uint64_t>  my_reg_ids;
 
 
 	/**
@@ -1082,7 +1086,7 @@ private:
 	 */
 	void
 	HandleProcessAborted(
-		trezanik::engine::EventData::Interprocess_ProcessAborted* pabort
+		trezanik::app::EventData::process_aborted pabort
 	);
 
 
@@ -1094,7 +1098,7 @@ private:
 	 */
 	void
 	HandleProcessCreated(
-		trezanik::engine::EventData::Interprocess_ProcessCreated* pcreate
+		trezanik::app::EventData::process_created pcreate
 	);
 
 
@@ -1106,7 +1110,7 @@ private:
 	 */
 	void
 	HandleProcessFailure(
-		trezanik::engine::EventData::Interprocess_ProcessStoppedFailure* psfail
+		trezanik::app::EventData::process_stopped_failure psfail
 	);
 
 
@@ -1118,7 +1122,7 @@ private:
 	 */
 	void
 	HandleProcessSuccess(
-		trezanik::engine::EventData::Interprocess_ProcessStoppedSuccess* pssuccess
+		trezanik::app::EventData::process_stopped_success pssuccess
 	);
 
 
@@ -1165,15 +1169,6 @@ private:
 	// int LoadNodes_Version_1_0
 
 #endif  // TZK_USING_PUGIXML
-
-
-	/**
-	 * Implementation of IEventListener::ProcessEvent
-	 */
-	virtual int
-	ProcessEvent(
-		trezanik::engine::IEvent* event
-	) override;
 
 protected:
 public:

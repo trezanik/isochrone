@@ -23,6 +23,7 @@ class IConfig;
 class IMemory;
 class IThreading;
 class Log;
+class EventDispatcher;
 
 
 /**
@@ -52,6 +53,8 @@ private:
 
 	/// Log service - cannot be replaced
 	static std::unique_ptr<trezanik::core::Log>  my_log;
+	/// Event dispatcher service - cannot be replaced
+	static std::unique_ptr<trezanik::core::EventDispatcher>  my_evt_dispatcher;
 	/// Interface to a Config service
 	static std::unique_ptr<trezanik::core::IConfig>  my_config;
 	/// Interface to a Memory service
@@ -101,6 +104,19 @@ public:
 	 */
 	static void
 	DestroyAllServices();
+
+
+	/**
+	 * Obtains the event dispatcher service
+	 * 
+	 * This is a mandatory service constructed alongside application startup and
+	 * can never be deleted/removed at runtime
+	 *
+	 * @return
+	 *  A raw pointer to the event dispatcher service
+	 */
+	static trezanik::core::EventDispatcher*
+	EventDispatcher();
 
 
 	/**

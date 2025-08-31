@@ -42,7 +42,6 @@ namespace app {
 class ImGuiHostDialog
 	: public IImGui
 	, private trezanik::core::SingularInstance<ImGuiHostDialog>
-	, public trezanik::engine::IEventListener
 {
 	//TZK_NO_CLASS_ASSIGNMENT(ImGuiHostDialog);
 	TZK_NO_CLASS_COPY(ImGuiHostDialog);
@@ -71,7 +70,7 @@ private:
 	// icon_freebsd
 	// icon_linux
 	// icon_openbsd
-	// ...and so on
+	// ...and so on. read these from user resources, noting may not be found if given to another user
 
 protected:
 public:

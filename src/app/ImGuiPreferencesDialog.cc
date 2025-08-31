@@ -18,6 +18,7 @@
 #include "app/resources/icon_stop.h"
 
 #include "core/services/config/Config.h"
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/services/log/LogEvent.h"
 #include "core/services/memory/Memory.h"
@@ -32,7 +33,6 @@
 #include "engine/resources/Resource_Audio.h"
 #include "engine/services/audio/ALAudio.h"
 #include "engine/services/audio/ALSound.h"
-#include "engine/services/event/Event.h"
 #include "engine/services/ServiceLocator.h"
 #include "engine/objects/AudioComponent.h"
 #include "engine/Context.h"
@@ -70,7 +70,8 @@ ImGuiPreferencesDialog::ImGuiPreferencesDialog(
 		_gui_interactions.preferences_dialog = this;
 
 		// we need to receive resource load notifications
-		engine::ServiceLocator::EventManager()->AddListener(this, EventType::Domain::Engine);
+		my_reg_ids.emplace(core::ServiceLocator::EventDispatcher()->Register(std::make_shared<core::Event<engine::EventData::resource_state>>(uuid_resourcestate, std::bind(&ImGuiPreferencesDialog::HandleResourceState, this, std::placeholders::_1))));
+
 
 		// all sounds need an emitter; this is a dummy plain component
 		my_audio_component = std::make_shared<AudioComponent>();
@@ -164,12 +165,17 @@ ImGuiPreferencesDialog::~ImGuiPreferencesDialog()
 
 	TZK_LOG(LogLevel::Trace, "Destructor starting");
 	{
+		auto  evtmgr = core::ServiceLocator::EventDispatcher();
+
+		for ( auto& id : my_reg_ids )
+		{
+			evtmgr->Unregister(id);
+		}
+
 		_gui_interactions.preferences_dialog = nullptr;
 
 		/// @todo confirm if ongoing playback is stopped cleanly at this point
 		my_audio_component.reset();
-
-		engine::ServiceLocator::EventManager()->RemoveListener(this);
 	}
 	TZK_LOG(LogLevel::Trace, "Destructor finished");
 }
@@ -194,20 +200,16 @@ ImGuiPreferencesDialog::ApplyModifications()
 	 * Send out an event with these modified settings; listeners will then be
 	 * able to dynamically adjust live operations where supported
 	 */
-	EventData::Engine_Config  data;
+	auto  data = std::make_shared<engine::EventData::config_change>();
 	
 	// we could also supply the full config along with the modifications too
 	//data.new_config = cfg->DuplicateSettings();
 	for ( auto& mod : my_modifications )
 	{
-		data.new_config.emplace(mod.first, mod.second);
+		data->new_config.emplace(mod.first, mod.second);
 	}
 
-	engine::ServiceLocator::EventManager()->PushEvent(
-		EventType::Domain::Engine,
-		EventType::ConfigChange,
-		&data
-	);
+	core::ServiceLocator::EventDispatcher()->DelayedDispatch(uuid_configchange, data);
 
 	// saved, clear state to restore standard prompts
 	my_modifications.clear();
@@ -1633,14 +1635,52 @@ ImGuiPreferencesDialog::Draw_Workspaces()
 
 void
 ImGuiPreferencesDialog::HandleResourceState(
-	trezanik::engine::ResourceID TZK_UNUSED(rid),
-	trezanik::engine::ResourceState TZK_UNUSED(state)
+	trezanik::engine::EventData::resource_state rstate
 )
 {
 	using namespace trezanik::core;
 	using namespace trezanik::engine;
 
-	// not actually used, ProcessEvent does everything needed; keep this??
+	if ( rstate.state == ResourceState::Ready )
+	{
+		/*
+		 * This is the delayed loader playback; will be the first
+		 * and default execution until the file is in the resource
+		 * cache, where it can be used directly
+		 */
+		auto  res = rstate.resource;
+		const auto&  rid = rstate.resource->GetResourceID();
+
+		if ( rid == my_audio_resource_id )
+		{
+			auto ares = std::dynamic_pointer_cast<Resource_Audio>(res);
+
+			// get the sound we want this emitter to output
+			auto sound = engine::ServiceLocator::Audio()->FindSound(ares);
+			if ( sound != nullptr )
+			{
+				// binds the emitter to the sound, and sets the priority
+				engine::ServiceLocator::Audio()->UseSound(my_audio_component, sound, engine::max_playback_priority);
+
+				sound->Play();
+			}
+		}
+		else if ( rid == my_icon_pause_rid )
+		{
+			auto ires = std::dynamic_pointer_cast<Resource_Image>(res);
+			my_icon_pause = ires;
+		}
+		else if ( rid == my_icon_play_rid )
+		{
+			auto ires = std::dynamic_pointer_cast<Resource_Image>(res);
+			my_icon_play = ires;
+		}
+		else if ( rid == my_icon_stop_rid )
+		{
+			auto ires = std::dynamic_pointer_cast<Resource_Image>(res);
+			my_icon_stop = ires;
+		}
+	}
 }
 
 
@@ -1817,71 +1857,6 @@ ImGuiPreferencesDialog::LoadPreferences()
 
 	// copy over so we can determine and display differences
 	my_current_settings = my_loaded_settings;
-}
-
-
-int
-ImGuiPreferencesDialog::ProcessEvent(
-	trezanik::engine::IEvent* event
-)
-{
-	using namespace trezanik::engine;
-
-	if ( event->GetDomain() == EventType::Domain::Engine )
-	{
-		switch ( event->GetType() )
-		{
-		case EventType::ResourceState:
-			{
-				auto r = reinterpret_cast<EventData::Engine_ResourceState*>(event->GetData());
-				if ( r->state == ResourceState::Ready )
-				{
-					/*
-					 * This is the delayed loader playback; will be the first
-					 * and default execution until the file is in the resource
-					 * cache, where it can be used directly
-					 */
-					auto  res = Context::GetSingletonPtr()->GetResourceCache().GetResource(r->id);
-					const auto&  rid = res->GetResourceID();
-
-					if ( rid == my_audio_resource_id )
-					{
-						auto ares = std::dynamic_pointer_cast<Resource_Audio>(res);
-
-						// get the sound we want this emitter to output
-						auto sound = engine::ServiceLocator::Audio()->FindSound(ares);
-						if ( sound != nullptr )
-						{
-							// binds the emitter to the sound, and sets the priority
-							engine::ServiceLocator::Audio()->UseSound(my_audio_component, sound, engine::max_playback_priority);
-
-							sound->Play();
-						}
-					}
-					else if ( rid == my_icon_pause_rid )
-					{
-						auto ires = std::dynamic_pointer_cast<Resource_Image>(res);
-						my_icon_pause = ires;
-					}
-					else if ( rid == my_icon_play_rid )
-					{
-						auto ires = std::dynamic_pointer_cast<Resource_Image>(res);
-						my_icon_play = ires;
-					}
-					else if ( rid == my_icon_stop_rid )
-					{
-						auto ires = std::dynamic_pointer_cast<Resource_Image>(res);
-						my_icon_stop = ires;
-					}
-				}
-			}
-			break;
-		default:
-			break;
-		}
-	}
-
-	return ErrNONE;
 }
 
 

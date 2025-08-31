@@ -11,12 +11,12 @@
 #include "app/Workspace.h"
 #include "engine/resources/IResource.h"
 #include "app/resources/Resource_Workspace.h"
-#include "engine/services/event/EventManager.h"
-#include "engine/services/event/Engine.h"
+#include "engine/services/event/EngineEvent.h"
 #include "engine/services/ServiceLocator.h"
 
 #include "core/util/filesystem/file.h"
 #include "core/util/string/string.h"
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/error.h"
 
@@ -59,18 +59,17 @@ TypeLoader_Workspace::Load(
 )
 {
 	using namespace trezanik::core;
-	using namespace trezanik::engine;
 
-	EventData::Engine_ResourceState  data{ resource->GetResourceID(), ResourceState::Loading };
+	engine::EventData::resource_state  data{ resource, engine::ResourceState::Loading };
 
-	NotifyLoad(data);
+	NotifyLoad(&data);
 
 	auto  resptr = std::dynamic_pointer_cast<Resource_Workspace>(resource);
 
 	if ( resptr == nullptr )
 	{
 		TZK_LOG(LogLevel::Error, "dynamic_pointer_cast failed on IResource -> Resource_Workspace");
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return EFAULT;
 	}
 
@@ -81,7 +80,7 @@ TypeLoader_Workspace::Load(
 	if ( fp == nullptr )
 	{
 		TZK_LOG_FORMAT(LogLevel::Error, "Failed to open file at '%s'", filepath.c_str());
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return ErrFAILED;
 	}
 	// using pugixml, which loads file itself
@@ -106,12 +105,12 @@ TypeLoader_Workspace::Load(
 
 	if ( rc != ErrNONE )
 	{
-		NotifyFailure(data);
+		NotifyFailure(&data);
 		return rc;
 	}
 
 	resptr->AssignWorkspace(wksp);
-	NotifySuccess(data);
+	NotifySuccess(&data);
 	return ErrNONE;
 }
 

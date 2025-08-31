@@ -11,7 +11,6 @@
 #include "common_definitions.h"
 
 #include "engine/services/audio/IAudio.h"
-#include "engine/services/event/EventManager.h" // not nullable
 #include "engine/services/net/INet.h"
 #include "core/error.h"
 

@@ -11,12 +11,12 @@
 #include "engine/EngineConfigDefs.h"
 #include "engine/IFrameListener.h"
 #include "engine/services/audio/IAudio.h"
-#include "engine/services/event/Engine.h"
-#include "engine/services/event/EventManager.h"
+#include "engine/services/event/EngineEvent.h"
 #include "engine/services/ServiceLocator.h"
 #include "engine/TConverter.h"
 
 #include "core/services/config/IConfig.h"
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/util/filesystem/env.h"
 #include "core/util/string/string.h"
@@ -496,13 +496,9 @@ Context::SetEngineState(
 		TConverter<State>::ToString(new_state).c_str()
 	);
 
-	EventData::Engine_State  data{ new_state, my_current_engine_state };
+	EventData::engine_state  data{ new_state, my_current_engine_state };
 
-	ServiceLocator::EventManager()->PushEvent(
-		EventType::Domain::Engine,
-		EventType::EngineState,
-		&data
-	);
+	core::ServiceLocator::EventDispatcher()->DispatchEvent(uuid_enginestate, data);
 
 	my_current_engine_state = new_state;
 }

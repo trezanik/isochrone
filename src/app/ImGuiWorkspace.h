@@ -30,9 +30,9 @@
 
 
 namespace trezanik {
-namespace engine {
-	class EventManager;
-} // namespace engine
+namespace core {
+	class EventDispatcher;
+} // namespace core
 namespace app {
 
 
@@ -655,7 +655,7 @@ class ImGuiWorkspace
 private:
 
 	/** Reference to the event manager, to save needless reacquisition */
-	trezanik::engine::EventManager&  my_evtmgr;
+	trezanik::core::EventDispatcher&  my_evtmgr;
 
 	/** The workspace our data is loaded from and saved to */
 	std::shared_ptr<Workspace>  my_workspace;
@@ -762,6 +762,7 @@ private:
 	/** Collection of styles usable for pins */
 	std::vector<std::string>  my_pin_styles;
 
+
 	/**
 	 * Collection of the last x node modifications for Undo/Redo
 	 *
@@ -796,6 +797,11 @@ private:
 
 	/** Canvas Debug draw client */
 	std::shared_ptr<DrawClient>  my_drawclient_canvasdbg;
+
+	/**
+	 * Set of all the registered event callback IDs
+	 */
+	std::set<uint64_t>  my_reg_ids;
 
 	/** Dock to use for the Property View draw client */
 	WindowLocation  my_propview_dock;

@@ -17,12 +17,10 @@
 #include "app/event/AppEvent.h"
 
 #include "core/services/config/IConfig.h"
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/ServiceLocator.h"
 #include "core/services/log/Log.h"
 
-#include "engine/services/event/EventManager.h"
-#include "engine/services/event/EventData.h"
-#include "engine/services/ServiceLocator.h"
 
 #if TZK_IS_DEBUG_BUILD
 #	include <csignal>
@@ -100,16 +98,22 @@ ImGuiMenuBar::Draw()
 		// update core config, now available to getters
 		cfg->Set(TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION, TConverter<WindowLocation>::ToString(new_location));
 
-		// so application can track the new setting if it closes/saves config 
-		// also picked up by AppImgui to dynamically adjust
-		engine::EventData::Engine_Config  cc;
-		cc.new_config[TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION] = cfg->Get(TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION);
-		engine::ServiceLocator::EventManager()->PushEvent(engine::EventType::Domain::Engine, engine::EventType::ConfigChange, &cc);
+		/*
+		 * Dispatch config change notification, so application can track the new
+		 * setting if it closes/saves config - also picked up by AppImgui to 
+		 * actually dynamically adjust the location, we don't do it here!
+		 */
+		auto  cc = std::make_shared<engine::EventData::config_change>();
+		cc->new_config[setting_name] = cfg->Get(setting_name);
+		core::ServiceLocator::EventDispatcher()->DelayedDispatch(uuid_configchange, cc);
 	};
 	auto  update_window_location = [this](WindowLocation new_location, trezanik::core::UUID& window_id)
 	{
-		auto extevt = std::make_unique<AppEvent_UIWindowLocation>(new_location, _gui_interactions.active_workspace, window_id);
-		engine::ServiceLocator::EventManager()->PushEvent(std::move(extevt));
+		app::EventData::window_location  wl;
+		wl.location = new_location;
+		wl.window_id = window_id;
+		wl.workspace_id = _gui_interactions.active_workspace;
+		core::ServiceLocator::EventDispatcher()->DispatchEvent(uuid_windowlocation, wl);
 	};
 
 

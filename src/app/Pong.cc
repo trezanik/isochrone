@@ -9,11 +9,10 @@
 
 #include "app/Pong.h"
 
-#include "engine/services/event/EventManager.h"
-#include "engine/services/event/EventData.h"
-#include "engine/services/event/Event.h"
+#include "engine/services/event/EngineEvent.h"
 #include "engine/services/ServiceLocator.h"
 
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/util/time.h"
 
@@ -46,10 +45,20 @@ Pong::Pong(
 , my_score_p2(Vector2D(static_cast<float>(3 * (width / 4)), text_offset), renderer, font)
 {
 	using namespace trezanik::core;
+	using namespace trezanik::engine;
 
 	TZK_LOG(LogLevel::Trace, "Constructor starting");
 	{
-		engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::AllDomains);
+		auto  evtmgr = core::ServiceLocator::EventDispatcher();
+
+		my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<engine::EventData::key_char>>(uuid_keychar, std::bind(&Pong::HandleKeyboardChar, this, std::placeholders::_1))));
+		my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<engine::EventData::key_press>>(uuid_keydown, std::bind(&Pong::HandleKeyboardPress, this, std::placeholders::_1))));
+		my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<engine::EventData::key_press>>(uuid_keyup, std::bind(&Pong::HandleKeyboardRelease, this, std::placeholders::_1))));
+		my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<engine::EventData::mouse_button>>(uuid_mousedown, std::bind(&Pong::HandleMouseButtonDown, this, std::placeholders::_1))));
+		my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<engine::EventData::mouse_button>>(uuid_mouseup, std::bind(&Pong::HandleMouseButtonUp, this, std::placeholders::_1))));
+		my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<engine::EventData::mouse_move>>(uuid_mousemove, std::bind(&Pong::HandleMouseMove, this, std::placeholders::_1))));
+		my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<engine::EventData::window_size>>(uuid_windowsize, std::bind(&Pong::HandleWindowSize, this, std::placeholders::_1))));
+
 
 		// pong will not perform text processing; suppress KeyChar events. To move with better evt mgmt
 		SDL_StopTextInput();
@@ -66,11 +75,17 @@ Pong::~Pong()
 
 	TZK_LOG(LogLevel::Trace, "Destructor starting");
 	{
+		auto  evtmgr = core::ServiceLocator::EventDispatcher();
+
+		for ( auto& id : my_reg_ids )
+		{
+			evtmgr->Unregister(id);
+		}
+
 		engine::Context::GetSingleton().RemoveUpdateListener(this);
 
 		SDL_StartTextInput();
-
-		engine::ServiceLocator::EventManager()->RemoveListener(this);
+	
 	}
 	TZK_LOG(LogLevel::Trace, "Destructor finished");
 }
@@ -184,7 +199,7 @@ Pong::CheckWallCollision(
 
 void
 Pong::HandleKeyboardChar(
-	trezanik::engine::EventData::Input_KeyChar* TZK_UNUSED(inkc)
+	trezanik::engine::EventData::key_char TZK_UNUSED(inkc)
 )
 {
 	using namespace trezanik::core;
@@ -195,28 +210,28 @@ Pong::HandleKeyboardChar(
 
 void
 Pong::HandleKeyboardPress(
-	trezanik::engine::EventData::Input_Key* ink
+	trezanik::engine::EventData::key_press ink
 )
 {
 	using namespace trezanik::engine;
 	
-	if ( ink->key == Key::Key_W )
+	if ( ink.key == Key::Key_W )
 		my_state |= PongState::UpPressedL;
-	if ( ink->key == Key::Key_S )
+	if ( ink.key == Key::Key_S )
 		my_state |= PongState::DownPressedL;
 
-	if ( ink->key == Key::Key_UpArrow )
+	if ( ink.key == Key::Key_UpArrow )
 		my_state |= PongState::UpPressedR;
-	if ( ink->key == Key::Key_DownArrow )
+	if ( ink.key == Key::Key_DownArrow )
 		my_state |= PongState::DownPressedR;
 
-	if ( ink->key == Key::Key_R )
+	if ( ink.key == Key::Key_R )
 	{
 		// reset ball position, retaining velocity
 		my_ball.position.x = (my_width / 2.f) - (ball_width / 2.f);
 		my_ball.position.y = (my_height / 2.f) - (ball_height / 2.f);
 	}
-	if ( ink->key == Key::Key_C )
+	if ( ink.key == Key::Key_C )
 	{
 		// reset ball position, with velocity center-on to player 2
 		my_ball.position.x = (my_width / 2.f) - (ball_width / 2.f);
@@ -225,7 +240,7 @@ Pong::HandleKeyboardPress(
 		my_ball.velocity.y = 0.f;
 	}
 
-	if ( ink->key == Key::Key_Space && my_ball.velocity.x == 0 && my_ball.velocity.y == 0 )
+	if ( ink.key == Key::Key_Space && my_ball.velocity.x == 0 && my_ball.velocity.y == 0 )
 	{
 		// start
 		my_state = PongState::Active;
@@ -246,48 +261,48 @@ Pong::HandleKeyboardPress(
 
 void
 Pong::HandleKeyboardRelease(
-	trezanik::engine::EventData::Input_Key* ink
+	trezanik::engine::EventData::key_press ink
 )
 {
 	using namespace trezanik::engine;
 
-	if ( ink->key == Key::Key_W )
+	if ( ink.key == Key::Key_W )
 		my_state &= ~PongState::UpPressedL;
-	if ( ink->key == Key::Key_S )
+	if ( ink.key == Key::Key_S )
 		my_state &= ~PongState::DownPressedL;
 
-	if ( ink->key == Key::Key_UpArrow )
+	if ( ink.key == Key::Key_UpArrow )
 		my_state &= ~PongState::UpPressedR;
-	if ( ink->key == Key::Key_DownArrow )
+	if ( ink.key == Key::Key_DownArrow )
 		my_state &= ~PongState::DownPressedR;
 }
 
 
 void
 Pong::HandleMouseButtonDown(
-	trezanik::engine::EventData::Input_MouseButton* TZK_UNUSED(input)
+	trezanik::engine::EventData::mouse_button TZK_UNUSED(input)
 )
 {
 	using namespace trezanik::core;
 
-	//TZK_LOG_FORMAT(LogLevel::Trace, "MButton Down: %u", input->button);
+	//TZK_LOG_FORMAT(LogLevel::Trace, "MButton Down: %u", input.button);
 }
 
 
 void
 Pong::HandleMouseButtonUp(
-	trezanik::engine::EventData::Input_MouseButton* TZK_UNUSED(input)
+	trezanik::engine::EventData::mouse_button TZK_UNUSED(input)
 )
 {
 	using namespace trezanik::core;
 
-	//TZK_LOG_FORMAT(LogLevel::Trace, "MButton Up: %u", input->button);
+	//TZK_LOG_FORMAT(LogLevel::Trace, "MButton Up: %u", input.button);
 }
 
 
 void
 Pong::HandleMouseMove(
-	trezanik::engine::EventData::Input_MouseMove* input
+	trezanik::engine::EventData::mouse_move input
 )
 {
 	using namespace trezanik::core;
@@ -295,7 +310,7 @@ Pong::HandleMouseMove(
 #if TZK_MOUSEMOVE_LOGS
 	TZK_LOG_FORMAT(LogLevel::Trace,
 		"MouseMove Pos=%d,%d, Rel=%d,%d", 
-		input->pos_x, input->pos_y, input->rel_x, input->rel_y
+		input.pos_x, input.pos_y, input.rel_x, input.rel_y
 	);
 #endif
 
@@ -310,16 +325,16 @@ Pong::HandleMouseMove(
 
 void
 Pong::HandleWindowSize(
-	trezanik::engine::EventData::System_WindowSize* wndsz
+	trezanik::engine::EventData::window_size wndsz
 )
 {
 	using namespace trezanik::core;
 
 	// remember, this is the *entire* window size, not just our 'allocation'
-	TZK_LOG_FORMAT(LogLevel::Trace, "New Window Size: %ux%u", wndsz->width, wndsz->height);
+	TZK_LOG_FORMAT(LogLevel::Trace, "New Window Size: %ux%u", wndsz.width, wndsz.height);
 
-	my_height = wndsz->height;
-	my_width = wndsz->width;
+	my_height = wndsz.height;
+	my_width = wndsz.width;
 }
 
 
@@ -349,71 +364,6 @@ void
 Pong::PreEnd()
 {
 	// no-op
-}
-
-
-int
-Pong::ProcessEvent(
-	trezanik::engine::IEvent* event
-)
-{
-	using namespace trezanik::engine;
-
-	switch ( event->GetDomain() )
-	{
-	case EventType::Domain::Input:
-		switch ( event->GetType() )
-		{
-		case EventType::KeyDown:
-			HandleKeyboardPress(reinterpret_cast<EventData::Input_Key*>(event->GetData()));
-			break;
-		case EventType::KeyUp:
-			HandleKeyboardRelease(reinterpret_cast<EventData::Input_Key*>(event->GetData()));
-			break;
-		case EventType::KeyChar:
-			HandleKeyboardChar(reinterpret_cast<EventData::Input_KeyChar*>(event->GetData()));
-			break;
-		case EventType::MouseDown:
-			HandleMouseButtonDown(reinterpret_cast<EventData::Input_MouseButton*>(event->GetData()));
-			break;
-		case EventType::MouseUp:
-			HandleMouseButtonUp(reinterpret_cast<EventData::Input_MouseButton*>(event->GetData()));
-			break;
-		case EventType::MouseMove:
-			HandleMouseMove(reinterpret_cast<EventData::Input_MouseMove*>(event->GetData()));
-			break;
-		default:
-			break;
-		}
-		break;
-	case EventType::Domain::System:
-		switch ( event->GetType() )
-		{
-		case EventType::WindowActivate:
-			{
-				// resume execution
-			}
-			break;
-		case EventType::WindowClose:
-			break;
-		case EventType::WindowDeactivate:
-			{
-				// pause execution
-			}
-			break;
-		case EventType::WindowSize:
-			{
-			}
-			break;
-		default:
-			break;
-		}
-		break;
-	default:
-		break;
-	}
-
-	return ErrNONE;
 }
 
 

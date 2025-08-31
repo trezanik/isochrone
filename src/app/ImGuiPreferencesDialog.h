@@ -18,9 +18,10 @@
 #include "core/util/SingularInstance.h"
 #include "engine/resources/ResourceTypes.h"
 #include "engine/resources/Resource_Image.h"
-#include "engine/services/event/IEventListener.h"
+#include "engine/services/event/EngineEvent.h"
 
 #include <map>
+#include <set>
 #if __cplusplus < 201703L // C++14 workaround
 /*
  * Important:
@@ -89,7 +90,6 @@ enum class AudioAction
 class ImGuiPreferencesDialog
 	: public IImGui
 	, private trezanik::core::SingularInstance<ImGuiPreferencesDialog>
-	, public trezanik::engine::IEventListener
 {
 	TZK_NO_CLASS_ASSIGNMENT(ImGuiPreferencesDialog);
 	TZK_NO_CLASS_COPY(ImGuiPreferencesDialog);
@@ -212,6 +212,11 @@ private:
 		"17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "28",
 		"30", "32", "34", "36", "38", "42", "44", "46", "48", "64", "72"
 	};
+
+	/**
+	 * Set of all the registered event callback IDs
+	 */
+	std::set<uint64_t>  my_reg_ids;
 
 
 	/**
@@ -429,15 +434,6 @@ public:
 	 */
 	virtual void
 	Draw() override;
-
-
-	/**
-	 * Implementation of IEventListener::ProcessEvent
-	 */
-	virtual int
-	ProcessEvent(
-		trezanik::engine::IEvent* event
-	) override;
 };
 
 

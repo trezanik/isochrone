@@ -13,12 +13,8 @@
 #include "app/TConverter.h"
 #include "app/event/AppEvent.h"
 
-#include "engine/services/event/EventManager.h"
-#include "engine/services/event/EventData.h"
-#include "engine/services/event/Event.h"
-#include "engine/services/ServiceLocator.h"
-
 #include "core/services/config/Config.h"
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/util/filesystem/file.h"
 #include "core/util/string/string.h"
@@ -43,8 +39,6 @@ Workspace::Workspace()
 
 	TZK_LOG(LogLevel::Trace, "Constructor starting");
 	{
-		engine::ServiceLocator::EventManager()->AddListener(this, engine::EventType::Domain::Interprocess);
-
 		my_id.Generate();
 
 		my_wksp_data.name = "New Workspace";
@@ -61,6 +55,13 @@ Workspace::Workspace()
 		my_wksp_data.pin_styles.emplace_back(std::make_pair<>(reserved_style_service_icmp, trezanik::imgui::PinStyle::service_icmp()));
 		my_wksp_data.pin_styles.emplace_back(std::make_pair<>(reserved_style_service_tcp, trezanik::imgui::PinStyle::service_tcp()));
 		my_wksp_data.pin_styles.emplace_back(std::make_pair<>(reserved_style_service_udp, trezanik::imgui::PinStyle::service_udp()));
+
+		auto  evtmgr = core::ServiceLocator::EventDispatcher();
+
+		my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<app::EventData::process_aborted>>(uuid_process_aborted, std::bind(&Workspace::HandleProcessAborted, this, std::placeholders::_1))));
+		my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<app::EventData::process_created>>(uuid_process_created, std::bind(&Workspace::HandleProcessCreated, this, std::placeholders::_1))));
+		my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<app::EventData::process_stopped_failure>>(uuid_process_stoppedfailure, std::bind(&Workspace::HandleProcessFailure, this, std::placeholders::_1))));
+		my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<app::EventData::process_stopped_success>>(uuid_process_stoppedsuccess, std::bind(&Workspace::HandleProcessSuccess, this, std::placeholders::_1))));
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
@@ -72,7 +73,12 @@ Workspace::~Workspace()
 
 	TZK_LOG(LogLevel::Trace, "Destructor starting");
 	{
-		engine::ServiceLocator::EventManager()->RemoveListener(this, engine::EventType::Domain::AllDomains);
+		auto  evtmgr = core::ServiceLocator::EventDispatcher();
+
+		for ( auto& id : my_reg_ids )
+		{
+			evtmgr->Unregister(id);
+		}
 	}
 	TZK_LOG(LogLevel::Trace, "Destructor finished");
 }
@@ -1094,7 +1100,7 @@ Workspace::GetServiceGroup(
 
 void
 Workspace::HandleProcessAborted(
-	trezanik::engine::EventData::Interprocess_ProcessAborted* TZK_UNUSED(pabort)
+	trezanik::app::EventData::process_aborted TZK_UNUSED(pabort)
 )
 {
 	using namespace trezanik::engine;
@@ -1105,7 +1111,7 @@ Workspace::HandleProcessAborted(
 
 void
 Workspace::HandleProcessCreated(
-	trezanik::engine::EventData::Interprocess_ProcessCreated* TZK_UNUSED(pcreate)
+	trezanik::app::EventData::process_created TZK_UNUSED(pcreate)
 )
 {
 	using namespace trezanik::engine;
@@ -1116,7 +1122,7 @@ Workspace::HandleProcessCreated(
 
 void
 Workspace::HandleProcessFailure(
-	trezanik::engine::EventData::Interprocess_ProcessStoppedFailure* TZK_UNUSED(psfail)
+	trezanik::app::EventData::process_stopped_failure TZK_UNUSED(psfail)
 )
 {
 	using namespace trezanik::engine;
@@ -1127,7 +1133,7 @@ Workspace::HandleProcessFailure(
 
 void
 Workspace::HandleProcessSuccess(
-	trezanik::engine::EventData::Interprocess_ProcessStoppedSuccess* TZK_UNUSED(pssuccess)
+	trezanik::app::EventData::process_stopped_success TZK_UNUSED(pssuccess)
 )
 {
 	using namespace trezanik::engine;
@@ -2767,39 +2773,10 @@ Workspace::Name() const
 }
 
 
-int
-Workspace::ProcessEvent(
-	trezanik::engine::IEvent* TZK_UNUSED(event)
-)
-{
-	using namespace trezanik::engine;
 
-#if 0  // event replacement design will come first
-	switch ( event->GetDomain() )
-	{
-	case EventType::Domain::Interprocess:
-		switch ( event->GetType() )
 		{
-		case EventType::ProcessAborted:
-			HandleProcessAborted(reinterpret_cast<EventData::Interprocess_ProcessAborted*>(event->GetData()));
-			break;
-		case EventType::ProcessCreated:
-			HandleProcessCreated(reinterpret_cast<EventData::Interprocess_ProcessCreated*>(event->GetData()));
-			break;
-		case EventType::ProcessStoppedFailure:
-			HandleProcessFailure(reinterpret_cast<EventData::Interprocess_ProcessStoppedFailure*>(event->GetData()));
-			break;
-		case EventType::ProcessStoppedSuccess:
-			HandleProcessSuccess(reinterpret_cast<EventData::Interprocess_ProcessStoppedSuccess*>(event->GetData()));
-			break;
-		default:
-			break;
 		}
-		break;
-	default:
-		break;
 	}
-#endif
 
 	return ErrNONE;
 }
