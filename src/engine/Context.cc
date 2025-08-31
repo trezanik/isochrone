@@ -319,7 +319,7 @@ Context::GetRenderLock()
 	bool  expected = false;
 	bool  desired = true;
 
-	while ( !my_render_lock.compare_exchange_weak(expected, desired) )
+	while ( !my_render_lock.compare_exchange_strong(expected, desired) )
 	{
 		std::this_thread::sleep_for(wait_duration);
 		waiting_for += wait_duration;

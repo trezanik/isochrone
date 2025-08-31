@@ -186,7 +186,7 @@ ImGuiSemiFixedDock::Draw()
 	ImGui::Spacing();
 
 	// draw active client if not in use, doesn't block thread
-	if ( my_active_inuse.compare_exchange_weak(expected, desired) )
+	if ( my_active_inuse.compare_exchange_strong(expected, desired) )
 	{
 		if ( my_active_draw_client != nullptr )
 		{
@@ -262,7 +262,7 @@ ImGuiSemiFixedDock::RemoveDrawClient(
 		 * that isn't responsible for the UI interaction, so should always be
 		 * safe - but just in case, we protect the assignment
 		 */
-		while ( !my_active_inuse.compare_exchange_weak(expected, desired) )
+		while ( !my_active_inuse.compare_exchange_strong(expected, desired) )
 		{
 			std::this_thread::sleep_for(std::chrono::nanoseconds(10));
 			std::cout << __func__ << " waiting\n";
@@ -311,7 +311,7 @@ ImGuiSemiFixedDock::SetActiveDrawClient(
 	bool  expected = false;
 	bool  desired = true;
 
-	while ( !my_active_inuse.compare_exchange_weak(expected, desired) )
+	while ( !my_active_inuse.compare_exchange_strong(expected, desired) )
 	{
 		std::this_thread::sleep_for(std::chrono::nanoseconds(10));
 		std::cout << __func__ << " waiting\n";

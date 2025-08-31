@@ -58,7 +58,7 @@ protected:
 	{
 		bool  expected = false;
 		
-		if ( !my_existence.compare_exchange_weak(expected, true) )
+		if ( !my_existence.compare_exchange_strong(expected, true) )
 		{
 			char  buf[256];
 
