@@ -1136,23 +1136,14 @@ AppImGui::LoadUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
 	 *     ...
 	 *   </style>
 	 * </styles>
-	 * <operating_systems>
-	 *   <operating_system>
-	 *     ...
-	 *   <operating_system>
-	 * </operating_systems>
 	 * </userdata>
 	 */
 	pugi::xml_node  node_styles = node_udata.child(nodename_styles);
-	pugi::xml_node  node_os = node_udata.child(nodename_opsyss);
 	// ..other resource roots..
 
 	if ( node_styles )
 	{
 		LoadStyles_783d1279_05ca_40af_b1c2_cfc40c212658(node_styles);
-	}
-	if ( node_os )
-	{
 	}
 	// ..other loaders..
 }
