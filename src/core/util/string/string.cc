@@ -69,7 +69,7 @@ BuildPath(
 
 std::string
 BytesToReadable(
-	size_t bytes,
+	uint64_t bytes,
 	ByteConversionFlags flags
 )
 {

@@ -71,6 +71,12 @@ enum byte_conversion_flags_ : ByteConversionFlags
  * 
  * The default (non-flagged) output for 1,000,000 bytes is: 1MB
  * 
+ * Input bytes is a forced 64-bit type to accommodate sizes that are greater
+ * than 4GB on 32-bit if we have a 32-bit build. Rare and unlikely, however is
+ * good habits for further architecture changes - if 128-bit ever becomes a
+ * thing this will need manually changing, unlike auto for size_t. A 128-bit
+ * build will likely want to remove 32-bit support though, so back to size_t...?
+ * 
  * @param[in] bytes
  *  The byte value to interpret
  * @param[in] flags
@@ -81,7 +87,7 @@ enum byte_conversion_flags_ : ByteConversionFlags
 TZK_CORE_API
 std::string
 BytesToReadable(
-	size_t bytes,
+	uint64_t bytes,
 	ByteConversionFlags flags
 );
 
