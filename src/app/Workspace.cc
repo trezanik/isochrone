@@ -962,9 +962,6 @@ Workspace::AppendVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
 		for ( auto& sname : svcgrp->services )
 		{
 			svclist += sname;
-
-			// build option
-#define TZK_XML_ATTRIBUTE_SEPARATOR  ";"
 			svclist += TZK_XML_ATTRIBUTE_SEPARATOR;
 		}
 		if ( !svclist.empty() )
@@ -1897,7 +1894,7 @@ Workspace::LoadVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
 		} while ( attr_svc );
 #else
 		std::string  svc_str = attr_svc.value();
-		sg.services = aux::Split(svc_str, ";");
+		sg.services = aux::Split(svc_str, TZK_XML_ATTRIBUTE_SEPARATOR);
 #endif
 		
 		if ( attr_cmt )

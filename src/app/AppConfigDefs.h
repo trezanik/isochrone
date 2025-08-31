@@ -15,11 +15,6 @@
 #include "core/util/hash/compile_time_hash.h"
 
 
-/// Filename of the application configuration
-#if !defined(TZK_CONFIG_FILENAME)
-#	define TZK_CONFIG_FILENAME         "app.cfg"
-#endif
-
 /*
  * These are the names of the asset subdirectories - they are present within
  * the root launcher folder, plus any client apps as needed.
