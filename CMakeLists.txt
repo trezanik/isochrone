@@ -57,8 +57,6 @@ option(USE_SDL2_TTF "Use SDL2_ttf for TrueType fonts" ON)
 option(USE_SQLITE3 "Use SQLite for Database functionality" ON)
 option(USE_STB_FONT "Use STB for TrueType fonts" OFF)
 option(USE_STB_IMAGE "Use STB for images" ON)
-#option(DISABLE_COMPILER_H "Prevents compiler.h definitions" OFF)
-#option(DISABLE_PLATFORM_H "Prevents platform.h definitions" OFF)
 
 # these calls create special `PkgConfig::<MODULE>` variables
 if ( USE_FREETYPE2 )
