@@ -38,6 +38,7 @@
 #endif
 
 #include <algorithm>
+#include <csignal>
 #include <sstream>
 
 
@@ -314,19 +315,31 @@ Context::GetObjectFactories() const
 void
 Context::GetRenderLock()
 {
+	using namespace trezanik::core;
+
 	std::chrono::nanoseconds  wait_duration(3);
 	std::chrono::nanoseconds  waiting_for(0);
+	bool  reported = false;
 	bool  expected = false;
 	bool  desired = true;
 
 	while ( !my_render_lock.compare_exchange_strong(expected, desired) )
 	{
+		expected = false;
 		std::this_thread::sleep_for(wait_duration);
 		waiting_for += wait_duration;
-		if ( waiting_for.count() > 10000 )
+		if ( waiting_for.count() > 10000 && !reported )
 		{
-			std::cout << __func__ << " waiting for " << waiting_for.count() << " nanoseconds\n";
+			TZK_LOG_FORMAT(LogLevel::Warning, "Waiting for %zu nanoseconds", waiting_for.count());
+			reported = true;
 		}
+#if !TZK_IS_DEBUG_BUILD
+		if ( waiting_for.count() > 2000000000 ) // 2 seconds
+		{
+			TZK_LOG(LogLevel::Warning, "Aborting: potential deadlock");
+			std::raise(SIGABRT);
+		}
+#endif
 	}
 }
 
@@ -628,6 +641,8 @@ Context::Update()
 		}
 	}
 
+	GetRenderLock();
+
 #if TZK_USING_IMGUI
 	// if renderer implementation needs replacing, do it now
 	if ( my_rebuild_renderer )
@@ -659,6 +674,7 @@ Context::Update()
 		if ( my_sdl_renderer == nullptr )
 		{
 			TZK_LOG(LogLevel::Warning, "[SDL] SDL_GetRenderer returned nullptr");
+			ReleaseRenderLock();
 			return;
 		}
 		else
@@ -671,13 +687,17 @@ Context::Update()
 	if ( my_frame_count != 0 && !my_imgui_impl->WantRender() )
 	{
 		my_frames_skipped++;
+		ReleaseRenderLock();
 		return;
 	}
 
 	for ( auto& listener : my_frame_listeners )
 	{
 		if ( !listener->PreBegin() )
-			continue;
+		{
+			ReleaseRenderLock();
+			return;
+		}
 	}
 
 	// imgui has its own, just grab that?
@@ -691,8 +711,6 @@ Context::Update()
 	// setup a new frame
 	my_imgui_impl->NewFrame();
 #endif // TZK_USING_IMGUI
-
-	GetRenderLock();
 
 	for ( auto& listener : my_frame_listeners )
 	{
