@@ -50,7 +50,7 @@ ImGuiMenuBar::ImGuiMenuBar(
 , workspace_new   { "New",                "Ctrl+N", &gui_interactions.show_new_workspace, true }
 , workspace_open  { "Open",               "Ctrl+O", &gui_interactions.show_open_workspace, true }
 , workspace_save  { "Save",               "Ctrl+S", &gui_interactions.save_current_workspace, true }
-, workspace_search{ "Search",             "Ctrl+F", &unused, false }
+, workspace_search{ "Search",             "Ctrl+F", &gui_interactions.show_search, true }
 , workspace_svcm  { "Service Management", "Ctrl+M", &gui_interactions.show_service_management, true }
 , rss             { "RSS",                "", &gui_interactions.show_rss, true } // enabled if inbuilt
 , vkbd            { "Virtual Keyboard",   "", &gui_interactions.show_virtual_keyboard, true }
@@ -225,6 +225,7 @@ ImGuiMenuBar::Draw()
 		bool  disabled = _gui_interactions.workspaces.empty();
 		workspace_close.enabled = !disabled;
 		workspace_save.enabled = !disabled;
+		workspace_search.enabled = !disabled;
 		workspace_svcm.enabled = !disabled;
 
 		ImGui::MenuItem(workspace_save.text, workspace_save.shortcut, workspace_save.setting, workspace_save.enabled);

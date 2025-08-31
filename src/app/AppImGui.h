@@ -16,6 +16,7 @@
 
 #include "core/util/SingularInstance.h"
 #include "core/util/hash/compile_time_hash.h"
+#include "core/util/filesystem/Path.h"
 #include "core/UUID.h"
 
 #include "engine/IFrameListener.h"
@@ -57,6 +58,7 @@ class ImGuiFileDialog;
 class ImGuiHostDialog;
 class ImGuiPreferencesDialog;
 class ImGuiRSS;
+class ImGuiSearchDialog;
 class ImGuiSemiFixedDock;
 class ImGuiStyleEditor;
 class ImGuiUpdateDialog;
@@ -132,6 +134,7 @@ struct GuiInteractions
 	ImGuiHostDialog*         host_dialog = nullptr;
 	ImGuiPreferencesDialog*  preferences_dialog = nullptr;
 	ImGuiRSS*                rss = nullptr;
+	ImGuiSearchDialog*       search_dialog = nullptr;
 	ImGuiStyleEditor*        style_editor = nullptr;
 	ImGuiUpdateDialog*       update_dialog = nullptr;
 	ImGuiVirtualKeyboard*    virtual_keyboard = nullptr;
@@ -154,6 +157,8 @@ struct GuiInteractions
 	bool  show_preferences = false;
 	/** Flag to show the RSS window draw client */
 	bool  show_rss = false;
+	/** Flag to show the Search dialog */
+	bool  show_search = false;
 #if 0 // up for removal if service management full containment is deemed good; I like it!
 	bool  show_service = false;
 	bool  show_service_group = false;
@@ -660,6 +665,7 @@ public:
 	std::unique_ptr<IImGui>  about_dialog;
 	std::unique_ptr<IImGui>  file_dialog;
 	std::unique_ptr<IImGui>  preferences_dialog;
+	std::unique_ptr<IImGui>  search_dialog;
 	std::unique_ptr<IImGui>  update_dialog;
 };
 

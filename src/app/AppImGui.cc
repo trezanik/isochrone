@@ -18,6 +18,7 @@
 #include "app/ImGuiMenuBar.h"
 #include "app/ImGuiPreferencesDialog.h"
 #include "app/ImGuiRSS.h"
+#include "app/ImGuiSearchDialog.h"
 #include "app/ImGuiSemiFixedDock.h"
 #include "app/ImGuiStyleEditor.h"
 #include "app/ImGuiUpdateDialog.h"
@@ -118,6 +119,7 @@ AppImGui::AppImGui(
 , about_dialog(nullptr)
 , file_dialog(nullptr)
 , preferences_dialog(nullptr)
+, search_dialog(nullptr)
 , update_dialog(nullptr)
 {
 	using namespace trezanik::core;
@@ -136,6 +138,7 @@ AppImGui::AppImGui(
 		my_gui.show_open_workspace = false;
 		my_gui.show_preferences = false;
 		my_gui.show_rss = false;
+		my_gui.show_search = false;
 #if 0  // Code Disabled: Service Management takes over
 		my_gui.show_service = false; 
 		my_gui.show_service_group = false; 
@@ -1205,6 +1208,15 @@ AppImGui::PostEnd()
 	{
 		update_dialog.reset();
 	}
+	else if ( TZK_UNLIKELY(my_gui.show_search && my_gui.search_dialog == nullptr) )
+	{
+		search_dialog = std::make_unique<ImGuiSearchDialog>(my_gui);
+		my_gui.search_dialog = dynamic_cast<ImGuiSearchDialog*>(search_dialog.get());
+	}
+	else if ( TZK_UNLIKELY(!my_gui.show_search && search_dialog != nullptr) )
+	{
+		search_dialog.reset();
+	}
 	else if ( TZK_UNLIKELY(my_gui.show_virtual_keyboard && my_gui.virtual_keyboard == nullptr) )
 	{
 		virtual_keyboard = std::make_unique<ImGuiVirtualKeyboard>(my_gui);
@@ -1497,6 +1509,10 @@ AppImGui::PreEnd()
 	if ( update_dialog != nullptr )
 	{
 		update_dialog->Draw();
+	}
+	if ( search_dialog != nullptr )
+	{
+		search_dialog->Draw();
 	}
 	if ( file_dialog != nullptr )
 	{
