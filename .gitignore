@@ -97,3 +97,5 @@ UserInterfaceState.xcuserstate
 CMakeLists.txt.*
 # ---- kdevelop ----
 
+# autotools conflict on some systems (Config.h skipped due to 'config.h')
+!src/**/Config.h
