@@ -151,8 +151,38 @@ ImGuiSemiFixedDock::Draw()
 		return;
 	}
 
-	// draw dock header/tabs switcher
-	/// @beta full tab options, scrolling; combo for now
+
+#if 1  // Tab switcher
+
+	ImGuiTabBarFlags  tabbarflags = ImGuiTabBarFlags_None; // no horizontal/vertical switcher :(
+	std::string  tabbarid = "##" + name + "_tab";
+
+	if ( !ImGui::BeginTabBar(tabbarid.c_str(), tabbarflags) )
+	{
+		ImGui::End();
+		return;
+	}
+
+	for ( auto& entry : my_draw_clients )
+	{
+		if ( ImGui::BeginTabItem(entry->name.c_str()) )
+		{
+			if ( my_active_draw_client != entry )
+			{
+				TZK_LOG_FORMAT(LogLevel::Trace, "Selecting new draw client: %s", entry->name.c_str());
+				SetActiveDrawClient(entry);
+			}
+
+			// you would normally draw here, but we have it independent
+
+			ImGui::EndTabItem();
+		}
+	}
+
+	ImGui::EndTabBar();
+
+#else  // Combo switcher
+
 	std::string  combo_label = "##" + name + "_combo"; // no label for combo box
 	std::string  combo_value;
 	ImGuiComboFlags  combo_flags = ImGuiComboFlags_None;
@@ -182,6 +212,7 @@ ImGuiSemiFixedDock::Draw()
 
 		ImGui::EndCombo();
 	}
+#endif
 
 	ImGui::Spacing();
 
