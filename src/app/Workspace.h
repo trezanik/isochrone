@@ -418,6 +418,20 @@ struct graph_node_system : public graph_node
 	{
 		// clocks/vram/etc.
 	};
+	struct host_adapter : public hwcommon
+	{
+		/**
+		 * Generic text description
+		 * 
+		 * This is an attempt to cover any add-on card, such as a Wi-Fi adapter,
+		 * RAID card, other HBAs, etc.
+		 * 
+		 * We might expand this struct out for useful cases (e.g. what disks are
+		 * attached to a RAID card), but we can't possibly cover every use case
+		 * without making this unmanagable/ugly beyond sin.
+		 */
+		std::string  description;
+	};
 	struct interface_address
 	{
 		/** Individual address on an interface */
@@ -469,6 +483,10 @@ struct graph_node_system : public graph_node
 		/** Kernel version */
 		std::string  kernel;
 	};
+	struct peripheral : public hwcommon
+	{
+		
+	};
 	struct psu : public hwcommon
 	{
 		/** Power supply watt capability */
@@ -487,8 +505,12 @@ struct graph_node_system : public graph_node
 		std::vector<disk>  disks;
 		/** Collection of all GPUs */
 		std::vector<gpu>   gpus;
+		/** Collection of all host adapters */
+		std::vector<host_adapter>   host_adapters;
 		/** Collection of all network interfaces */
 		std::vector<interface>  interfaces;
+		/** Collection of all peripherals */
+		std::vector<peripheral>   peripherals;
 		/** Collection of all PSUs */
 		std::vector<psu>   psus;
 
@@ -513,7 +535,9 @@ struct graph_node_system : public graph_node
 				&& dimms.empty()
 				&& disks.empty()
 				&& gpus.empty()
+				&& host_adapters.empty()
 				&& interfaces.empty()
+				&& peripherals.empty()
 				&& psus.empty()
 				&& mobo.empty()
 				&& os.empty();

@@ -576,6 +576,17 @@ Workspace::AppendVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
 						xmle.append_attribute("serial").set_value(elem.serial.c_str());
 					}
 				}
+				if ( sysnode->system_manual.host_adapters.size() > 0 )
+				{
+					for ( auto& elem : sysnode->system_manual.host_adapters )
+					{
+						pugi::xml_node  xmle = xmlsys.append_child("host_adapter");
+						xmle.append_attribute("vendor").set_value(elem.vendor.c_str());
+						xmle.append_attribute("model").set_value(elem.model.c_str());
+						xmle.append_attribute("serial").set_value(elem.serial.c_str());
+						xmle.append_attribute("description").set_value(elem.description.c_str());
+					}
+				}
 				if ( sysnode->system_manual.interfaces.size() > 0 )
 				{
 					for ( auto& elem : sysnode->system_manual.interfaces )
@@ -603,6 +614,16 @@ Workspace::AppendVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
 								xml_ns.append_attribute("nameserver").set_value(ns.nameserver.c_str());
 							}
 						}
+					}
+				}
+				if ( sysnode->system_manual.peripherals.size() > 0 )
+				{
+					for ( auto& elem : sysnode->system_manual.peripherals )
+					{
+						pugi::xml_node  xmle = xmlsys.append_child("peripheral");
+						xmle.append_attribute("vendor").set_value(elem.vendor.c_str());
+						xmle.append_attribute("model").set_value(elem.model.c_str());
+						xmle.append_attribute("serial").set_value(elem.serial.c_str());
 					}
 				}
 				if ( sysnode->system_manual.psus.size() > 0 )
@@ -2066,6 +2087,22 @@ Workspace::LoadVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
 
 					sys.gpus.emplace_back(dat);
 				}
+				xpns = system.select_nodes("host_adapters");
+				for ( auto& xnode : xpns )
+				{
+					auto  n = xnode.node();
+					pugi::xml_attribute  attr_vendor = n.attribute("vendor");
+					pugi::xml_attribute  attr_model = n.attribute("model");
+					pugi::xml_attribute  attr_serial = n.attribute("serial");
+					pugi::xml_attribute  attr_desc = n.attribute("description");
+					graph_node_system::host_adapter  dat;
+					if ( attr_vendor )  dat.vendor = attr_vendor.value();
+					if ( attr_model )  dat.model = attr_model.value();
+					if ( attr_serial )  dat.serial = attr_serial.value();
+					if ( attr_desc )  dat.description = attr_desc.value();
+
+					sys.host_adapters.emplace_back(dat);
+				}
 				xpns = system.select_nodes("memory");
 				for ( auto& xnode : xpns )
 				{
@@ -2111,6 +2148,20 @@ Workspace::LoadVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
 					if ( attr_version )  dat.version = attr_version.value();
 
 					sys.os.emplace_back(dat);
+				}
+				xpns = system.select_nodes("peripherals");
+				for ( auto& xnode : xpns )
+				{
+					auto  n = xnode.node();
+					pugi::xml_attribute  attr_vendor = n.attribute("vendor");
+					pugi::xml_attribute  attr_model = n.attribute("model");
+					pugi::xml_attribute  attr_serial = n.attribute("serial");
+					graph_node_system::peripheral  dat;
+					if ( attr_vendor )  dat.vendor = attr_vendor.value();
+					if ( attr_model )  dat.model = attr_model.value();
+					if ( attr_serial )  dat.serial = attr_serial.value();
+
+					sys.peripherals.emplace_back(dat);
 				}
 				xpns = system.select_nodes("psu");
 				for ( auto& xnode : xpns )
