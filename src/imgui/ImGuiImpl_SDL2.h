@@ -15,6 +15,7 @@
 #include "imgui/definitions.h"
 
 #include "imgui/ImGuiImpl_Base.h"
+#include "core/util/SingularInstance.h"
 
 // SDL_Keymod can't be forward declared...
 #include <SDL.h>
@@ -70,8 +71,9 @@ struct ImGui_SDL2Renderer_Data
  * to make a common structure for implementations (despite our program only
  * supporting and written for SDL2)
  */
-class TZK_IMGUI_API ImGuiImpl_SDL2 : public ImGuiImpl_Base
-	// SingularInstance
+class TZK_IMGUI_API ImGuiImpl_SDL2
+	: public ImGuiImpl_Base
+	, private trezanik::core::SingularInstance<ImGuiImpl_SDL2>
 {
 private:
 
