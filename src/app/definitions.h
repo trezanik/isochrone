@@ -29,3 +29,14 @@
 #if !defined(TZK_WINDOW_DEFAULT_NEWNODE_WIDTH)
 #	define TZK_WINDOW_DEFAULT_NEWNODE_WIDTH  100
 #endif
+
+#if !defined(TZK_FILEDIALOG_AUTO_REFRESH_MS)
+	// The duration before the dialog will refresh directory contents
+#	define TZK_FILEDIALOG_AUTO_REFRESH_MS   5000
+#endif
+
+#if !defined(TZK_FILEDIALOG_INPUTBUF_SIZE)
+	// Buffer size of user input fields in file dialogs
+#	define TZK_FILEDIALOG_INPUTBUF_SIZE     1024
+#endif
+

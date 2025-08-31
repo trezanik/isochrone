@@ -11,6 +11,7 @@
 
 #include "app/ImGuiMenuBar.h"
 #include "app/ImGuiSemiFixedDock.h" // WindowLocation
+#include "app/ImGuiFileDialog.h" // FileDialogType
 #include "app/Application.h"
 #include "app/AppConfigDefs.h"
 #include "app/TConverter.h"
@@ -321,14 +322,33 @@ ImGuiMenuBar::Draw()
 
 		ImGui::Separator();
 
-		// these do nothing since we enabled context-aware state, but want to restore
-		_gui_interactions.show_file_open = ImGui::MenuItem("FileDialog (Open)", nullptr, &_gui_interactions.show_file_open);
-		_gui_interactions.show_file_save = ImGui::MenuItem("FileDialog (Save)", nullptr, &_gui_interactions.show_file_save);
-		_gui_interactions.show_folder_select = ImGui::MenuItem("FileDialog (FolderSelect)", nullptr, &_gui_interactions.show_folder_select);
+		if ( ImGui::BeginMenu("File Dialog") )
+		{
+			if ( ImGui::MenuItem("FileSelect") )
+			{
+				_gui_interactions.filedialog.path = "";
+				_gui_interactions.filedialog.type = FileDialogType::FileOpen;
+				_gui_interactions.show_filedialog = true;
+			}
+			if ( ImGui::MenuItem("FileSave") )
+			{
+				_gui_interactions.filedialog.path = _gui_interactions.context.InstallPath();
+				_gui_interactions.filedialog.type = FileDialogType::FileSave;
+				_gui_interactions.show_filedialog = true;
+			}
+			if ( ImGui::MenuItem("FolderSelect") )
+			{
+				_gui_interactions.filedialog.path = _gui_interactions.context.InstallPath();
+				_gui_interactions.filedialog.type = FileDialogType::FolderSelect;
+				_gui_interactions.show_filedialog = true;
+			}
+
+			ImGui::EndMenu();
+		}
 
 		ImGui::EndMenu();
 	}
-#endif
+#endif  // TZK_IS_DEBUG_BUILD
 
 	ImGui::EndMainMenuBar();
 }

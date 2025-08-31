@@ -58,6 +58,8 @@ class ImGuiUpdateDialog;
 class ImGuiVirtualKeyboard;
 class ImGuiWorkspace;
 
+enum class ContainedValue;
+enum class FileDialogType : uint8_t;
 enum class WindowLocation;
 struct DrawClient;
 
@@ -109,15 +111,11 @@ struct GuiInteractions
 	bool  save_current_workspace = false;
 	/** Flag to show the about dialog */
 	bool  show_about = false;
-	/** Flag to show the file:open dialog */
-	bool  show_file_open = false;
-	/** Flag to show the file:save dialog */
-	bool  show_file_save = false;
-	/** Flag to show the folder:select dialog */
-	bool  show_folder_select = false;
-	/** Flag to bring up the new workspace dialog (uses the file dialog) */
+	/** Flag to show the file dialog */
+	bool  show_filedialog = false;
+	/** Flag to bring up the new workspace dialog (uses the file dialog) */// Pending removal
 	bool  show_new_workspace = false;
-	/** Flag to bring up the open workspace dialog (uses the file dialog) */
+	/** Flag to bring up the open workspace dialog (uses the file dialog) */// Pending removal
 	bool  show_open_workspace = false;
 	/** Flag to overlay a basic pong implementation */
 	bool  show_pong = false;
@@ -139,6 +137,20 @@ struct GuiInteractions
 	bool  show_demo = false;
 	/** Flag to show the log window draw client */
 	bool  show_log = false;
+
+	/*
+	 * Populate desired details here.
+	 * Starting path will default to the current working directory if empty.
+	 * Dialog type must be set
+	 * When ready, enable show_filedialog to trigger presentation.
+	 * Set to false (done by the dialog on cancel/confirm) to trigger closure,
+	 * and handle data acquisition (dispatch event notification)
+	 */
+	struct {
+		trezanik::core::aux::Path  path;
+		std::pair<ContainedValue, std::string>  data;
+		FileDialogType   type;
+	} filedialog;
 
 	/** Pointer to the default font used for all font rendering in all dialogs */
 	ImFont*  font_default = nullptr;

@@ -69,13 +69,12 @@ AppImGui::AppImGui(
 
 	TZK_LOG(LogLevel::Trace, "Constructor starting");
 	{
+		// bits not bytes!
 		my_gui.close_current_workspace = false;
 		my_gui.save_current_workspace = false;
 		my_gui.show_about = false;
 		my_gui.show_demo = false;
-		my_gui.show_file_open = false;
-		my_gui.show_file_save = false;
-		my_gui.show_folder_select = false;
+		my_gui.show_filedialog = false;
 		my_gui.show_log = true;
 		my_gui.show_new_workspace = false;
 		my_gui.show_open_workspace = false;
@@ -158,6 +157,10 @@ AppImGui::~AppImGui()
 		if ( virtual_keyboard != nullptr )
 		{
 			virtual_keyboard.reset();
+		}
+		if ( file_dialog != nullptr )
+		{
+			file_dialog.reset();
 		}
 		if ( log_window != nullptr )
 		{
@@ -566,7 +569,7 @@ AppImGui::PostEnd()
 	 * after the Draw(), but these others are already available, and keeps it a
 	 * bit cleaner. Also makes rendering time faster.
 	 *
-	 * Well this can easily be condensed
+	 * Well this can easily be condensed. And is ugly as sin.
 	 */
 	if ( TZK_UNLIKELY(my_gui.show_about && my_gui.about_dialog == nullptr) )
 	{
@@ -612,74 +615,64 @@ AppImGui::PostEnd()
 	{
 		rss_window.reset();
 	}
-
-	bool  want_workspace_dialog = (my_gui.show_open_workspace || my_gui.show_new_workspace);
-
-	if ( TZK_UNLIKELY(want_workspace_dialog && my_gui.file_dialog == nullptr) )
 	{
-		file_dialog = std::make_unique<ImGuiFileDialog>(my_gui);
-		my_gui.file_dialog = dynamic_cast<ImGuiFileDialog*>(file_dialog.get());
 
-		FileDialogFlags  flags = FileDialogFlags_NoChangeDirectory | FileDialogFlags_NoNewFolder | FileDialogFlags_NoDeleteFolder;
+	
 
-		// path and not string to auto-expand env variables
-		core::aux::Path  wk_path = core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_WORKSPACES_PATH);
-
-		if ( my_gui.show_new_workspace )
-		{
-			my_gui.file_dialog->SetType(FileDialogType::FileSave);
-			my_gui.file_dialog->SetFlags(flags);
-			my_gui.file_dialog->SetInitialPath(wk_path());
-			my_gui.file_dialog->SetContext("Workspace");
-			//my_gui.file_dialog->SetFileExtension();
-			/// @todo determine better way for this, almost makes things redundant/duplicated
-			my_gui.show_file_save = true;
-		}
-		else if ( my_gui.show_open_workspace )
-		{
-			my_gui.file_dialog->SetType(FileDialogType::FileOpen);
-			my_gui.file_dialog->SetFlags(flags);
-			my_gui.file_dialog->SetInitialPath(wk_path());
-			my_gui.file_dialog->SetContext("Workspace");
-			my_gui.show_file_open = true;
-		}
+	if ( TZK_UNLIKELY(my_gui.show_filedialog && my_gui.filedialog.type == FileDialogType::FolderSelect && file_dialog == nullptr) )
+	{
+		file_dialog = std::make_unique<ImGuiFileDialog_FolderSelect>(my_gui);
+		my_gui.file_dialog = dynamic_cast<ImGuiFileDialog_FolderSelect*>(file_dialog.get());
 	}
-	/*
-	 * as file dialogs are shared we need to verify the correct handler is being
-	 * invoked; use context for detection.
-	 * No, I don't like this, definitely needs rework and proper design
-	 */
-	else if ( TZK_UNLIKELY(file_dialog != nullptr && my_gui.file_dialog->Context() == "Workspace" && my_gui.file_dialog->IsClosed()) )
+	else if ( TZK_UNLIKELY(!my_gui.show_filedialog && my_gui.filedialog.type == FileDialogType::FolderSelect && file_dialog != nullptr) )
 	{
-		if ( !my_gui.file_dialog->WasCancelled() )
+		/// @todo send event, registrees can check if they were waiting for response
+		//-------------------
+		
+		file_dialog.reset();
+	}
+
+	if ( TZK_UNLIKELY(my_gui.show_filedialog && my_gui.filedialog.type == FileDialogType::FileSave && file_dialog == nullptr) )
+	{
+		file_dialog = std::make_unique<ImGuiFileDialog_Save>(my_gui);
+		my_gui.file_dialog = dynamic_cast<ImGuiFileDialog_Save*>(file_dialog.get());
+	}
+	else if ( TZK_UNLIKELY(!my_gui.show_filedialog && my_gui.filedialog.type == FileDialogType::FileSave && file_dialog != nullptr) )
+	{
+		/// @todo if first not valid, send event, those waiting can pick it up - no additional hardcoding here
+		//-------------------
+		if ( my_gui.show_new_workspace && my_gui.filedialog.data.first == ContainedValue::FilePathAbsolute )
 		{
-			auto  selection = my_gui.file_dialog->GetConfirmedSelection();
+			core::aux::Path  path(my_gui.filedialog.data.second); // full path
 
-			if ( my_gui.show_new_workspace )
-			{
-				core::aux::Path  path(selection.second); // full path
+			TZK_LOG_FORMAT(LogLevel::Info, "Creating new workspace at: %s", path());
+			my_gui.application.NewWorkspace(path, my_loading_workspace_resid);
+		}
 
-				TZK_LOG_FORMAT(LogLevel::Info, "Creating new workspace at: %s", path());
-				my_gui.application.NewWorkspace(path, my_loading_workspace_resid);
+		// ensure everything possible is set to false
+		my_gui.show_new_workspace = false;
 
-#if 0 // Code Disabled: now, the same loader flow for existing files is used
-				if ( wksp != nullptr )
-				{
-					my_gui.workspaces[wksp->ID()] = std::make_pair<>(std::make_shared<ImGuiWorkspace>(my_gui), wksp);
-					my_gui.workspaces[wksp->ID()].first->SetWorkspace(wksp);
-					active_workspace = wksp->ID();
-				}
-#endif
-			}
-			else if ( my_gui.show_open_workspace )
-			{
-				core::aux::Path  path(selection.second);
+		file_dialog.reset();
+	}
 
-				TZK_LOG_FORMAT(LogLevel::Info, "Opening workspace at: %s", path());
+	if ( TZK_UNLIKELY(my_gui.show_filedialog && my_gui.filedialog.type == FileDialogType::FileOpen && file_dialog == nullptr) )
+	{
+		file_dialog = std::make_unique<ImGuiFileDialog_Open>(my_gui);
+		my_gui.file_dialog = dynamic_cast<ImGuiFileDialog_Open*>(file_dialog.get());
+	}
+	else if ( TZK_UNLIKELY(!my_gui.show_filedialog && my_gui.filedialog.type == FileDialogType::FileOpen && file_dialog != nullptr) )
+	{
+		/// @todo send event, registrees can check if they were waiting for response
+		//-------------------
+		if ( my_gui.show_open_workspace && my_gui.filedialog.data.first == ContainedValue::FilePathAbsolute )
+		{
+				core::aux::Path  path(my_gui.filedialog.data.second);
 				
+				TZK_LOG_FORMAT(LogLevel::Info, "Opening workspace at: %s", path());
+
 #if 0 // Code Disabled: 'dumb' loading within current thread
 				std::shared_ptr<Workspace>  wksp = my_gui.application.LoadWorkspace(path);
-				
+
 				if ( wksp != nullptr )
 				{
 					my_gui.workspaces[wksp->ID()] = std::make_pair<>(std::make_shared<ImGuiWorkspace>(my_gui), wksp);
@@ -695,7 +688,7 @@ AppImGui::PostEnd()
 				else
 				{
 					std::shared_ptr<Resource_Workspace>  wksp_res = std::make_shared<Resource_Workspace>(path);
-					
+
 					if ( my_gui.resource_loader.AddResource(std::dynamic_pointer_cast<engine::Resource>(wksp_res)) != ErrNONE )
 					{
 						my_loading_workspace_resid = engine::null_id;
@@ -707,13 +700,27 @@ AppImGui::PostEnd()
 					}
 				}
 #endif
-			}
 		}
 
-		my_gui.show_new_workspace = false;
 		my_gui.show_open_workspace = false;
+		
 		file_dialog.reset();
 	}
+
+// @todo move into the open source (menu)
+	if ( my_gui.show_open_workspace )
+	{
+		my_gui.filedialog.type = FileDialogType::FileOpen;
+		my_gui.filedialog.path = core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_WORKSPACES_PATH);
+		my_gui.show_filedialog = true;
+	}
+	if ( my_gui.show_new_workspace )
+	{
+		my_gui.filedialog.type = FileDialogType::FileSave;
+		my_gui.filedialog.path = core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_WORKSPACES_PATH);
+		my_gui.show_filedialog = true;
+	}
+
 
 	// only used by menubar 'close current' workspace
 	if ( my_gui.close_current_workspace )

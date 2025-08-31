@@ -15,6 +15,8 @@
 #include "app/IImGui.h"
 #include "app/AppImGui.h"
 
+#include "core/util/SingularInstance.h"
+
 #if __cplusplus < 201703L // C++14 workaround
 #	include <experimental/filesystem>
 #else
@@ -30,9 +32,9 @@ namespace app {
 /**
  * Purpose (goal) of the file dialog
  */
-enum class FileDialogType
+enum class FileDialogType : uint8_t
 {
-	Unconfigured,  //< Default - blank display
+	Unconfigured = 0,  //< Default - blank display
 	FileOpen,      //< Opening an existing file (select)
 	FileSave,      //< Saving a file (new write, overwrite)
 	FolderSelect   //< Choosing an existing folder (select)
@@ -94,47 +96,18 @@ typedef uint8_t FileDialogFlags;
 
 
 /**
- * File Dialog within imgui
+ * File Dialog within imgui - abstract base class
  *
- * Really a File and Folder dialog, but prefer this naming.
- * 
- * Maintains context for the desired operation by a client, which is responsible
- * for configuring options presented, and obtaining the selected content upon
- * user confirmation. This class is completely self-contained.
- * 
- * After creation, there's a limited number of frames available for the SetType
- * method to be invoked, otherwise the client will be deemed to have 'forgotten'
- * to configure the dialog, and it will error then auto-close.
- * You have until the first render to get everything configured!
- *
- * Client creation should be something like:
- * @code
-	dialog = make_unique<...>();
-	dialog->SetType(FileDialogType::FileSave); // or FileOpen,etc. as needed
-	dialog->SetFlags(flags);
-	dialog->SetInitialPath(starting_path);
-	dialog->SetContext("desired_context_string"); // optional
- * @endcode
- * Client should be closure checking via:
- * @code
-	if ( dialog->IsClosed() )
-	{
-		if ( dialog->WasCancelled() )
-			// abort/do nothing
-		else
-			dialog->GetConfirmedSelection();
-			// do stuff
-	 }
- * @endcode
+ * Really a File and Folder (filesystem) dialog, but prefer this naming.
  * 
  * Have been avoiding use of std filesystem up to now, but my per-OS implementation
  * is incomplete, and we're not doing much raw manipulation, so using it for now.
  * Also significantly easier to use these for basic file/folder lookups and
- * selections, so we can keep using our stuff for lower-level operations
+ * selections, so we can keep using our stuff for lower-level operations.
  * 
- * Not a fan of the layout, haven't spent too long on trying design aspects. Also
- * not a fan of the design concept, something closer to RAII desired - expect a
- * refactor here at some point.
+ * It is not graceful for error handling & permissions lookup however, and the
+ * C++14 implementation is experimental - NT5-based builds WILL have issues if a
+ * directory being viewed contains non-conventional/restricted files!
  */
 class ImGuiFileDialog
 	: public IImGui
@@ -152,98 +125,148 @@ private:
 	using directory_entry = std::filesystem::directory_entry;
 #endif
 
-	/** text-based context, to allow callers to handle their branches correctly */
-	std::string  my_context;
+protected:
+
+#if TZK_IS_WIN32
+	/*
+	 * Unix-like systems have entire filesystem accessible from the root path, so
+	 * can navigate freely with a plain list.
+	 * Windows has distinct drive letters, so populate a special list of the
+	 * mounted drives (yup, we won't support entering UNC paths, etc.) as
+	 * acquired from the Win32 API.
+	 */
+
+	/** Collection of all discovered devices */
+	std::vector<std::string>  _devices; // e.g. "\Device\HarddiskVolume1"
+	/** Collection of all discovered volumes */
+	std::vector<std::string>  _volumes; // e.g. "\\?\Volume{76107aa1-fe68-11ed-b9f3-806e6f6e6963}"
+	/** Collection of all discovered volume paths */
+	std::vector<std::string>  _volume_paths; // e.g. "C:"
+
+	/** Width of the drive letter selector combo, font-size aware */
+	float  _combo_width;
+#endif
 
 	/** non-default dialog tweaks for internal use */
-	FileDialogFlags  my_flags;
+	FileDialogFlags  _flags;
 
-	/** flag, has this instance been initialized */
-	bool  my_init;
+	/** flag, has this spawn had dimensions calculation setup */
+	bool  _setup;
+
+	/**
+	 * The current navigation path. If invalid, defaults to current working
+	 * directory.
+	 * String and not a Path object for interacing with std::filesystem
+	 */
+	std::string  _current_path;
+
+	/**
+	 * All directories, including drive letter if applicable, to the current
+	 * navigated path.
+	 * Refreshed on each directory change
+	 */
+	std::vector<std::string>  _current_path_dirs;
+
+	/** Flag to force a refresh of the active directory */
+	bool  _force_refresh;
+
+	// can optimize these, only store each once and reference through
 
 	/**
 	 * From the current navigation, the list of files in this folder.
 	 * If the dialog type is a folder select, this will always be empty
 	 */
-	std::vector<directory_entry>  my_files;
+	std::vector<directory_entry>  _curdir_files;
 
 	/** From the current navigation, the list of folders in this folder */
-	std::vector<directory_entry>  my_folders;
+	std::vector<directory_entry>  _curdir_folders;
 
-	/** the last refresh time of the current view (ms since epoch) */
-	time_t  my_last_refresh;
-	/** the duration before performing a refresh of the current navigated path (ms) */
-	time_t  my_auto_refresh;
 
-	/** the current navigation path (defaults to current working directory) */
-	std::string  my_current_path;
-
-	/** the confirmed selection entry */
-	std::string  my_selected_item;
+	/** used to set the 'selected' flag to highlight the file within imgui */
+	size_t  _selected_file_index;
 
 	/** used to set the 'selected' flag to highlight the folder within imgui */
-	size_t  my_selected_folder_index;
-	/** used to set the 'selected' flag to highlight the file within imgui */
-	size_t  my_selected_file_index;
+	size_t  _selected_folder_index;
 
-	/** how long this instance, since init, has not had configuration applied */
-	size_t  my_unconfigured_frame_counter;
+	/** the text assigned to the current selected file index */
+	std::string  _selected_file;
 
-	/** the type of dialog presented */
-	FileDialogType  my_dialog_type;
+	/** the text assigned to the current selected folder index */
+	std::string  _selected_folder;
+
 
 	/** the sorting order in which directory items are displayed */
-	static ImGuiSortDirection  my_sort_order;
+	static ImGuiSortDirection  _sort_order;
 
 	/** flag, true when the user has modified the sort ordering */
-	bool  my_sort_needed;
+	bool  _sort_needed;
 
-	/** the first column to be organized; secondary is always by name, if not already the first */
-	FileDialogOrderingPriority  my_primary_ordering;
 
 	/** Holds intermediary input text for a file name */
-	mutable char  my_input_buffer_file[1024];
+	mutable char  _input_buffer_file[TZK_FILEDIALOG_INPUTBUF_SIZE];
+
 	/** Holds intermediary input text for a folder name */
-	mutable char  my_input_buffer_folder[1024];
+	mutable char  _input_buffer_folder[TZK_FILEDIALOG_INPUTBUF_SIZE];
 
-	/** size of the main window */
-	ImVec2  my_window_size;
-	/** size of the directory list subwindow */
-	ImVec2  my_directories_size;
+	/** the last refresh time of the current view (ms since epoch) */
+	time_t  _last_refresh;
+
+	/**
+	 * The duration before performing a refresh of the current navigated path,
+	 * in milliseconds. If 0,  will refresh on each invocation (not recommended)
+	 * as long as no item is selected
+	 */
+	time_t  _auto_refresh;
+
+
+	/** Titlebar for the dialog */
+	std::string  _window_title;
+
 	/** updated each frame to determine the center position, for popups */
-	ImVec2  my_center;
+	ImVec2  _center;
 
 	/**
-	 * Dialog cancel state; false normally, true if cancelled
+	 * State of confirmation to overwrite a file (save dialog)
+	 * - -1 = initial state, not set
+	 * - 0 = user rejected
+	 * - 1 = user confirmed
+	 */
+	int  _overwrite_confirmed;
+
+	/**
+	 * The first column to be organized; secondary is always by name, if not
+	 * already the first
+	 */
+	FileDialogOrderingPriority  _primary_ordering;
+
+
+	/**
+	 * Switches directory view to the path supplied
 	 * 
-	 * File and folder selections should not be read if this is true, as the
-	 * user does not want to use whatever may be selected, if anything
+	 * All selection & input data is discarded, and a refresh is forced
+	 * 
+	 * @note
+	 *  If calling this while iterating the _curdir/_current lists, ensure the
+	 *  loop is broken as the iterator will be invalidated
+	 * 
+	 * @param[in] dir
+	 *  The folder path to navigate to
 	 */
-	bool  my_cancelled;
-
-	/*
-	 * The returned value for dialog callers to acquire.
-	 * Also used to maintain state tracking if a directory is operated on while
-	 * a file is selected, for example.
-	 * Created one for each rather than having to maintain state tracking in
-	 * amongst all the other render/logic stuff
-	 */
-	std::pair<ContainedValue, std::string>  my_file_selection;
-	std::pair<ContainedValue, std::string>  my_folder_selection;
+	void
+	ChangeDisplayedDirectory(
+		const std::string& dir
+	);
 
 
 	/**
-	 * ImGui drawing, used by file open and save
+	 * Placeholder for the derived class custom handling
+	 * 
+	 * This class handles the directory navigation at the top, and additional
+	 * dialog functionality at the very bottom. Everything inbetween is at the
+	 * behest of this pure virtual call.
 	 */
-	void
-	DrawFileView();
-
-
-	/**
-	 * ImGui drawing, used by folder selection
-	 */
-	void
-	DrawFolderSelectView();
+	virtual void
+	DrawCustomView() = 0;
 
 
 	/**
@@ -265,6 +288,14 @@ private:
 	 */
 	void
 	DrawNewFolderPopup();
+
+
+	/**
+	 * ImGui drawing of the overwrite file prompt
+	 */
+	void
+	DrawOverwriteConfirmPopup();
+
 
 	/**
 	 * Invalidates all selection variables. For convenience and consistency.
@@ -341,7 +372,6 @@ private:
 		const directory_entry& r
 	);
 
-protected:
 public:
 	/**
 	 * Standard constructor
@@ -361,17 +391,6 @@ public:
 
 
 	/**
-	 * Obtains the current context for this dialog
-	 * 
-	 * @return
-	 *  Plaintext string representing the context. Will be empty unless set
-	 *  explicitly
-	 */
-	std::string
-	Context() const;
-
-
-	/**
 	 * Implementation of IImGui::Draw
 	 */
 	virtual void
@@ -379,113 +398,139 @@ public:
 
 
 	/**
-	 * Gets the path text for the selected file/folder
-	 *
-	 * Should be checked by the caller, which upon acquisition, must then set
-	 * the interaction variable to hide the dialog once all desired operations
-	 * have been completed.
-	 *
-	 * This would include creating the file and outputting in the event of
-	 * this being a file save dialog, and ideally - only closing the dialog once
-	 * the write has been confirmed successful (if desiring to block).
-	 *
-	 * @return
-	 *  A pairing of the value type and the selected text
-	 */
-	std::pair<ContainedValue, std::string>
-	GetConfirmedSelection() const;
-
-
-	/**
-	 * Returns if the file dialog has been closed
-	 *
-	 * @return
-	 *  true if the window is closed, or Cancel or Confirm/OK has been selected.
-	 *  Use to determine if the dialog is ready to have closure handling executed.
-	 */
-	bool
-	IsClosed() const;
-
-
-	/**
-	 * Sets the context for this file dialog for caller detection
-	 *
-	 * As per SetType(), once invoked this will be set for the lifetime of the
-	 * object, and cannot be undone.
+	 * Performs a fresh acquisition of the active directory contents
 	 * 
-	 * Contexts are optional, in case custom handling is required. They are only
-	 * read and used by clients of the class.
-	 *
-	 * @param[in] context
-	 *  The context string
+	 * Refresh will not be performed if the last refresh was within the last
+	 * window (default 5 seconds), or a file/folder selection is made within the
+	 * list - since a refresh will potentially impact data.
+	 * If you set the _force_refresh flag to true, regardless of the above it
+	 * will be performed.
 	 */
 	void
-	SetContext(
-		const std::string& context
-	);
-
-
-	/**
-	 * Sets the full set of supplied flags for this dialog instance
-	 *
-	 * If none are supplied, it defaults to FileDialogFlags_None
-	 *
-	 * @param[in] flags
-	 *  The file dialog flags
-	 */
-	void
-	SetFlags(
-		FileDialogFlags flags
-	);
-
-
-	/**
-	 * Sets the initial directory the dialog will open at
-	 *
-	 * If none is supplied, or this path does not exist/is inaccessible, it
-	 * defaults to the applications current working directory.
-	 * 
-	 * Cannot be changed once set.
-	 *
-	 * @param[in] path
-	 *  The initial path
-	 */
-	void
-	SetInitialPath(
-		const std::string& path
-	);
-
-
-	/**
-	 * Sets the type of this file dialog (e.g. open, save, folder select)
-	 *
-	 * The dialog will not be drawn until this has been called, and once
-	 * performed, there is no way to revert the selection. The creator is
-	 * responsible for setting up the dialog, and where applicable, acquiring
-	 * any required outputs
-	 *
-	 * @param[in] type
-	 *  The type of file dialog to display and interact with
-	 */
-	void
-	SetType(
-		FileDialogType type
-	);
-
-
-	/**
-	 * Returns the cancelled flag
-	 * 
-	 * @note
-	 *  Cancel state is the default, in the event of a window display issue that
-	 *  prevents correct usage
-	 *
-	 * @return
-	 *  If the user did not explicitly confirm the selection, this will be true
-	 */
-	bool
-	WasCancelled() const;
+	RefreshPath();
 };
+
+
+/**
+ * Folder Selector implementation of the File Dialog
+ */
+class ImGuiFileDialog_FolderSelect
+	: public ImGuiFileDialog
+{
+	TZK_NO_CLASS_ASSIGNMENT(ImGuiFileDialog_FolderSelect);
+	TZK_NO_CLASS_COPY(ImGuiFileDialog_FolderSelect);
+	TZK_NO_CLASS_MOVEASSIGNMENT(ImGuiFileDialog_FolderSelect);
+	TZK_NO_CLASS_MOVECOPY(ImGuiFileDialog_FolderSelect);
+
+private:
+protected:
+
+	/**
+	 * Implementation of ImGuiFileDialog::DrawCustomView
+	 */
+	virtual void
+	DrawCustomView() override;
+
+public:
+	/**
+	 * Standard constructor
+	 * 
+	 * @param[in] gui_interactions
+	 *  Reference to the shared object
+	 */
+	ImGuiFileDialog_FolderSelect(
+		GuiInteractions& gui_interactions
+	);
+
+
+	/**
+	 * Standard destructor
+	 */
+	~ImGuiFileDialog_FolderSelect();
+};
+
+
+/**
+ * File Open/Selector implementation of the File Dialog
+ */
+class ImGuiFileDialog_Open : public ImGuiFileDialog
+{
+	TZK_NO_CLASS_ASSIGNMENT(ImGuiFileDialog_Open);
+	TZK_NO_CLASS_COPY(ImGuiFileDialog_Open);
+	TZK_NO_CLASS_MOVEASSIGNMENT(ImGuiFileDialog_Open);
+	TZK_NO_CLASS_MOVECOPY(ImGuiFileDialog_Open);
+
+private:
+protected:
+
+	/**
+	 * Implementation of ImGuiFileDialog::DrawCustomView
+	 */
+	virtual void
+	DrawCustomView() override;
+
+public:
+	/**
+	 * Standard constructor
+	 * 
+	 * @param[in] gui_interactions
+	 *  Reference to the shared object
+	 */
+	ImGuiFileDialog_Open(
+		GuiInteractions& gui_interactions
+	);
+
+
+	/**
+	 * Standard destructor
+	 */
+	~ImGuiFileDialog_Open();
+};
+
+
+/**
+ * File Save/New creator implementation of the File Dialog
+ */
+class ImGuiFileDialog_Save : public ImGuiFileDialog
+{
+	TZK_NO_CLASS_ASSIGNMENT(ImGuiFileDialog_Save);
+	TZK_NO_CLASS_COPY(ImGuiFileDialog_Save);
+	TZK_NO_CLASS_MOVEASSIGNMENT(ImGuiFileDialog_Save);
+	TZK_NO_CLASS_MOVECOPY(ImGuiFileDialog_Save);
+
+private:
+protected:
+
+	/** Flag if additional user input required to confirm closure */
+	bool  my_needs_confirmation;
+
+	/** The path of the file write; used for single construction if overwriting */
+	std::string  my_file_path;
+
+	/**
+	 * Implementation of ImGuiFileDialog::DrawCustomView
+	 */
+	virtual void
+	DrawCustomView() override;
+
+public:
+	/**
+	 * Standard constructor
+	 * 
+	 * @param[in] gui_interactions
+	 *  Reference to the shared object
+	 */
+	ImGuiFileDialog_Save(
+		GuiInteractions& gui_interactions
+	);
+
+
+	/**
+	 * Standard destructor
+	 */
+	~ImGuiFileDialog_Save();
+};
+
 
 
 } // namespace app
