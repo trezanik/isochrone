@@ -15,6 +15,13 @@
 #include "core/util/hash/compile_time_hash.h"
 
 
+namespace trezanik {
+namespace app {
+	// default style name, AppImGui.cc
+	extern const char  inbuilt_style_dark_name[];
+} // namespace app
+} // namespace trezanik
+
 /*
  * These are the names of the asset subdirectories - they are present within
  * the root launcher folder, plus any client apps as needed.
@@ -94,7 +101,6 @@ constexpr char  assetdir_sprites[]      = "sprites";
 #define TZK_CVAR_SETTING_UI_TERMINAL_ENABLED            "ui.terminal.enabled"
 #define TZK_CVAR_SETTING_UI_TERMINAL_POS_X              "ui.terminal.position.x"
 #define TZK_CVAR_SETTING_UI_TERMINAL_POS_Y              "ui.terminal.position.y"
-//#define my_cfg.ui.theme;
 #define TZK_CVAR_SETTING_UI_WINDOW_ATTR_FULLSCREEN      "ui.window.attributes.fullscreen"
 #define TZK_CVAR_SETTING_UI_WINDOW_ATTR_MAXIMIZED       "ui.window.attributes.maximized"
 #define TZK_CVAR_SETTING_UI_WINDOW_ATTR_WINDOWEDFULLSCREEN  "ui.window.attributes.windowed_fullscreen"
@@ -220,7 +226,7 @@ constexpr char  assetdir_sprites[]      = "sprites";
 //#define TZK_CVAR_DEFAULT_UI_LAYOUT_VKBD_LOCATION         "Hidden"
 #define TZK_CVAR_DEFAULT_UI_PAUSE_ON_FOCUS_LOSS_ENABLED  "false"
 #define TZK_CVAR_DEFAULT_UI_SDL_RENDERER_TYPE            "Hardware"
-#define TZK_CVAR_DEFAULT_UI_STYLE_NAME                   "Inbuilt:Dark"
+#define TZK_CVAR_DEFAULT_UI_STYLE_NAME                   inbuilt_style_dark_name
 #define TZK_CVAR_DEFAULT_UI_TERMINAL_ENABLED             "false"
 #define TZK_CVAR_DEFAULT_UI_TERMINAL_POS_X               "1"
 #define TZK_CVAR_DEFAULT_UI_TERMINAL_POS_Y               "1"

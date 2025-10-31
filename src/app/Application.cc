@@ -1479,7 +1479,7 @@ TZK_CC_RESTORE_WARNING // -Wmissing-field-initializers
 		TZK_LOG_FORMAT(LogLevel::Warning, "Unable to find configured style '%s', reverting to inbuilt", my_cfg.ui.style.name.c_str());
 		
 		ImGui::StyleColorsDark();
-		my_cfg.ui.style.name = "Inbuilt:Dark";
+		my_cfg.ui.style.name = inbuilt_style_dark_name;
 		my_gui_interactions->active_app_style = my_cfg.ui.style.name;
 	}
 

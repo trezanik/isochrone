@@ -102,6 +102,20 @@ char  nodename_display_safe_area_padding[] = "display_safe_area_padding";
 char  nodename_window_border[] = "window_border";
 char  nodename_frame_border[] = "frame_border";
 char  nodename_popup_border[] = "popup_border";
+char  xmlstr_attr_enabled[] = "enabled";
+char  xmlstr_attr_r[] = "r";
+char  xmlstr_attr_g[] = "g";
+char  xmlstr_attr_b[] = "b";
+char  xmlstr_attr_a[] = "a";
+char  xmlstr_attr_x[] = "x";
+char  xmlstr_attr_y[] = "y";
+char  xmlstr_attr_value[] = "value";
+
+const char  inbuilt_style_classic_name[] = "Inbuilt:Classic";
+const char  inbuilt_style_dark_name[] = "Inbuilt:Dark";
+const char  inbuilt_style_light_name[] = "Inbuilt:Light";
+
+
 AppImGui::AppImGui(
 	GuiInteractions& gui_interactions
 )
@@ -162,15 +176,15 @@ AppImGui::AppImGui(
 		auto  appstyle_inbuilt_dark = std::make_unique<AppImGuiStyle>();
 		auto  appstyle_inbuilt_light = std::make_unique<AppImGuiStyle>();
 
-		appstyle_inbuilt_classic->name = "Inbuilt:Classic";
+		appstyle_inbuilt_classic->name = inbuilt_style_classic_name;
 		appstyle_inbuilt_classic->id.Generate();
 		ImGui::StyleColorsClassic(&appstyle_inbuilt_classic->style); 
 		
-		appstyle_inbuilt_dark->name = "Inbuilt:Dark";
+		appstyle_inbuilt_dark->name = inbuilt_style_dark_name;
 		appstyle_inbuilt_dark->id.Generate();
 		ImGui::StyleColorsDark(&appstyle_inbuilt_dark->style);
 
-		appstyle_inbuilt_light->name = "Inbuilt:Light";
+		appstyle_inbuilt_light->name = inbuilt_style_light_name;
 		appstyle_inbuilt_light->id.Generate();
 		ImGui::StyleColorsLight(&appstyle_inbuilt_light->style);
 		
@@ -451,7 +465,7 @@ AppImGui::HandleConfigChange(
 		 * additional configuration values in the application.
 		 * Something to add in future then.
 		 */
-		bool  light_theme = cc->new_config[TZK_CVAR_SETTING_UI_STYLE_NAME] == "Inbuilt:Light";
+		bool  light_theme = cc->new_config[TZK_CVAR_SETTING_UI_STYLE_NAME] == inbuilt_style_light_name;
 
 		uint32_t  debug_colour = light_theme ? IM_COL32(117,  45, 142, 255) : IM_COL32(205, 195, 242, 255);
 		uint32_t  error_colour = light_theme ? IM_COL32(255,  77,  77, 255) : IM_COL32(255,  77,  77, 255);
@@ -727,7 +741,7 @@ AppImGui::LoadStyle_783d1279_05ca_40af_b1c2_cfc40c212658(
 		auto  node = xmlnode_style.child(child_name);
 		if ( node )
 		{
-			attr_enabled = node.attribute("enabled");
+			attr_enabled = node.attribute(xmlstr_attr_enabled);
 			if ( attr_enabled )
 			{
 				return attr_enabled.as_bool(default_ret);
@@ -762,7 +776,7 @@ AppImGui::LoadStyleColours(
 		auto   node = xmlnode_colours.child(child_name);
 		if ( node )
 		{
-			pugi::xml_attribute  attr_val = node.attribute("r");
+			pugi::xml_attribute  attr_val = node.attribute(xmlstr_attr_r);
 			if ( attr_val )
 			{
 				if ( (v = attr_val.as_uint(default_ret)) < 256 )
@@ -770,7 +784,7 @@ AppImGui::LoadStyleColours(
 					ret = v << IM_COL32_R_SHIFT;
 				}
 			}
-			attr_val = node.attribute("g");
+			attr_val = node.attribute(xmlstr_attr_g);
 			if ( attr_val )
 			{
 				if ( (v = attr_val.as_uint(default_ret)) < 256 )
@@ -778,7 +792,7 @@ AppImGui::LoadStyleColours(
 					ret |= v << IM_COL32_G_SHIFT;
 				}
 			}
-			attr_val = node.attribute("b");
+			attr_val = node.attribute(xmlstr_attr_b);
 			if ( attr_val )
 			{
 				if ( (v = attr_val.as_uint(default_ret)) < 256 )
@@ -786,7 +800,7 @@ AppImGui::LoadStyleColours(
 					ret |= v << IM_COL32_B_SHIFT;
 				}
 			}
-			attr_val = node.attribute("a");
+			attr_val = node.attribute(xmlstr_attr_a);
 			if ( attr_val )
 			{
 				if ( (v = attr_val.as_uint(default_ret)) < 256 )
@@ -846,7 +860,7 @@ AppImGui::LoadStyleRendering(
 		auto  node = xmlnode_rendering.child(child_name);
 		if ( node )
 		{
-			attr_enabled = node.attribute("enabled");
+			attr_enabled = node.attribute(xmlstr_attr_enabled);
 			if ( attr_enabled )
 			{
 				return attr_enabled.as_bool(default_ret);
@@ -861,7 +875,7 @@ AppImGui::LoadStyleRendering(
 		auto   node = xmlnode_rendering.child(child_name);
 		if ( node )
 		{
-			attr_val = node.attribute("value");
+			attr_val = node.attribute(xmlstr_attr_value);
 			if ( attr_val )
 			{
 				return attr_val.as_float(default_ret);
@@ -896,7 +910,7 @@ AppImGui::LoadStyles_783d1279_05ca_40af_b1c2_cfc40c212658(
 	{
 		if ( STR_compare(node_style.name(), nodename_style, case_sensitive) != 0 )
 		{
-			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-style in styles: %s", node_style.name());
+			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in styles: %s", nodename_style, node_style.name());
 			node_style = node_style.next_sibling();
 			continue;
 		}
@@ -932,7 +946,7 @@ AppImGui::LoadStyleSizes(
 		auto   node = xmlnode_sizes.child(child_name);
 		if ( node )
 		{
-			attr_val = node.attribute("value");
+			attr_val = node.attribute(xmlstr_attr_value);
 			if ( attr_val )
 			{
 				switch ( attr_val.as_uint(default_ret) )
@@ -955,7 +969,7 @@ AppImGui::LoadStyleSizes(
 		auto   node = xmlnode_sizes.child(child_name);
 		if ( node )
 		{
-			attr_val = node.attribute("value");
+			attr_val = node.attribute(xmlstr_attr_value);
 			if ( attr_val )
 			{
 				return attr_val.as_float(default_ret);
@@ -971,12 +985,12 @@ AppImGui::LoadStyleSizes(
 		auto    node = xmlnode_sizes.child(child_name);
 		if ( node )
 		{
-			attr_val = node.attribute("x");
+			attr_val = node.attribute(xmlstr_attr_x);
 			if ( attr_val )
 			{
 				retval.x = attr_val.as_float(default_ret);
 			}
-			attr_val = node.attribute("y");
+			attr_val = node.attribute(xmlstr_attr_y);
 			if ( attr_val )
 			{
 				retval.y = attr_val.as_float(default_ret);
@@ -1691,13 +1705,14 @@ AppImGui::SaveUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
 		auto  frame_border = style.append_child(nodename_frame_border);
 		auto  popup_border = style.append_child(nodename_popup_border);
 
-		window_border.append_attribute("enabled").set_value(static_cast<bool>(appstyle->style.WindowBorderSize));
-		frame_border.append_attribute("enabled").set_value(static_cast<bool>(appstyle->style.FrameBorderSize));
-		popup_border.append_attribute("enabled").set_value(static_cast<bool>(appstyle->style.PopupBorderSize));
+		window_border.append_attribute(xmlstr_attr_enabled).set_value(static_cast<bool>(appstyle->style.WindowBorderSize));
+		frame_border.append_attribute(xmlstr_attr_enabled).set_value(static_cast<bool>(appstyle->style.FrameBorderSize));
+		popup_border.append_attribute(xmlstr_attr_enabled).set_value(static_cast<bool>(appstyle->style.PopupBorderSize));
 
 		auto  rendering = style.append_child(nodename_rendering);
 		auto  colours = style.append_child(nodename_colours);
 		auto  sizes = style.append_child(nodename_sizes);
+		auto  nodelist = style.append_child(nodename_nodelist);
 
 		auto  aal = rendering.append_child(nodename_antialiased_lines);
 		auto  aalut = rendering.append_child(nodename_antialiased_lines_use_texture);
@@ -1707,13 +1722,13 @@ AppImGui::SaveUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
 		auto  ga = rendering.append_child(nodename_global_alpha);
 		auto  da = rendering.append_child(nodename_disabled_alpha);
 
-		aal.append_attribute("enabled").set_value(appstyle->style.AntiAliasedLines);
-		aalut.append_attribute("enabled").set_value(appstyle->style.AntiAliasedLinesUseTex);
-		aaf.append_attribute("enabled").set_value(appstyle->style.AntiAliasedFill);
-		ctt.append_attribute("value").set_value(core::aux::float_string_precision(appstyle->style.CurveTessellationTol, 2).c_str());
-		ctme.append_attribute("value").set_value(core::aux::float_string_precision(appstyle->style.CircleTessellationMaxError, 2).c_str());
-		ga.append_attribute("value").set_value(core::aux::float_string_precision(appstyle->style.Alpha, 2).c_str());
-		da.append_attribute("value").set_value(core::aux::float_string_precision(appstyle->style.DisabledAlpha, 2).c_str());
+		aal.append_attribute(xmlstr_attr_enabled).set_value(appstyle->style.AntiAliasedLines);
+		aalut.append_attribute(xmlstr_attr_enabled).set_value(appstyle->style.AntiAliasedLinesUseTex);
+		aaf.append_attribute(xmlstr_attr_enabled).set_value(appstyle->style.AntiAliasedFill);
+		ctt.append_attribute(xmlstr_attr_value).set_value(core::aux::float_string_precision(appstyle->style.CurveTessellationTol, 2).c_str());
+		ctme.append_attribute(xmlstr_attr_value).set_value(core::aux::float_string_precision(appstyle->style.CircleTessellationMaxError, 2).c_str());
+		ga.append_attribute(xmlstr_attr_value).set_value(core::aux::float_string_precision(appstyle->style.Alpha, 2).c_str());
+		da.append_attribute(xmlstr_attr_value).set_value(core::aux::float_string_precision(appstyle->style.DisabledAlpha, 2).c_str());
 
 		// if only imgui settings were all declared using this setup!
 		for ( int i = 0; i < ImGuiCol_COUNT; i++ )
@@ -1721,10 +1736,10 @@ AppImGui::SaveUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
 			auto  col = colours.append_child(ImGui::GetStyleColorName(i));
 			ImU32  u = ImGui::ColorConvertFloat4ToU32(appstyle->style.Colors[i]);
 			
-			col.append_attribute("r").set_value(static_cast<unsigned int>(0xFF & (u >> 0)));
-			col.append_attribute("g").set_value(static_cast<unsigned int>(0xFF & (u >> 8)));
-			col.append_attribute("b").set_value(static_cast<unsigned int>(0xFF & (u >> 16)));
-			col.append_attribute("a").set_value(static_cast<unsigned int>(0xFF & (u >> 24)));
+			col.append_attribute(xmlstr_attr_r).set_value(static_cast<unsigned int>(0xFF & (u >> 0)));
+			col.append_attribute(xmlstr_attr_g).set_value(static_cast<unsigned int>(0xFF & (u >> 8)));
+			col.append_attribute(xmlstr_attr_b).set_value(static_cast<unsigned int>(0xFF & (u >> 16)));
+			col.append_attribute(xmlstr_attr_a).set_value(static_cast<unsigned int>(0xFF & (u >> 24)));
 		}
 
 		auto  wp = sizes.append_child(nodename_window_padding);
@@ -1759,48 +1774,49 @@ AppImGui::SaveUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
 		auto  lsd = sizes.append_child(nodename_log_slider_deadzone);
 		auto  dsap = sizes.append_child(nodename_display_safe_area_padding);
 
-		wp.append_attribute("x").set_value(appstyle->style.WindowPadding.x);
-		wp.append_attribute("y").set_value(appstyle->style.WindowPadding.y);
-		fp.append_attribute("x").set_value(appstyle->style.FramePadding.x);
-		fp.append_attribute("y").set_value(appstyle->style.FramePadding.y);
-		its.append_attribute("x").set_value(appstyle->style.ItemSpacing.x);
-		its.append_attribute("y").set_value(appstyle->style.ItemSpacing.y);
-		iis.append_attribute("x").set_value(appstyle->style.ItemInnerSpacing.x);
-		iis.append_attribute("y").set_value(appstyle->style.ItemInnerSpacing.y);
-		tep.append_attribute("x").set_value(appstyle->style.TouchExtraPadding.x);
-		tep.append_attribute("y").set_value(appstyle->style.TouchExtraPadding.y);
-		ins.append_attribute("value").set_value(appstyle->style.IndentSpacing);
-		ss.append_attribute("value").set_value(appstyle->style.ScrollbarSize);
-		gms.append_attribute("value").set_value(appstyle->style.GrabMinSize);
-		wbs.append_attribute("value").set_value(appstyle->style.WindowBorderSize);
-		cbs.append_attribute("value").set_value(appstyle->style.ChildBorderSize);
-		pbs.append_attribute("value").set_value(appstyle->style.PopupBorderSize);
-		fbs.append_attribute("value").set_value(appstyle->style.FrameBorderSize);
-		tbs.append_attribute("value").set_value(appstyle->style.TabBorderSize);
-		tbbs.append_attribute("value").set_value(appstyle->style.TabBarBorderSize);
-		wr.append_attribute("value").set_value(appstyle->style.WindowRounding);
-		cr.append_attribute("value").set_value(appstyle->style.ChildRounding);
-		fr.append_attribute("value").set_value(appstyle->style.FrameRounding);
-		pr.append_attribute("value").set_value(appstyle->style.PopupRounding);
-		sr.append_attribute("value").set_value(appstyle->style.ScrollbarRounding);
-		gr.append_attribute("value").set_value(appstyle->style.GrabRounding);
-		tr.append_attribute("value").set_value(appstyle->style.TabRounding);
-		cp.append_attribute("x").set_value(appstyle->style.CellPadding.x);
-		cp.append_attribute("y").set_value(appstyle->style.CellPadding.y);
-		taha.append_attribute("value").set_value(core::aux::float_string_precision(appstyle->style.TableAngledHeadersAngle, 2).c_str());
-		wta.append_attribute("x").set_value(core::aux::float_string_precision(appstyle->style.WindowTitleAlign.x, 2).c_str());
-		wta.append_attribute("y").set_value(core::aux::float_string_precision(appstyle->style.WindowTitleAlign.y, 2).c_str());
-		wmbp.append_attribute("value").set_value(appstyle->style.WindowMenuButtonPosition);
-		cbp.append_attribute("value").set_value(appstyle->style.ColorButtonPosition);
-		bta.append_attribute("x").set_value(core::aux::float_string_precision(appstyle->style.ButtonTextAlign.x, 2).c_str());
-		bta.append_attribute("y").set_value(core::aux::float_string_precision(appstyle->style.ButtonTextAlign.y, 2).c_str());
-		sta.append_attribute("x").set_value(appstyle->style.SelectableTextAlign.x);
-		sta.append_attribute("y").set_value(appstyle->style.SelectableTextAlign.y);
-		stp.append_attribute("x").set_value(appstyle->style.SeparatorTextPadding.x);
-		stp.append_attribute("y").set_value(appstyle->style.SeparatorTextPadding.y);
-		lsd.append_attribute("value").set_value(appstyle->style.LogSliderDeadzone);
-		dsap.append_attribute("x").set_value(appstyle->style.DisplaySafeAreaPadding.x);
-		dsap.append_attribute("y").set_value(appstyle->style.DisplaySafeAreaPadding.y);
+		wp.append_attribute(xmlstr_attr_x).set_value(appstyle->style.WindowPadding.x);
+		wp.append_attribute(xmlstr_attr_y).set_value(appstyle->style.WindowPadding.y);
+		fp.append_attribute(xmlstr_attr_x).set_value(appstyle->style.FramePadding.x);
+		fp.append_attribute(xmlstr_attr_y).set_value(appstyle->style.FramePadding.y);
+		its.append_attribute(xmlstr_attr_x).set_value(appstyle->style.ItemSpacing.x);
+		its.append_attribute(xmlstr_attr_y).set_value(appstyle->style.ItemSpacing.y);
+		iis.append_attribute(xmlstr_attr_x).set_value(appstyle->style.ItemInnerSpacing.x);
+		iis.append_attribute(xmlstr_attr_y).set_value(appstyle->style.ItemInnerSpacing.y);
+		tep.append_attribute(xmlstr_attr_x).set_value(appstyle->style.TouchExtraPadding.x);
+		tep.append_attribute(xmlstr_attr_y).set_value(appstyle->style.TouchExtraPadding.y);
+		ins.append_attribute(xmlstr_attr_value).set_value(appstyle->style.IndentSpacing);
+		ss.append_attribute(xmlstr_attr_value).set_value(appstyle->style.ScrollbarSize);
+		gms.append_attribute(xmlstr_attr_value).set_value(appstyle->style.GrabMinSize);
+		wbs.append_attribute(xmlstr_attr_value).set_value(appstyle->style.WindowBorderSize);
+		cbs.append_attribute(xmlstr_attr_value).set_value(appstyle->style.ChildBorderSize);
+		pbs.append_attribute(xmlstr_attr_value).set_value(appstyle->style.PopupBorderSize);
+		fbs.append_attribute(xmlstr_attr_value).set_value(appstyle->style.FrameBorderSize);
+		tbs.append_attribute(xmlstr_attr_value).set_value(appstyle->style.TabBorderSize);
+		tbbs.append_attribute(xmlstr_attr_value).set_value(appstyle->style.TabBarBorderSize);
+		wr.append_attribute(xmlstr_attr_value).set_value(appstyle->style.WindowRounding);
+		cr.append_attribute(xmlstr_attr_value).set_value(appstyle->style.ChildRounding);
+		fr.append_attribute(xmlstr_attr_value).set_value(appstyle->style.FrameRounding);
+		pr.append_attribute(xmlstr_attr_value).set_value(appstyle->style.PopupRounding);
+		sr.append_attribute(xmlstr_attr_value).set_value(appstyle->style.ScrollbarRounding);
+		gr.append_attribute(xmlstr_attr_value).set_value(appstyle->style.GrabRounding);
+		tr.append_attribute(xmlstr_attr_value).set_value(appstyle->style.TabRounding);
+		cp.append_attribute(xmlstr_attr_x).set_value(appstyle->style.CellPadding.x);
+		cp.append_attribute(xmlstr_attr_y).set_value(appstyle->style.CellPadding.y);
+		taha.append_attribute(xmlstr_attr_value).set_value(core::aux::float_string_precision(appstyle->style.TableAngledHeadersAngle, 2).c_str());
+		wta.append_attribute(xmlstr_attr_x).set_value(core::aux::float_string_precision(appstyle->style.WindowTitleAlign.x, 2).c_str());
+		wta.append_attribute(xmlstr_attr_y).set_value(core::aux::float_string_precision(appstyle->style.WindowTitleAlign.y, 2).c_str());
+		wmbp.append_attribute(xmlstr_attr_value).set_value(appstyle->style.WindowMenuButtonPosition);
+		cbp.append_attribute(xmlstr_attr_value).set_value(appstyle->style.ColorButtonPosition);
+		bta.append_attribute(xmlstr_attr_x).set_value(core::aux::float_string_precision(appstyle->style.ButtonTextAlign.x, 2).c_str());
+		bta.append_attribute(xmlstr_attr_y).set_value(core::aux::float_string_precision(appstyle->style.ButtonTextAlign.y, 2).c_str());
+		sta.append_attribute(xmlstr_attr_x).set_value(appstyle->style.SelectableTextAlign.x);
+		sta.append_attribute(xmlstr_attr_y).set_value(appstyle->style.SelectableTextAlign.y);
+		stp.append_attribute(xmlstr_attr_x).set_value(appstyle->style.SeparatorTextPadding.x);
+		stp.append_attribute(xmlstr_attr_y).set_value(appstyle->style.SeparatorTextPadding.y);
+		lsd.append_attribute(xmlstr_attr_value).set_value(appstyle->style.LogSliderDeadzone);
+		dsap.append_attribute(xmlstr_attr_x).set_value(appstyle->style.DisplaySafeAreaPadding.x);
+		dsap.append_attribute(xmlstr_attr_y).set_value(appstyle->style.DisplaySafeAreaPadding.y);
+
 	}
 
 
