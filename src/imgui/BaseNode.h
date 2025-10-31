@@ -272,6 +272,8 @@ constexpr float  node_minimum_width = 20.f;  // arbritary
  * 
  * @note
  *  Debating the need/design for this, currently emergent
+ *  Update: no longer used beyond our Difference() method at present, since the
+ *  event management switch. Likely to be removed
  */
 enum class NodeUpdate : uint8_t
 {
@@ -280,7 +282,6 @@ enum class NodeUpdate : uint8_t
 	Position,
 	Size,
 	Type,
-	Name,
 	Data,
 	Selected,
 	Unselected,
@@ -294,51 +295,6 @@ enum class NodeUpdate : uint8_t
 	Dragged // needed?
 };
 
-
-/**
- * Listener interface for BaseNode modifications
- * 
- * @sa NodeUpdate
- * 
- * Updates on position, size, deletion, name, data(?) changes.
- * Allows an encompassing class (i.e. app workspace) to detect modifications
- * without needing to constantly redetermine state - instead, only when a
- * change is made.
- * 
- * Am aware this defeats a benefit of the immediate-mode GUI, but decent
- * (desired) type mapping necessitates 'mapping' changes, which means multiple
- * structs to hold appropriate types. Very much possible to combine everything
- * into one, but I fear how such code would look, reducing legibility and
- * maintainability. Am open to contributions that aren't 'too bad'!
- */
-class BaseNodeListener
-{
-	// interface; do not provide any constructors
-
-public:
-	// ensure a virtual destructor for correct derived destruction
-	virtual ~BaseNodeListener() = default;
-
-
-	/**
-	 * Node Listener method to receive update notifications
-	 * 
-	 * Responsibility of the implementer to perform any desired actions,
-	 * including obtaining the details of the change
-	 *
-	 * @param[in] uuid
-	 *  The node ID with an update
-	 * @param[in] update
-	 *  The update performed as an enum value
-	 * @return
-	 *  A failure code on error, otherwise ErrNONE
-	 */
-	virtual int
-	Notification(
-		trezanik::core::UUID& uuid,
-		NodeUpdate update
-	) = 0;
-};
 
 
 /**
@@ -431,10 +387,6 @@ private:
 
 	/// Node unique ID
 	trezanik::core::UUID  my_uuid;
-	/// Human-readable node name, is also the upper section (header)
-	std::string*  my_name;
-	/// lower section text (footer; unused at present, future expansion)
-	std::string*  my_footer;
 
 	/// Current node position in the graph
 	ImVec2  my_pos;  // this could be a pointer to save manual sync, consider!
@@ -447,8 +399,6 @@ private:
 	ImVec2  my_size_full;  
 	/// Holds updated static sizing dimensions; size will update to this on next cycle
 	ImVec2  my_target_size;
-	/// Boolean for the size being static values, not dynamic; always true for now!
-	bool    my_size_static;
 
 	/// Boolean to indicate if the node is selected by the user
 	bool    my_selected;
@@ -475,8 +425,6 @@ private:
 	/// The node style applied; cannot be a nullptr (assign valid initialization and override)
 	std::shared_ptr<NodeStyle>  my_style;
 
-	/// Observers notified of changes to the node
-	std::vector<BaseNodeListener*>  my_listeners;
 
 #if 0 // for data section scrolling, to add in future
 
@@ -521,6 +469,12 @@ private:
 	 * 10 = Top
 	 * ..clockwise to finish at..
 	 * 16 = Left
+	 * 
+	 * @todo
+	 * We can use less memory here:
+	 * Top Left Right Bottom
+	 * if ( top && left ) == top-left
+	 * Flag for hovering, holding = 6 bits, rather than 16
 	 */
 	std::bitset<16>  my_border_bits;
 
@@ -698,22 +652,6 @@ public:
 
 
 	/**
-	 * Adds a node-notification update listener
-	 * 
-	 * All node adjustment updates will be sent to the listeners
-	 * 
-	 * @param[in] listener
-	 *  The listener interface implementation
-	 * @return
-	 *  An error code on failure, otherwise ErrNONE
-	 */
-	int
-	AddListener(
-		BaseNodeListener* listener
-	);
-
-
-	/**
 	 * Marks the node for deletion at the start of the next frame
 	 * 
 	 * Cannot be undone; the node would have to be recreated
@@ -819,15 +757,15 @@ public:
 
 
 	/**
-	 * Gets the pointer to the node name
+	 * Gets the nodegraph assigned to this node
 	 * 
-	 * This is the text drawn in the header section
-	 *
+	 * Only anticipated to be used by pins for event dispatch
+	 * 
 	 * @return
-	 *  A const-pointer to the internal string object
+	 *  A pointer to the nodegraph object in use
 	 */
-	const std::string*
-	GetName();
+	ImNodeGraph*
+	GetNodegraph() const;
 
 
 	/**
@@ -941,42 +879,6 @@ public:
 	 */
 	bool
 	IsSelected();
-
-
-	/**
-	 * A true/false flag if the node is sized statically (explicitly, not dynamic)
-	 *
-	 * @return
-	 *  Boolean state
-	 */
-	bool
-	IsStaticSize();
-
-
-	/**
-	 * Gets a copy of this nodes name
-	 *
-	 * @sa GetName
-	 * @return
-	 *  The node name in a new string object
-	 */
-	std::string
-	Name();
-
-
-	/**
-	 * Notifies all listeners of this node a modification has occurred
-	 *
-	 * @todo want this to be protected
-	 * 
-	 * @param[in] update
-	 *  The NodeUpdate being distributed; must only be a single modification at
-	 *  a time, and valid for the node state
-	 */
-	void
-	NotifyListeners(
-		trezanik::imgui::NodeUpdate update
-	);
 	
 
 	/**
@@ -998,20 +900,6 @@ public:
 	 */
 	ImVec2
 	Position();
-
-
-	/**
-	 * Removes the supplied listener from this node
-	 *
-	 * @param[in] listener
-	 *  Raw pointer to the listener-implementing class
-	 * @return
-	 *  An error code on failure, otherwise ErrNONE
-	 */
-	int
-	RemoveListener(
-		BaseNodeListener* listener
-	);
 
 
 	/**
@@ -1057,23 +945,6 @@ public:
 	void
 	SetFlags(
 		NodeFlags flags
-	);
-
-
-	/**
-	 * Assigns the name variable to be used for this node
-	 * 
-	 * The node is not considered valid or drawable if the name (and node graph)
-	 * is not set.
-	 * 
-	 * Has to be a pointer for supporting immediate-mode operations.
-	 * 
-	 * @param[in] name
-	 *  Raw pointer to the string object
-	 */
-	void
-	SetName(
-		std::string* name
 	);
 
 
@@ -1147,19 +1018,6 @@ public:
 	 */
 	ImVec2
 	Size();
-
-
-	/**
-	 * Pure virtual method; obtains this nodes typename by reference
-	 * 
-	 * This is the human-readable name that gets loaded from and written to the
-	 * workspace files to determine the node type object to create
-	 * 
-	 * @return
-	 *  Const-reference to the typename string
-	 */
-	virtual const std::string&
-	Typename() const = 0;
 
 
 	/**

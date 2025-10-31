@@ -9,8 +9,10 @@
 
 #include "imgui/BaseNode.h"
 #include "imgui/ImNodeGraph.h"
+#include "imgui/event/ImGuiEvent.h"
 
 #include "core/services/log/Log.h"
+#include "core/services/event/EventDispatcher.h"
 #include "core/error.h"
 #include "core/util/time.h"
 
@@ -52,9 +54,6 @@ BaseNode::BaseNode(
 	trezanik::core::UUID& id
 )
 : my_uuid(id)
-, my_name(nullptr)
-, my_footer(nullptr)
-, my_size_static(false)
 , my_selected(false)
 , my_selected_next(false)
 , my_being_dragged(false)
@@ -104,27 +103,6 @@ BaseNode::~BaseNode()
 }
 
 
-int
-BaseNode::AddListener(
-	BaseNodeListener* listener
-)
-{
-	using namespace trezanik::core;
-
-	auto res = std::find(my_listeners.begin(), my_listeners.end(), listener);
-
-	if ( res == my_listeners.end() )
-	{
-		TZK_LOG_FORMAT(LogLevel::Trace, "Added listener " TZK_PRIxPTR " to node %s", listener, my_uuid.GetCanonical());
-		my_listeners.push_back(listener);
-		return ErrNONE;
-	}
-
-	TZK_LOG_FORMAT(LogLevel::Warning, "Listener " TZK_PRIxPTR " was already present in node %s", listener, my_uuid.GetCanonical());
-	return EEXIST;
-}
-
-
 void
 BaseNode::Close()
 {
@@ -138,8 +116,6 @@ BaseNode::Difference(
 	BaseNode* other
 )
 {
-	if ( my_name != other->GetName() )
-		return NodeUpdate::Name;
 	if ( my_pos != other->GetPosition() )
 		return NodeUpdate::Position;
 	if ( my_pos != other->GetSize() )
@@ -426,7 +402,6 @@ BaseNode::Dump() const
 	LOGDMP(retval, my_being_dragged);
 	LOGDMP(retval, my_being_resized);
 	LOGDMP(retval, my_border_bits);
-	//LOGDMP(retval, my_footer); // optional, pointer not valid by default
 	LOGDMP(retval, my_hidden);
 	LOGDMP(retval, get_time_format(my_hover_begin, timeval, sizeof(timeval), "%T"));
 	LOGDMP(retval, get_time_format(my_hover_end, timeval, sizeof(timeval), "%T"));
@@ -434,8 +409,6 @@ BaseNode::Dump() const
 	LOGDMP(retval, _inner_header_rect_clipped);
 	LOGDMP(retval, _inner_rect);
 	LOGDMP(retval, _inner_rect_clipped);
-	LOGDMP(retval, my_listeners.size());
-	LOGDMP(retval, my_name);
 	LOGDMP(retval, my_ng);
 	LOGDMP(retval, my_node_flags);
 	LOGDMP(retval, my_node_state);
@@ -484,10 +457,10 @@ BaseNode::GetID()
 }
 
 
-const std::string*
-BaseNode::GetName()
+ImNodeGraph*
+BaseNode::GetNodegraph() const
 {
-	return my_name;
+	return my_ng;
 }
 
 
@@ -597,7 +570,9 @@ BaseNode::HandleInteraction()
 		 * this and attempts troubleshooting.
 		 */
 		my_want_destruction = true;
-		NotifyListeners(NodeUpdate::MarkedForDeletion);
+		EventData::node_graph_update  nu{NodeGraphUpdate::NodeDeleting, my_ng};
+		nu.opt.node_uuid = my_uuid;
+		ServiceLocator::EventDispatcher()->DispatchEvent(uuid_nodegraph_update, nu);
 	}
 	
 	
@@ -638,10 +613,20 @@ BaseNode::HandleInteraction()
 		float step = (float)(my_ng->GetGridStyle().size / my_ng->GetGridStyle().subdivisions);
 		my_target_pos += ImGui::GetIO().MouseDelta;
 		// snap to the position
-		my_pos.x = round(my_target_pos.x / step) * step;
-		my_pos.y = round(my_target_pos.y / step) * step;
-		// will need to be constantly updated for tracking position output data
-		NotifyListeners(NodeUpdate::Position);
+		float  newx = round(my_target_pos.x / step) * step;
+		float  newy = round(my_target_pos.y / step) * step;
+		
+		if ( my_pos.x != newx || my_pos.y != newy )
+		{
+			my_pos.x = newx;
+			my_pos.y = newy;
+
+			// will need to be constantly updated for tracking position output data
+			EventData::node_graph_update  nu{NodeGraphUpdate::NodePosition, my_ng};
+			nu.opt.node_uuid = my_uuid;
+			nu.opt.vec2 = my_pos;
+			ServiceLocator::EventDispatcher()->DispatchEvent(uuid_nodegraph_update, nu);
+		}
 
 		if ( ImGui::IsMouseReleased(ImGuiMouseButton_Left) )
 		{
@@ -735,37 +720,6 @@ BaseNode::IsSelected()
 }
 
 
-bool
-BaseNode::IsStaticSize()
-{
-	return my_size_static;
-}
-
-
-std::string
-BaseNode::Name()
-{
-	return *my_name;
-}
-
-
-void
-BaseNode::NotifyListeners(
-	trezanik::imgui::NodeUpdate update
-)
-{
-	using namespace trezanik::core;
-
-	for ( auto& l : my_listeners )
-	{
-		// this is too much spam even for me; uncomment for debugging, but never expect an issue
-		// would add a TConverter rather than cast, but no TConverter in imgui yet; not adding one for a commented line!
-		//TZK_LOG_FORMAT(LogLevel::Trace, "Notifying listener " TZK_PRIxPTR " of update: %u", l, (uint8_t)update);
-		l->Notification(my_uuid, update);
-	}
-}
-
-
 std::vector<std::shared_ptr<Pin>>
 BaseNode::Pins() const
 {
@@ -777,27 +731,6 @@ ImVec2
 BaseNode::Position()
 {
 	return my_pos;
-}
-
-
-int
-BaseNode::RemoveListener(
-	BaseNodeListener* listener
-)
-{
-	using namespace trezanik::core;
-
-	auto res = std::find(my_listeners.begin(), my_listeners.end(), listener);
-
-	if ( res != my_listeners.end() )
-	{
-		TZK_LOG_FORMAT(LogLevel::Trace, "Removing listener " TZK_PRIxPTR " from node %s", listener, my_uuid.GetCanonical());
-		my_listeners.erase(res);
-		return ErrNONE;
-	}
-
-	TZK_LOG_FORMAT(LogLevel::Warning, "Listener " TZK_PRIxPTR " was not found in node %s", listener, my_uuid.GetCanonical());
-	return ENOENT;
 }
 
 
@@ -816,7 +749,12 @@ BaseNode::RemovePin(
 				id.GetCanonical(), my_uuid.GetCanonical()
 			);
 			_pins.erase(iter);
-			NotifyListeners(NodeUpdate::PinRemoved);
+
+			EventData::node_graph_update  nu{NodeGraphUpdate::PinDeleted, my_ng};
+			nu.opt.node_uuid = my_uuid;
+			nu.opt.pin_uuid = id;
+			ServiceLocator::EventDispatcher()->DispatchEvent(uuid_nodegraph_update, nu);
+			
 			return ErrNONE;
 		}
 	}
@@ -865,26 +803,6 @@ BaseNode::SetFlags(
 
 
 void
-BaseNode::SetName(
-	std::string* name
-)
-{
-	using namespace trezanik::core;
-
-	if ( name == nullptr )
-	{
-		throw std::runtime_error("Assigned name is a nullptr");
-	}
-
-	TZK_LOG_FORMAT(LogLevel::Debug, "Node name assigned: (" TZK_PRIxPTR ") %s", name, name->c_str());
-
-	my_name = name;
-
-	NotifyListeners(NodeUpdate::Name);
-}
-
-
-void
 BaseNode::SetNodegraph(
 	ImNodeGraph* ng
 )
@@ -904,9 +822,14 @@ BaseNode::SetPosition(
 	const ImVec2& pos
 )
 {
+	using namespace trezanik::core;
+
 	my_pos = my_target_pos = pos;
 
-	NotifyListeners(NodeUpdate::Position);
+	EventData::node_graph_update  nu{NodeGraphUpdate::NodePosition, my_ng};
+	nu.opt.node_uuid = my_uuid;
+	nu.opt.vec2 = my_pos;
+	ServiceLocator::EventDispatcher()->DispatchEvent(uuid_nodegraph_update, nu);
 }
 
 
@@ -915,19 +838,20 @@ BaseNode::SetStaticSize(
 	const ImVec2& size
 )
 {
+	using namespace trezanik::core;
+
 	if ( size == ImVec2(0,0) )
 	{
-		// everything must be static for now, and likely permanently
+		// just in case we're called with default ImVec2
 		TZK_DEBUG_BREAK;
-		my_size_static = false;
 	}
-	else
-	{
-		my_size = my_target_size = size;
-		my_size_static = true;
-	}
-
-	NotifyListeners(NodeUpdate::Size);
+	
+	my_size = my_target_size = size;
+	
+	EventData::node_graph_update  nu{NodeGraphUpdate::NodeSize, my_ng};
+	nu.opt.node_uuid = my_uuid;
+	nu.opt.vec2 = my_size;
+	ServiceLocator::EventDispatcher()->DispatchEvent(uuid_nodegraph_update, nu);
 }
 
 
@@ -936,6 +860,8 @@ BaseNode::SetStyle(
 	std::shared_ptr<trezanik::imgui::NodeStyle> style
 )
 {
+	using namespace trezanik::core;
+
 	if ( style == nullptr )
 	{
 		my_style = trezanik::imgui::NodeStyle::standard();
@@ -945,7 +871,10 @@ BaseNode::SetStyle(
 		my_style = style;
 	}
 
-	NotifyListeners(NodeUpdate::Style);
+	EventData::node_graph_update  nu{NodeGraphUpdate::NodeStyle, my_ng};
+	nu.opt.node_uuid = my_uuid;
+	nu.opt.node_style = my_style;
+	ServiceLocator::EventDispatcher()->DispatchEvent(uuid_nodegraph_update, nu);
 }
 
 
@@ -965,7 +894,7 @@ BaseNode::Update()
 	 * Do not permit drawing or handling without these set; rest of the code
 	 * will assume these variables are present and usable.
 	 */
-	if ( my_name == nullptr || my_ng == nullptr )
+	if ( my_ng == nullptr )
 		return;
 
 	// Per-frame safety
@@ -982,7 +911,7 @@ BaseNode::Update()
 		{
 			my_size.y = node_minimum_height;
 		}
-
+		
 		if ( my_parent_window == nullptr )
 		{
 			my_parent_window = ImGui::GetCurrentWindowRead();
@@ -1006,7 +935,26 @@ BaseNode::UpdateComplete()
 	if ( my_selected != my_selected_next )
 	{
 		TZK_LOG_FORMAT(LogLevel::Trace, "Node %s %sselected", my_uuid.GetCanonical(), my_selected_next ? "" : "un");
-		NotifyListeners(my_selected_next ? NodeUpdate::Selected : NodeUpdate::Unselected);
+
+		/*
+		 * Beware:
+		 * This will dispatch in live, so depending on what is performed in the
+		 * event handler you may encounter a situation such as:
+		 * 
+		 * <action> Node 4 is selected, click on Node 2 to select <action>
+		 * 1) Node 2 is selected
+		 * 1a) EventDispatch: Receiver updates selection
+		 * 2) Node 4 is unselected
+		 * 2a) EventDispatch: Receiver clears selection
+		 * With a single 'selected node' variable, you'll lose this selection
+		 * 
+		 * To avoid thie state issue, track the list of modifications and act
+		 * on the new items only on the frame end/next start, or another suited
+		 * equivalent for your needs
+		 */
+		EventData::node_graph_update  nu{my_selected_next ? NodeGraphUpdate::NodeSelected : NodeGraphUpdate::NodeUnselected, my_ng};
+		nu.opt.node_uuid = my_uuid;
+		ServiceLocator::EventDispatcher()->DispatchEvent(uuid_nodegraph_update, nu);
 	}
 
 	my_selected = my_selected_next;

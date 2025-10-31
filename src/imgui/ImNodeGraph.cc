@@ -10,8 +10,10 @@
 #include "imgui/ImNodeGraph.h"
 #include "imgui/ImNodeGraphLink.h"
 #include "imgui/CustomImGui.h"
+#include "imgui/event/ImGuiEvent.h"
 
 #include "core/services/log/Log.h"
+#include "core/services/event/EventDispatcher.h"
 #include "core/error.h"
 
 #include <algorithm>
@@ -65,7 +67,7 @@ ImNodeGraph::AddNodeToSelection(
 {
 	using namespace trezanik::core;
 
-	TZK_LOG_FORMAT(LogLevel::Trace, "Adding '%s' to selected nodes", node->GetName()->c_str());
+	TZK_LOG_FORMAT(LogLevel::Trace, "Adding '%s' to selected nodes", node->GetID().GetCanonical());
 	my_selected_nodes.push_back(node);
 	node->Selected(true);
 }
@@ -98,23 +100,6 @@ ImNodeGraph::ConsumeClick(
 	default:
 		break;
 	}
-}
-
-
-std::shared_ptr<Link>
-ImNodeGraph::CreateLink(
-	const trezanik::core::UUID& id,
-	std::shared_ptr<Pin> source,
-	std::shared_ptr<Pin> target,
-	std::string* text,
-	ImVec2* text_offset
-)
-{
-	auto link = std::make_shared<Link>(id, source, target, this, text, text_offset);
-
-	my_links.push_back(link);
-
-	return link;
 }
 
 
@@ -289,12 +274,12 @@ ImNodeGraph::DrawDebug()
 
 		if ( my_hovered_node != nullptr )
 		{
-			ImGui::TextDisabled("Hovered Node: %s", my_hovered_node->GetName()->c_str());
+			ImGui::TextDisabled("Hovered Node: %s", my_hovered_node->GetID().GetCanonical());
 			ImGui::TextDisabled("Hovered Node: %g,%g", my_hovered_node->GetPosition().x, my_hovered_node->GetPosition().y);
 			pos_on_scr = GetGridPosOnScreen(my_hovered_node->GetPosition());
 			ImGui::TextDisabled("Hovered Node.Position.OnScreen: %g,%g", pos_on_scr.x, pos_on_scr.y);
 			size = my_hovered_node->GetSize();
-			ImGui::TextDisabled("Hovered Node.Size: %g,%g (static: %d)", size.x, size.y, my_hovered_node->IsStaticSize());
+			ImGui::TextDisabled("Hovered Node.Size: %g,%g", size.x, size.y);
 		}
 		if ( my_hovered_pin != nullptr )
 		{
@@ -315,12 +300,12 @@ ImNodeGraph::DrawDebug()
 		if ( num_selected == 1 )
 		{
 			auto& node = my_selected_nodes[0];
-			ImGui::TextDisabled("Selected Node: %s", node->GetName()->c_str());
+			ImGui::TextDisabled("Selected Node: %s", node->GetID().GetCanonical());
 			ImGui::TextDisabled("Selected Node: %g,%g", node->GetPosition().x, node->GetPosition().y);
 			pos_on_scr = GetGridPosOnScreen(node->GetPosition());
 			ImGui::TextDisabled("Selected Node.Position.OnScreen: %g,%g", pos_on_scr.x, pos_on_scr.y);
 			size = node->GetSize();
-			ImGui::TextDisabled("Selected Node.Size: %g,%g (static: %d)", size.x, size.y, node->IsStaticSize());
+			ImGui::TextDisabled("Selected Node.Size: %g,%g", size.x, size.y);
 			ImGui::TextDisabled("Selected Node.WasHovered: %s", node->WasHovered() ? "1" : "0");
 		}
 		else if ( num_selected > 0 )
@@ -411,12 +396,18 @@ ImNodeGraph::RemoveLink(
 		return;
 	}
 
+	// Ensure pins don't retain references to this object
+	link->Source()->RemoveLink(link);
+	link->Target()->RemoveLink(link);
+
+	EventData::node_graph_update  nu{NodeGraphUpdate::LinkDeleted, link->Source()->GetAttachedNode()->GetNodegraph()};
+	nu.opt.link_uuid = link->GetID();
+	ServiceLocator::EventDispatcher()->DispatchEvent(uuid_nodegraph_update, nu);
+
 	TZK_LOG_FORMAT(LogLevel::Info, "Link %s (%s->%s) removed", link->GetID().GetCanonical(),
 		link->Source()->GetID().GetCanonical(), link->Target()->GetID().GetCanonical()
 	);
 	my_links.erase(iter);
-
-	// future: send event
 }
 
 
@@ -430,7 +421,7 @@ ImNodeGraph::RemoveNodeFromSelection(
 	auto res = std::find(my_selected_nodes.begin(), my_selected_nodes.end(), node);
 	if ( res != my_selected_nodes.end() )
 	{
-		TZK_LOG_FORMAT(LogLevel::Trace, "Removing '%s' from selected nodes", node->GetName()->c_str());
+		TZK_LOG_FORMAT(LogLevel::Trace, "Removing '%s' from selected nodes", node->GetID().GetCanonical());
 		my_selected_nodes.erase(res);
 		node->Selected(false);
 	}
@@ -444,7 +435,7 @@ ImNodeGraph::ReplaceSelectedNodes(
 {
 	using namespace trezanik::core;
 
-	TZK_LOG_FORMAT(LogLevel::Trace, "Replacing selected nodes with: '%s'", node->GetName()->c_str());
+	TZK_LOG_FORMAT(LogLevel::Trace, "Replacing selected nodes with: '%s'", node->GetID().GetCanonical());
 
 	for ( auto& n : my_selected_nodes )
 	{
@@ -480,7 +471,7 @@ ImNodeGraph::Update()
 		{
 			if ( n->IsPendingDestruction() )
 			{
-				TZK_LOG_FORMAT(LogLevel::Debug, "Node pending destruction: '%s'", n->GetName()->c_str());
+				TZK_LOG_FORMAT(LogLevel::Debug, "Node pending destruction: '%s'", n->GetID().GetCanonical());
 				node_deletions.push_back(n->GetID());
 
 				for ( auto& link : my_links )
@@ -507,9 +498,6 @@ ImNodeGraph::Update()
 			 * in the linked nodes if they're being kept alive
 			 */
 			RemoveLink(d.second);
-
-			// trigger notification for the 'other' node in case it's not being deleted too
-			d.first ? d.second->Target()->RemoveLink(d.second) : d.second->Source()->RemoveLink(d.second);
 		}
 		for ( auto& d : node_deletions )
 		{

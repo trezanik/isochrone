@@ -11,8 +11,10 @@
 #include "imgui/ImNodeGraphLink.h"
 #include "imgui/ImNodeGraph.h"
 #include "imgui/BaseNode.h"
+#include "imgui/event/ImGuiEvent.h"
 
 #include "core/services/log/Log.h"
+#include "core/services/event/EventDispatcher.h"
 
 #include <algorithm>
 
@@ -112,9 +114,17 @@ Pin::AssignLink(
 		return;
 	}
 
+	TZK_LOG_FORMAT(LogLevel::Debug, "Pin %s assigned link %s", my_uuid.GetCanonical(), link->GetID().GetCanonical());
 	_links.push_back(link);
 
-	GetAttachedNode()->NotifyListeners(imgui::NodeUpdate::LinkEstablished);
+	// event mgmt not required, but dispatch if anything wants to track it
+
+	EventData::node_graph_update  nu{NodeGraphUpdate::LinkAssigned, GetAttachedNode()->GetNodegraph()};
+	nu.opt.node_uuid = GetAttachedNode()->GetID();
+	nu.opt.pin_uuid = my_uuid;
+	nu.opt.link_uuid = link->GetID();
+	ServiceLocator::EventDispatcher()->DispatchEvent(uuid_nodegraph_update, nu);
+
 }
 
 
@@ -341,10 +351,15 @@ Pin::RemoveLink(
 	});
 	if ( iter != _links.end() )
 	{
-		TZK_LOG_FORMAT(LogLevel::Trace, "Removing link %s", link->GetID().GetCanonical());
+		TZK_LOG_FORMAT(LogLevel::Trace, "Pin %s removing link %s", my_uuid.GetCanonical(), link->GetID().GetCanonical());
 		_links.erase(iter);
 
-		GetAttachedNode()->NotifyListeners(imgui::NodeUpdate::LinkBroken);
+		// Optional dispatch, no handling needed to maintain consistency
+		EventData::node_graph_update  nu{NodeGraphUpdate::LinkUnassigned, GetAttachedNode()->GetNodegraph()};
+		nu.opt.node_uuid = GetAttachedNode()->GetID();
+		nu.opt.pin_uuid = my_uuid;
+		nu.opt.link_uuid = link->GetID();
+		ServiceLocator::EventDispatcher()->DispatchEvent(uuid_nodegraph_update, nu);
 	}
 }
 
