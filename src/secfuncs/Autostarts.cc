@@ -247,6 +247,9 @@ GetAutostarts_Directories(
 )
 {
 	std::wstring  path;
+#if !defined(KF_FLAG_DEFAULT) // _WIN32_WINNT < _WIN32_WINNT_WIN7
+#	define KF_FLAG_DEFAULT  0  // unused on NT 6.0 and earlier
+#endif
 
 	path = WrapperFolderPath(
 		FOLDERID_CommonStartup,

@@ -1160,6 +1160,9 @@ GetUserLocalAppData(
 
 	if ( uinfo.user_token != nullptr )
 	{
+#if !defined(KF_FLAG_DEFAULT) // _WIN32_WINNT < _WIN32_WINNT_WIN7
+#	define KF_FLAG_DEFAULT  0  // unused on NT 6.0 and earlier
+#endif
 		retval = WrapperFolderPath(
 			FOLDERID_LocalAppData,
 			KF_FLAG_DEFAULT,

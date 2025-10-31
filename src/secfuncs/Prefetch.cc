@@ -480,7 +480,7 @@ ReadPrefetch(
 
 	try
 	{
-		for ( auto& ent : std::filesystem::directory_iterator(windir) )
+		for ( auto& ent : std::filesystem::directory_iterator(prefetch_dir) )
 		{
 			if ( !ent.is_regular_file() )
 				continue;
@@ -650,6 +650,11 @@ ReadPrefetch(
 				// if truly desired
 				//ntdll.RtlComputeCrc32();
 
+				// never used on incompatible systems, just to make it compile
+#if !defined(COMPRESSION_FORMAT_XPRESS)
+#	define COMPRESSION_FORMAT_XPRESS  0x03
+#	define COMPRESSION_FORMAT_XPRESS_HUFF  0x04
+#endif
 				USHORT  compression_format = COMPRESSION_FORMAT_DEFAULT;
 				switch ( head[3] )
 				{
