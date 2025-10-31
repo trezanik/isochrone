@@ -13,11 +13,13 @@
 #include "app/AppImGui.h" // GuiInteractions
 #include "app/TConverter.h"
 #include "app/Workspace.h"
+#include "app/AppConfigDefs.h"
 #include "app/event/AppEvent.h"
 
 #include "imgui/CustomImGui.h"
 #include "imgui/TConverter.h"
 
+#include "core/services/config/Config.h"
 #include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/util/string/string.h"
@@ -409,6 +411,22 @@ ImGuiStyleEditor::DrawAppStyleEdit()
 
 		ImGui::EndTabItem();
 	}
+	if ( ImGui::BeginTabItem("Nodelist") )
+	{
+		if ( my_appstyle_edit.is_inbuilt )
+		{
+			ImGui::BeginDisabled();
+		}
+
+		retval |= DrawNodelistOptions(&my_appstyle_edit.active_style->nl_style);
+
+		if ( my_appstyle_edit.is_inbuilt )
+		{
+			ImGui::EndDisabled();
+		}
+
+		ImGui::EndTabItem();
+	}
 
 	ImGui::EndTabBar();
 
@@ -705,6 +723,66 @@ ImGuiStyleEditor::DrawAppStyleTab()
 	ImGui::EndGroup();
 
 	ImGui::EndTabItem();
+}
+
+
+bool
+ImGuiStyleEditor::DrawNodelistOptions(
+	nodelist_style* nls
+)
+{
+	bool  retval = false;
+	ImGuiColorEditFlags  cef = ImGuiColorEditFlags_AlphaBar | ImGuiColorEditFlags_None;
+	ImGuiStyle&  style = my_appstyle_edit.active_style->style;
+
+	ImGui::SeparatorText("Online Status Tracking");
+	{
+		retval |= ImGui::Checkbox("Node Colours Follow Status", &nls->node_bg_follows_online_status);
+		//retval |= ImGui::ToggleButton("Node Colours Follow Status", &nls->node_bg_follows_online_status);
+		ImGui::SameLine();
+		ImGui::HelpMarker("Overrides standard background colour, instead using status values. If is indeterminate or node is inactive, still uses the standard colours");
+
+		retval |= ImGui::SliderFloat("Radius", &nls->online_indicator_radius, 4.0f, 8.0f, "%.0f");
+
+		retval |= ImGui::ColorEdit4("##osi_colour_down", (float*)&nls->online_indicator_colour_down, cef);
+		ImGui::SameLine(0.0f, style.ItemInnerSpacing.x);
+		ImGui::TextUnformatted("Background Colour - Down");
+		retval |= ImGui::ColorEdit4("##osi_colour_mixed", (float*)&nls->online_indicator_colour_mixed, cef);
+		ImGui::SameLine(0.0f, style.ItemInnerSpacing.x);
+		ImGui::TextUnformatted("Background Colour - Mixed");
+		retval |= ImGui::ColorEdit4("##osi_colour_up", (float*)&nls->online_indicator_colour_up, cef);
+		ImGui::SameLine(0.0f, style.ItemInnerSpacing.x);
+		ImGui::TextUnformatted("Background Colour - Up");
+	}
+
+	ImGui::SeparatorText("Nodes");
+	{
+		retval |= ImGui::ColorEdit4("##background_colour", (float*)&nls->node_background_colour, cef);
+		ImGui::SameLine(0.0f, style.ItemInnerSpacing.x);
+		ImGui::TextUnformatted("Background Colour");
+		retval |= ImGui::ColorEdit4("##background_colour_selected", (float*)&nls->node_background_colour_selected, cef);
+		ImGui::SameLine(0.0f, style.ItemInnerSpacing.x);
+		ImGui::TextUnformatted("Background Colour - Selected");
+		retval |= ImGui::ColorEdit4("##text_colour", (float*)&nls->node_text_colour, cef);
+		ImGui::SameLine(0.0f, style.ItemInnerSpacing.x);
+		ImGui::TextUnformatted("Text Colour");
+
+		// boolean, ShowActivityProgressBar
+
+		retval |= ImGui::ColorEdit4("##progress_colour1", (float*)&nls->progress_colour1, cef);
+		ImGui::SameLine(0.0f, style.ItemInnerSpacing.x);
+		ImGui::TextUnformatted("Activity Progress Colour 1");
+		retval |= ImGui::ColorEdit4("##progress_colour2", (float*)&nls->progress_colour2, cef);
+		ImGui::SameLine(0.0f, style.ItemInnerSpacing.x);
+		ImGui::TextUnformatted("Activity Progress Colour 2");
+
+		retval |= ImGui::SliderFloat("Internal RPad", &nls->node_internal_rwidth, 10.0f, 255.0f, "%.0f");
+		retval |= ImGui::SliderFloat("Rounding", &nls->node_rounding, 0.0f, 20.0f, "%.0f");
+		retval |= ImGui::SliderFloat("Width", &nls->node_size.x, 10.f, 1024.f, "%.0f");
+		retval |= ImGui::SliderFloat("Height", &nls->node_size.y, ImGui::GetTextLineHeightWithSpacing(), ImGui::GetTextLineHeightWithSpacing() * 10, "%.0f");
+	}
+
+	return retval;
 }
 
 

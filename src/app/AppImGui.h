@@ -81,6 +81,87 @@ static trezanik::core::UUID  drawclient_svcmgmt_uuid("6adf273a-4886-4bfd-969e-e5
 
 
 
+struct nodelist_style
+{
+	/** Space allocated for elements on the right of each node */
+	float   node_internal_rwidth = 50.f;
+	/** Four corner rounding; 0.f for none */
+	float   node_rounding = 5.f;
+	ImVec2  node_size;
+	ImVec4  node_background_colour;
+	ImVec4  node_background_colour_selected;
+
+	ImVec4  node_text_colour;
+
+	/** If true, uses online status colours for node background; otherwise, uses node_background_colour */
+	bool    node_bg_follows_online_status = false;
+	// recommend no smaller than 4.f, no larger than 8.f
+	float   online_indicator_radius = 5.f;
+	ImVec4  online_indicator_colour_down;
+	ImVec4  online_indicator_colour_mixed;  // if > 1 target; at least 1 target is up, and at least 1 target is down
+	ImVec4  online_indicator_colour_up;
+	ImU32   u32_online_indicator_colour_down;
+	ImU32   u32_online_indicator_colour_mixed;
+	ImU32   u32_online_indicator_colour_up;
+
+#if 0  // uses beginchild standard window styles, keep them or use all custom values?
+	/// The border colour
+	ImU32  border_colour;
+	/// The border colour when hovered
+	ImU32  border_hover_colour;
+	/// The border colour when selected
+	ImU32  border_selected_colour;
+
+	/** Border thickness when hovered */
+	float  border_hover_thickness;
+	/** Border thickness when selected */
+	float  border_selected_thickness;
+#endif
+
+	bool    activity_progress_bar = true;
+	/** First progress colour */
+	ImVec4  progress_colour1;
+	/** Second progress colour */
+	ImVec4  progress_colour2;
+#if 0  // Code Disabled: at the moment, the bar is minimal and static
+	/** Progress colour background */
+	ImVec4  progress_background_colour;
+	float   progress_total_height;
+#endif
+
+	/**
+	 * Standard constructor
+	 */
+	nodelist_style()
+	{
+		/*
+		 * I always forget the ImVec4 colour values are 0.f..1.f floats, not
+		 * complete integers!
+		 */
+		auto  rgba_to_imvec4 = [](uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+			// ImVec4 .w = Alpha, .xyz = RGB. Declared x,y,z,w
+			return ImVec4(r/255.f, g/255.f, b/255.f, a/255.f);
+		};
+
+		progress_colour1 = rgba_to_imvec4(126, 207, 247, 255);
+		progress_colour2 = rgba_to_imvec4(91, 148, 176, 255);
+		node_background_colour = rgba_to_imvec4(50, 50, 50, 255);
+		node_background_colour_selected = rgba_to_imvec4(110, 110, 110, 255);
+		node_text_colour = rgba_to_imvec4(190, 200, 190, 255);
+		// height should be:  ImGui::GetTextLineHeightWithSpacing() * 4/5 (Text, 3 for targets, progressbar)
+		node_size.x = TZK_WKSPLISTNODE_WIDTH;
+		node_size.y = TZK_WKSPLISTNODE_HEIGHT;
+		online_indicator_colour_down = rgba_to_imvec4(200, 0, 0, 255);
+		online_indicator_colour_mixed = rgba_to_imvec4(200, 200, 0, 255);
+		online_indicator_colour_up = rgba_to_imvec4(0, 200, 0, 255);
+		// these use drawlist, which only takes an ImU32
+		u32_online_indicator_colour_down = ImGui::ColorConvertFloat4ToU32(online_indicator_colour_down);
+		u32_online_indicator_colour_mixed = ImGui::ColorConvertFloat4ToU32(online_indicator_colour_mixed);
+		u32_online_indicator_colour_up = ImGui::ColorConvertFloat4ToU32(online_indicator_colour_up);
+	}
+};
+
+
 /**
  * Application ImGui core style
  */
@@ -103,6 +184,15 @@ struct AppImGuiStyle
 	 * The imgui style with values applied
 	 */
 	ImGuiStyle  style;
+
+	/**
+	 * Custom additions
+	 * 
+	 * We obviously can't modify the imgui style since these properties do not
+	 * exist, and user preference may exist for defaults where the workspace
+	 * doesn't override a style setting.
+	 */
+	nodelist_style  nl_style;
 };
 
 
@@ -453,6 +543,21 @@ private:
 	LoadStyleColours(
 		ImGuiStyle* app_style,
 		pugi::xml_node xmlnode_colours
+	);
+
+
+	/**
+	 * Loads colours within a style from XML
+	 *
+	 * @param[in] nl_style
+	 *  The nodelist style to populate
+	 * @param[in] xmlnode_colours
+	 *  The XML node for the root of the colours
+	 */
+	void
+	LoadStyleNodelist(
+		nodelist_style* nl_style,
+		pugi::xml_node xmlnode_nodelist
 	);
 
 

@@ -30,9 +30,9 @@ namespace app {
 
 struct AppImGuiStyle;
 struct GuiInteractions;
+struct nodelist_style;
 class ImGuiWorkspace;
 class Workspace;
-
 
 /**
  * Enumeration to track the active tab id, for what to display in the main body
@@ -190,6 +190,20 @@ private:
 	 */
 	void
 	DrawAppStyleTab();
+
+
+	/**
+	 * Draws the dedicated Nodelist Options, nested method
+	 * 
+	 * @param[in] nls
+	 *  Pointer to the nodelist_style to read from & modify
+	 * @return
+	 *  Boolean state for modification; true if any field modified
+	 */
+	bool
+	DrawNodelistOptions(
+		nodelist_style* nls
+	);
 
 
 	/**

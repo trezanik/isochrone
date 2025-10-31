@@ -51,6 +51,7 @@ namespace app {
 
 // styles
 char  nodename_colours[] = "colours";
+char  nodename_nodelist[] = "nodelist";
 char  nodename_rendering[] = "rendering";
 char  nodename_sizes[] = "sizes";
 char  nodename_style[] = "style";
@@ -97,6 +98,21 @@ char  nodename_selectable_text_align[] = "selectable_text_align";
 char  nodename_separator_text_padding[] = "separator_text_padding";
 char  nodename_log_slider_deadzone[] = "log_slider_deadzone";
 char  nodename_display_safe_area_padding[] = "display_safe_area_padding";
+
+// nodelist
+char  nodename_rounding[] = "rounding";
+char  nodename_size[] = "size";
+char  nodename_internal_rpad[] = "right_pad";
+char  nodename_indicator_radius[] = "indicator_radius";
+char  nodename_background_colour[] = "background_colour";
+char  nodename_background_colour_selected[] = "background_colour_selected";
+char  nodename_text_colour[] = "text_colour";
+char  nodename_colour_follows_online[] = "background_colour_follows_online_status";
+char  nodename_colour_down[] = "colour_down";
+char  nodename_colour_up[] = "colour_up";
+char  nodename_colour_mixed[] = "colour_mixed";
+char  nodename_progress_colour1[] = "progress_colour_1";
+char  nodename_progress_colour2[] = "progress_colour_2";
 
 // general
 char  nodename_window_border[] = "window_border";
@@ -724,6 +740,7 @@ AppImGui::LoadStyle_783d1279_05ca_40af_b1c2_cfc40c212658(
 	pugi::xml_node  node_colours = xmlnode_style.child(nodename_colours);
 	pugi::xml_node  node_rendering = xmlnode_style.child(nodename_rendering);
 	pugi::xml_node  node_sizes = xmlnode_style.child(nodename_sizes);
+	pugi::xml_node  node_nodelist = xmlnode_style.child(nodename_nodelist);
 
 	if ( node_colours )
 	{
@@ -736,6 +753,10 @@ AppImGui::LoadStyle_783d1279_05ca_40af_b1c2_cfc40c212658(
 	if ( node_sizes )
 	{
 		LoadStyleSizes(&app_style->style, node_sizes);
+	}
+	if ( node_nodelist )
+	{
+		LoadStyleNodelist(&app_style->nl_style, node_nodelist);
 	}
 
 	// general settings
@@ -848,6 +869,134 @@ AppImGui::LoadStyleColours(
 		app_style->Colors[i] = load_rgba_node(ImGui::GetStyleColorName(i));
 #endif
 	}
+}
+
+
+void
+AppImGui::LoadStyleNodelist(
+	nodelist_style* app_style,
+	pugi::xml_node xmlnode_nodelist
+)
+{
+	using namespace trezanik::core;
+
+	auto  load_rgba_node = [&xmlnode_nodelist](const char* child_name) {
+		ImVec4  retval = { 0, 0, 0, 0 };
+		unsigned int  default_ret = 0;
+		unsigned int  ret = default_ret;
+		unsigned int  v;
+		auto   node = xmlnode_nodelist.child(child_name);
+		if ( node )
+		{
+			pugi::xml_attribute  attr_val = node.attribute(xmlstr_attr_r);
+			if ( attr_val )
+			{
+				if ( (v = attr_val.as_uint(default_ret)) < 256 )
+				{
+					ret = v << IM_COL32_R_SHIFT;
+				}
+			}
+			attr_val = node.attribute(xmlstr_attr_g);
+			if ( attr_val )
+			{
+				if ( (v = attr_val.as_uint(default_ret)) < 256 )
+				{
+					ret |= v << IM_COL32_G_SHIFT;
+				}
+			}
+			attr_val = node.attribute(xmlstr_attr_b);
+			if ( attr_val )
+			{
+				if ( (v = attr_val.as_uint(default_ret)) < 256 )
+				{
+					ret |= v << IM_COL32_B_SHIFT;
+				}
+			}
+			attr_val = node.attribute(xmlstr_attr_a);
+			if ( attr_val )
+			{
+				if ( (v = attr_val.as_uint(default_ret)) < 256 )
+				{
+					ret |= v << IM_COL32_A_SHIFT;
+				}
+			}
+
+			retval = ImGui::ColorConvertU32ToFloat4(ret);
+		}
+		else
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Style does not contain colour '%s'", child_name);
+		}
+		return retval;
+	};
+	auto  load_enabled_node = [&xmlnode_nodelist](const char* child_name) {
+		pugi::xml_attribute  attr_enabled;
+		bool  default_ret = true; // default enabled
+		auto  node = xmlnode_nodelist.child(child_name);
+		if ( node )
+		{
+			attr_enabled = node.attribute(xmlstr_attr_enabled);
+			if ( attr_enabled )
+			{
+				return attr_enabled.as_bool(default_ret);
+			}
+		}
+		TZK_LOG_FORMAT(LogLevel::Warning, "Style does not contain '%s'", child_name);
+		return default_ret;
+	};
+	auto  load_value_node = [&xmlnode_nodelist](const char* child_name) {
+		pugi::xml_attribute  attr_val;
+		float  default_ret = 0.0f;
+		auto   node = xmlnode_nodelist.child(child_name);
+		if ( node )
+		{
+			attr_val = node.attribute("value");
+			if ( attr_val )
+			{
+				return attr_val.as_float(default_ret);
+			}
+		}
+		TZK_LOG_FORMAT(LogLevel::Warning, "Style does not contain '%s'", child_name);
+		return default_ret;
+	};
+	auto  load_pair_node = [&xmlnode_nodelist](const char* child_name) {
+		pugi::xml_attribute  attr_val;
+		float   default_ret = 0.f;
+		ImVec2  retval = { default_ret, default_ret };
+		auto    node = xmlnode_nodelist.child(child_name);
+		if ( node )
+		{
+			attr_val = node.attribute(xmlstr_attr_x);
+			if ( attr_val )
+			{
+				retval.x = attr_val.as_float(default_ret);
+			}
+			attr_val = node.attribute(xmlstr_attr_y);
+			if ( attr_val )
+			{
+				retval.y = attr_val.as_float(default_ret);
+			}
+		}
+		else
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Style does not contain '%s'", child_name);
+		}
+		return retval;
+	};
+
+	app_style->node_background_colour = load_rgba_node(nodename_background_colour);
+	app_style->node_background_colour_selected = load_rgba_node(nodename_background_colour_selected);
+	app_style->node_bg_follows_online_status = load_enabled_node(nodename_colour_follows_online);
+	app_style->node_internal_rwidth = load_value_node(nodename_internal_rpad);
+	app_style->node_rounding = load_value_node(nodename_rounding);
+	app_style->node_size = load_pair_node(nodename_size);
+	app_style->node_text_colour = load_rgba_node(nodename_text_colour);
+	app_style->online_indicator_colour_down = load_rgba_node(nodename_colour_down);
+	app_style->online_indicator_colour_mixed = load_rgba_node(nodename_colour_mixed);
+	app_style->online_indicator_colour_up = load_rgba_node(nodename_colour_up);
+	app_style->online_indicator_radius = load_value_node(nodename_indicator_radius);
+	app_style->progress_colour1 = load_rgba_node(nodename_progress_colour1);
+	app_style->progress_colour2 = load_rgba_node(nodename_progress_colour2);
 }
 
 
@@ -1837,6 +1986,42 @@ AppImGui::SaveUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
 		dsap.append_attribute(xmlstr_attr_x).set_value(appstyle->style.DisplaySafeAreaPadding.x);
 		dsap.append_attribute(xmlstr_attr_y).set_value(appstyle->style.DisplaySafeAreaPadding.y);
 
+		auto  rounding = nodelist.append_child(nodename_rounding);
+		auto  size = nodelist.append_child(nodename_size);
+		auto  internal_rpad = nodelist.append_child(nodename_internal_rpad);
+		auto  indicator_radius = nodelist.append_child(nodename_indicator_radius);
+		auto  bg_colour = nodelist.append_child(nodename_background_colour);
+		auto  bg_colour_selected = nodelist.append_child(nodename_background_colour_selected);
+		auto  text_colour = nodelist.append_child(nodename_text_colour);
+		auto  colour_sync_to_state = nodelist.append_child(nodename_colour_follows_online);
+		auto  colour_down = nodelist.append_child(nodename_colour_down);
+		auto  colour_up = nodelist.append_child(nodename_colour_up);
+		auto  colour_mixed = nodelist.append_child(nodename_colour_mixed);
+		auto  prog_colour1 = nodelist.append_child(nodename_progress_colour1);
+		auto  prog_colour2 = nodelist.append_child(nodename_progress_colour2);
+
+		auto  write_colour = [](pugi::xml_node& node, ImVec4& col) {
+			ImU32  u32 = ImGui::ColorConvertFloat4ToU32(col);
+			node.append_attribute(xmlstr_attr_r).set_value(static_cast<unsigned int>(0xFF & (u32 >> 0)));
+			node.append_attribute(xmlstr_attr_g).set_value(static_cast<unsigned int>(0xFF & (u32 >> 8)));
+			node.append_attribute(xmlstr_attr_b).set_value(static_cast<unsigned int>(0xFF & (u32 >> 16)));
+			node.append_attribute(xmlstr_attr_a).set_value(static_cast<unsigned int>(0xFF & (u32 >> 24)));
+		};
+
+		write_colour(bg_colour, appstyle->nl_style.node_background_colour);
+		write_colour(bg_colour_selected, appstyle->nl_style.node_background_colour_selected);
+		write_colour(text_colour, appstyle->nl_style.node_text_colour);
+		write_colour(colour_down, appstyle->nl_style.online_indicator_colour_down);
+		write_colour(colour_mixed, appstyle->nl_style.online_indicator_colour_mixed);
+		write_colour(colour_up, appstyle->nl_style.online_indicator_colour_up);
+		write_colour(prog_colour1, appstyle->nl_style.progress_colour1);
+		write_colour(prog_colour2, appstyle->nl_style.progress_colour2);
+		colour_sync_to_state.append_attribute(xmlstr_attr_enabled).set_value(appstyle->nl_style.node_bg_follows_online_status);
+		rounding.append_attribute(xmlstr_attr_value).set_value(appstyle->nl_style.node_rounding);
+		size.append_attribute(xmlstr_attr_x).set_value(appstyle->nl_style.node_size.x);
+		size.append_attribute(xmlstr_attr_y).set_value(appstyle->nl_style.node_size.y);
+		internal_rpad.append_attribute(xmlstr_attr_value).set_value(appstyle->nl_style.node_internal_rwidth);
+		indicator_radius.append_attribute(xmlstr_attr_value).set_value(appstyle->nl_style.online_indicator_radius);
 	}
 
 
