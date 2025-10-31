@@ -624,7 +624,7 @@ ImGuiStyleEditor::DrawAppStyleTab()
 	{
 		TZK_LOG(LogLevel::Info, "Saving all AppImGuiStyle changes");
 
-		// this safe?
+/// @todo this safe? don't like it, cheap way. shouldn't modify underlying objects unless new/delete
 		_gui_interactions.app_styles.clear();
 
 		for ( auto& as : my_app_styles )
@@ -646,7 +646,7 @@ ImGuiStyleEditor::DrawAppStyleTab()
 		my_appstyle_edit.modified = false;
 
 		/*
-		 * no access to AppImGui; send out eventand let them pick it up there
+		 * no access to AppImGui; send out event and let them pick it up there
 		 * not saved to disk until this is done!
 		 */
 		core::ServiceLocator::EventDispatcher()->DispatchEvent(uuid_userdata_update);
@@ -692,7 +692,7 @@ ImGuiStyleEditor::DrawAppStyleTab()
 		my_appstyle_edit.modified = false;
 		if ( my_appstyle_edit.name == nullptr )
 		{
-			// ensure no selected item so no lookups attempted
+			// no selected item, ensure index invalidated so no lookups attempted
 			my_appstyle_edit.list_selected_index = -1;
 		}		
 	}
@@ -795,7 +795,7 @@ ImGuiStyleEditor::DrawNodeStyleEdit()
 		 * 
 		 * Add in future.
 		 */
-		
+
 		if ( my_nodestyle_edit.is_inbuilt )
 		{
 			ImGui::EndDisabled();
@@ -1139,16 +1139,18 @@ ImGuiStyleEditor::DrawPinStyleEdit()
 
 		bool  shape_selected = pinstyle->display == imgui::PinStyleDisplay::Shape;
 		bool  image_selected = pinstyle->display == imgui::PinStyleDisplay::Image;
-		const char* strs[] = { "Shape", "Image" };
+		const char  str_shape[] = "Shape";
+		const char  str_image[] = "Image";
+		const char* strs[] = { str_shape, str_image };
 
 		if ( ImGui::BeginCombo(lbl_a.c_str(), shape_selected ? strs[0] : strs[1]) )
 		{
-			if ( ImGui::Selectable("Shape", &shape_selected) )
+			if ( ImGui::Selectable(str_shape, &shape_selected) )
 			{
 				image_selected = false;
 				pinstyle->display = imgui::PinStyleDisplay::Shape;
 			}
-			if ( ImGui::Selectable("Image", &image_selected) )
+			if ( ImGui::Selectable(str_image, &image_selected) )
 			{
 				shape_selected = false;
 				pinstyle->display = imgui::PinStyleDisplay::Image;
@@ -1159,28 +1161,26 @@ ImGuiStyleEditor::DrawPinStyleEdit()
 		ImGui::InputText(lbl_b.c_str(), &pinstyle->filename);
 
 		std::string  lbl_c = "Link Drag Thickness##" + *my_pinstyle_edit.name;
-		std::string  lbl_d = "Link Hover Thickness##" + *my_pinstyle_edit.name;
+		std::string  lbl_d = "Link Hover Extra Thickness##" + *my_pinstyle_edit.name;
 		std::string  lbl_e = "Link Selected Thickness##" + *my_pinstyle_edit.name;
 		std::string  lbl_f = "Link Thickness##" + *my_pinstyle_edit.name;
-		std::string  lbl_g = "Outline Colour##" + *my_pinstyle_edit.name;
-		std::string  lbl_h = "Socket Colour##" + *my_pinstyle_edit.name;
-		std::string  lbl_i = "Socket Connected Radius##" + *my_pinstyle_edit.name;
-		std::string  lbl_j = "Socket Hovered Radius##" + *my_pinstyle_edit.name;
-		std::string  lbl_k = "Socket Radius##" + *my_pinstyle_edit.name;
-		std::string  lbl_l = "Socket Shape##" + *my_pinstyle_edit.name;
-		std::string  lbl_m = "Socket Thickness##" + *my_pinstyle_edit.name;
+		std::string  lbl_g = "Socket Colour##" + *my_pinstyle_edit.name;
+		std::string  lbl_h = "Socket Connected Radius##" + *my_pinstyle_edit.name;
+		std::string  lbl_i = "Socket Hovered Radius##" + *my_pinstyle_edit.name;
+		std::string  lbl_j = "Socket Radius##" + *my_pinstyle_edit.name;
+		std::string  lbl_k = "Socket Shape##" + *my_pinstyle_edit.name;
+		std::string  lbl_l = "Socket Thickness##" + *my_pinstyle_edit.name;
 
 		sliderfloat(&pinstyle->link_dragged_thickness, lbl_c);
-		sliderfloat(&pinstyle->link_hovered_thickness, lbl_d);
-		sliderfloat(&pinstyle->link_selected_outline_thickness, lbl_e);
+		sliderfloat(&pinstyle->link_hovered_extra_thickness, lbl_d);
+		sliderfloat(&pinstyle->link_selected_thickness, lbl_e);
 		sliderfloat(&pinstyle->link_thickness, lbl_f);
-		colouredit4(pinstyle->outline_colour, lbl_g);
-		colouredit4(pinstyle->socket_colour, lbl_h);
-		inputfloat(&pinstyle->socket_connected_radius, lbl_i);
-		sliderfloat(&pinstyle->socket_hovered_radius, lbl_j);
-		sliderfloat(&pinstyle->socket_radius, lbl_k);
-		comboshape(pinstyle->socket_shape, lbl_l);
-		sliderfloat(&pinstyle->socket_thickness, lbl_m);
+		colouredit4(pinstyle->socket_colour, lbl_g);
+		inputfloat(&pinstyle->socket_connected_radius, lbl_h);
+		sliderfloat(&pinstyle->socket_hovered_radius, lbl_i);
+		sliderfloat(&pinstyle->socket_radius, lbl_j);
+		comboshape(pinstyle->socket_shape, lbl_k);
+		sliderfloat(&pinstyle->socket_thickness, lbl_l);
 
 		/*
 		 * We could provide a preview, but without a context you're looking at

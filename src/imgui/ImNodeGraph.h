@@ -144,11 +144,11 @@ inline void smart_bezier(const ImVec2& p1, const ImVec2& p2, ImU32 colour, float
 		delta += 0.2f * (p1.x - p2.x);
 	// float vert = (p2.x < p1.x - 20.f) ? 0.062f * distance * (p2.y - p1.y) * 0.005f : 0.f;
 	float vert = 0.f;
-	ImVec2 p22 = p2 - ImVec2(delta, vert);
-	if ( p2.x < p1.x - 50.f )
-		delta *= -1.f;
-	ImVec2 p11 = p1 + ImVec2(delta, vert);
-	dl->AddBezierCubic(p1, p11, p22, p2, colour, thickness);
+	ImVec2 control_point_2 = p2 - ImVec2(delta, vert);
+	//if ( p2.x < p1.x - 50.f )
+	//	delta *= -1.f;
+	ImVec2 control_point_1 = p1 + ImVec2(delta, vert);
+	dl->AddBezierCubic(p1, control_point_1, control_point_2, p2, colour, thickness);
 }
 
 /**
@@ -174,11 +174,50 @@ inline bool smart_bezier_collider(const ImVec2& p, const ImVec2& p1, const ImVec
 	// float vert = (p2.x < p1.x - 20.f) ? 0.062f * distance * (p2.y - p1.y) * 0.005f : 0.f;
 	float vert = 0.f;
 	ImVec2 p22 = p2 - ImVec2(delta, vert);
-	if ( p2.x < p1.x - 50.f )
-		delta *= -1.f;
+	//if ( p2.x < p1.x - 50.f )
+	//	delta *= -1.f;
 	ImVec2 p11 = p1 + ImVec2(delta, vert);
 	return ImProjectOnCubicBezier(p, p1, p11, p22, p2).Distance < radius;
 }
+
+
+#if 0
+inline std::vector<ImVec2>
+multiline_control_points(
+	ImVec2 p1,
+	ImVec2 p2
+)
+{
+	std::vector<ImVec2>  points;
+#if 0
+	points.push_back(p1);
+#if 0
+	ImVec2  mid = (p2 - p1);
+	if ( mid.x < p1.x ) // pin is left of start
+	{
+	}
+	if ( mid.y < p1.y ) // pin is down of start
+	{
+	}
+#endif
+
+	float  xmid = p2.x - p1.x;
+	float  ymid = p2.y - p1.y;
+
+	/*
+	 * p1 on left with clear right-pin connection to left-pin on p2
+	 * 4 control points
+	 */
+	points.emplace_back(xmid, p1.y);
+	points.emplace_back(xmid, p2.y);
+
+
+	// add final target
+	points.push_back(p2);
+#endif
+	return points;
+}
+#endif
 
 
 /**
@@ -361,7 +400,7 @@ private:
 	 * Adds a node to the graph
 	 * 
 	 * @param[in] pos
-	 *  The position in grid co-ordinated
+	 *  The position in grid co-ordinates
 	 * @param[in] args
 	 *  The arguments to forward to the derived constructor
 	 * @return
@@ -470,15 +509,15 @@ private:
 protected:
 public:
 	/**
-	* All configurable settings, read from and written to the settings nodes in
-	* the workspace file.
-	* 
-	* Every setting needs initializing, as it will be directly used upon the
-	* creation of a new workspace. User amendments are then saved to the file
-	* and reloaded when opened.
-	* These are also the values used if no setting is specified at all in the
-	* file, which is default; only written if modified.
-	*/
+	 * All configurable settings, read from and written to the settings nodes in
+	 * the workspace file.
+	 * 
+	 * Every setting needs initializing, as it will be directly used upon the
+	 * creation of a new workspace. User amendments are then saved to the file
+	 * and reloaded when opened.
+	 * These are also the values used if no setting is specified at all in the
+	 * file, which is default; only written if modified.
+	 */
 	struct {
 		grid_settings  grid_style;
 		int   link_default_method = static_cast<int>(LinkMethod::CubicBezier);
@@ -876,11 +915,11 @@ public:
 
 
 	/**
-	* Gets the link dragging state within the graph
-	* 
-	* @return
-	*  Boolean state; true if a link is dragging
-	*/
+	 * Gets the link dragging state within the graph
+	 *
+	 * @return
+	 *  Boolean state; true if a link is dragging
+	 */
 	bool
 	IsLinkDragging() const
 	{

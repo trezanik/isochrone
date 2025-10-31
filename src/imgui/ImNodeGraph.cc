@@ -45,10 +45,10 @@ ImNodeGraph::ImNodeGraph()
 	TZK_LOG(LogLevel::Trace, "Constructor starting");
 	{
 		// these are external configuration items, here for sane initialization values
-		settings.grid_style.colours.background = IM_COL32( 33,  41,  45, 255);
-		settings.grid_style.colours.primary    = IM_COL32(200, 200, 200,  28);
-		settings.grid_style.colours.secondary  = IM_COL32(100, 100,   0,  28);
-		settings.grid_style.colours.origins    = IM_COL32(200,   0,   0, 128);
+		settings.grid_style.colours.background    = IM_COL32( 33,  41,  45, 255);
+		settings.grid_style.colours.primary       = IM_COL32(200, 200, 200,  28);
+		settings.grid_style.colours.secondary     = IM_COL32(100, 100,   0,  28);
+		settings.grid_style.colours.origins       = IM_COL32(200,   0,   0, 128);
 		settings.grid_style.colours.selector_rect = IM_COL32( 72, 200, 255, 255);
 		settings.grid_style.colours.link          = IM_COL32(200, 200, 200, 255);
 		settings.grid_style.size = 50;
@@ -214,7 +214,7 @@ ImNodeGraph::DrawDebug()
 		{
 			settings.grid_style.colours.origins = ImGui::ColorConvertFloat4ToU32(fo);
 		}
-		if ( ImGui::ColorEdit4("Grid.Background", &fb.x, ImGuiColorEditFlags_None) )
+		if ( ImGui::ColorEdit4("Graph.Background", &fb.x, ImGuiColorEditFlags_None) )
 		{
 			// as noted elsewhere, these need consistent location/storage
 			my_canvas.configuration.colour = ImGui::ColorConvertFloat4ToU32(fb);

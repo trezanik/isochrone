@@ -165,7 +165,7 @@ public:
 	ResetDevice() = 0;
 
 
-	/***
+	/**
 	 * Invoked when the containing window has been resized
 	 * 
 	 * May not need actions depending on the implementation

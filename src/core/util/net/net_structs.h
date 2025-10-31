@@ -39,18 +39,17 @@ namespace aux {
  */
 struct ipv4_hdr
 {
-	// two variables in 1 byte, ver + len, '& 0xf' for the second one
-	unsigned char  ip_verlen;        // 4-bit IPv4 version
-	                                 // 4-bit header length (in 32-bit words)
-	unsigned char  ip_tos;           // IP type of service
-	unsigned short ip_totallength;   // Total length
-	unsigned short ip_id;            // Unique identifier 
-	unsigned short ip_offset;        // Fragment offset field
-	unsigned char  ip_ttl;           // Time to live
-	unsigned char  ip_protocol;      // Protocol(TCP,UDP etc)
-	unsigned short ip_checksum;      // IP checksum
-	unsigned int   ip_srcaddr;       // Source address
-	unsigned int   ip_destaddr;      // Destination address
+	unsigned char  ip_ver : 4;       ///< 4-bit IPv4 version
+	unsigned char  ip_hlen : 4;      ///< 4-bit header length (in 32-bit words)
+	unsigned char  ip_tos;           ///< IP type of service
+	unsigned short ip_totallength;   ///< total length
+	unsigned short ip_id;            ///< unique identifier 
+	unsigned short ip_offset;        ///< fragment offset field
+	unsigned char  ip_ttl;           ///< Time-to-Live
+	unsigned char  ip_protocol;      ///< protocol (TCP/UDP/...)
+	unsigned short ip_checksum;      ///< IP checksum
+	unsigned int   ip_srcaddr;       ///< source address
+	unsigned int   ip_destaddr;      ///< destination address
 };
 
 /**
@@ -58,10 +57,10 @@ struct ipv4_hdr
  */
 struct ipv4_option_hdr
 {
-	unsigned char   opt_code;           // option type
-	unsigned char   opt_len;            // length of the option header
-	unsigned char   opt_ptr;            // offset into options
-	unsigned long   opt_addr[9];        // list of IPv4 addresses
+	unsigned char   opt_code;      ///< option type
+	unsigned char   opt_len;       ///< length of the option header
+	unsigned char   opt_ptr;       ///< offset into options
+	unsigned long   opt_addr[9];   ///< list of IPv4 addresses
 };
 
 /**
@@ -69,11 +68,11 @@ struct ipv4_option_hdr
  */
 struct icmp4_hdr
 {
-	unsigned char   icmp_type;
-	unsigned char   icmp_code;
-	unsigned short  icmp_checksum;
-	unsigned short  icmp_id;
-	unsigned short  icmp_sequence;
+	unsigned char   icmp_type;      ///< ICMP type
+	unsigned char   icmp_code;      ///< ICMP code
+	unsigned short  icmp_checksum;  ///< checksum value of header and data (with checksum 0)
+	unsigned short  icmp_id;        ///< client set identifier to differentiate from other ICMP messages
+	unsigned short  icmp_sequence;  ///< sequence number
 };
 
 /**
@@ -81,14 +80,12 @@ struct icmp4_hdr
  */
 struct ipv6_hdr
 {
-	unsigned long   ipv6_vertcflow;        // 4-bit IPv6 version
-					       // 8-bit traffic class
-					       // 20-bit flow label
-	unsigned short  ipv6_payloadlen;       // payload length
-	unsigned char   ipv6_nexthdr;          // next header protocol value
-	unsigned char   ipv6_hoplimit;         // TTL 
-	struct in6_addr ipv6_srcaddr;          // Source address
-	struct in6_addr ipv6_destaddr;         // Destination address
+	unsigned long   ipv6_vertcflow;    ///< 4-bit IPv6 version, 8-bit traffic class, 20-bit flow label
+	unsigned short  ipv6_payloadlen;   ///< payload length
+	unsigned char   ipv6_nexthdr;      ///< next header protocol value
+	unsigned char   ipv6_hoplimit;     ///< Time-to-Live 
+	struct in6_addr ipv6_srcaddr;      ///< source address
+	struct in6_addr ipv6_destaddr;     ///< destination address
 };
 
 /**
@@ -122,14 +119,14 @@ struct icmpv6_echo_request
 };
 
 /**
- * Structure representing a UDP header 
+ * Structure representing a UDP header
  */
 struct udp_hdr
 {
-	unsigned short src_portno;       // Source port no.
-	unsigned short dst_portno;       // Dest. port no.
-	unsigned short udp_length;       // Udp packet length
-	unsigned short udp_checksum;     // Udp checksum (optional)
+	unsigned short src_portno;     ///< source port number
+	unsigned short dst_portno;     ///< destination port number
+	unsigned short udp_length;     ///< UDP packet length
+	unsigned short udp_checksum;   ///< UDP checksum (optional)
 };
 
 
@@ -148,7 +145,7 @@ struct mac_address
  */
 struct ip_address
 {
-	int32_t  family;  /**< Either AF_INET or AF_INET6 */
+	int  family;  /**< Either AF_INET or AF_INET6 */
 
 	union
 	{

@@ -369,18 +369,18 @@ Pin::SetRelativePosition(
 	const ImVec2& pos
 )
 {
-	if ( pos.x < 0 || pos.x > 1 || pos.y < 0 || pos.y > 1 )
+	if ( pos.x < 0.f || pos.x > 1.f || pos.y < 0.f || pos.y > 1.f )
 	{
 		return false;
 	}
-	if ( pos.x > 0 && pos.x < 1 )
+	if ( pos.x > 0.f && pos.x < 1.f )
 	{
-		if ( pos.y != 0 && pos.y != 1 )
+		if ( pos.y != 0.f && pos.y != 1.f )
 			return false;
 	}
-	if ( pos.y > 0 && pos.y < 1 )
+	if ( pos.y > 0.f && pos.y < 1.f )
 	{
-		if ( pos.x != 0 && pos.x != 1 )
+		if ( pos.x != 0.f && pos.x != 1.f )
 			return false;
 	}
 

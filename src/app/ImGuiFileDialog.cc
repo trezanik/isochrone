@@ -202,7 +202,7 @@ ImGuiFileDialog::ChangeDisplayedDirectory(
 	_input_buffer_file[0] = '\0';
 	_input_buffer_folder[0] = '\0';
 
-	 RefreshPath();
+	RefreshPath();
 }
 
 
@@ -312,7 +312,7 @@ ImGuiFileDialog::Draw()
 	{
 		/*
 		 * This is NOT an open flag. It's a fucking hide flag. If this is ever
-		 * false, it tab is outright removed from the bar, and we'd have to find
+		 * false, its tab is outright removed from the bar, and we'd have to find
 		 * an external way to show it again (defeating the object of using this
 		 * as *the* switcher).
 		 * And now I discover the ImGuiTabItemFlags_SetSelected flag via #8029,

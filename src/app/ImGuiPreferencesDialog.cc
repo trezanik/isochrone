@@ -688,23 +688,6 @@ ImGuiPreferencesDialog::Draw_Display()
 	ImGui::SeparatorText("Style");
 	ImGui::Indent();
 	{
-#if 0
-		/*
-		 * For alpha, have a switch between the imgui inbuilt Dark and Light
-		 * styles. For main release, have these integrated into our custom
-		 * styling with individual tweak capability.
-		 */
-		bool  is_light = get<std::string>(my_current_settings[TZK_CVAR_SETTING_UI_STYLE_NAME]) == "light";
-		if ( ImGui::RadioButton("Dark", !is_light) )
-		{
-			my_current_settings[TZK_CVAR_SETTING_UI_STYLE_NAME] = std::string("dark");
-		}
-		ImGui::SameLine();
-		if ( ImGui::RadioButton("Light", is_light) )
-		{
-			my_current_settings[TZK_CVAR_SETTING_UI_STYLE_NAME] = std::string("light");
-		}
-#else
 		Draw_ComboItem(my_style_list, TZK_CVAR_SETTING_UI_STYLE_NAME);
 		ImGui::SameLine();
 		ImGui::HelpMarker("To view, create or delete styles and settings, open the Style Editor");
@@ -717,7 +700,6 @@ ImGuiPreferencesDialog::Draw_Display()
 		ImGui::RadioButton("Dark", &font_style); // for lighter elements
 		ImGui::SameLine();
 		ImGui::HelpMarker("Changes to styles may make certain text illegible; this allows setting something more suitable");
-#endif
 	}
 	ImGui::Unindent();
 

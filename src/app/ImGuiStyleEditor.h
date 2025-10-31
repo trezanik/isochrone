@@ -201,6 +201,11 @@ private:
 
 	/**
 	 * Draws the dedicated Pin tab content
+	 * 
+	 * @note
+	 *  This is essentially an exact duplicate of DrawNodeStyleTab simply with
+	 *  mirrored variables and 'node' -> 'pin' text. See about making these one
+	 *  method with parameter input determination
 	 */
 	void
 	DrawPinStyleTab();

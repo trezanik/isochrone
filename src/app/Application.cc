@@ -1789,7 +1789,7 @@ Application::InitializeSDL()
 	SDL_GetWindowWMInfo(my_window, &my_wm_info);
 #endif
 
-	///@todo SDL_SetWindowIcon() once we have a custom icon to use
+	///@todo SDL_SetWindowIcon() once we have a custom icon to use (Visual Studio build will already add via resource script)
 	SDL_SetWindowMinimumSize(my_window, TZK_WINDOW_MINIMUM_WIDTH, TZK_WINDOW_MINIMUM_HEIGHT);
 
 
@@ -1829,7 +1829,7 @@ Application::InterpretCommandLine(
 	 * Format:  --argument=value
 	 * We are therefore much more strict as to command line input than a
 	 * normal app; invalids won't be discarded or cause potential conflict,
-	 * they will outright cause the application to return failure.
+	 * they will outright cause the application to return startup failure.
 	 */
 	for ( int i = 1; i < argc; i++ )
 	{

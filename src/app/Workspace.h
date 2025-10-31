@@ -2,9 +2,12 @@
 
 /**
  * @file        src/app/Workspace.h
- * @brief       A nodegraph-based Workspace
+ * @brief       Containment of an application workspace at a data level
  * @license     zlib (view the LICENSE file for details)
  * @copyright   Trezanik Developers, 2014-2025
+ * 
+ * Workspace objects load and save to disk, but are otherwise static for the
+ * duration of the application lifecycle.
  */
 
 

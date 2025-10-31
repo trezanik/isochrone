@@ -367,8 +367,8 @@ static const trezanik::core::UUID        blank_uuid(blank_uuid_bytes);
 } // namespace trezanik
 
 
-/*
- * Hash value to be used for STL unordered
+/**
+ * Hash value to be used for STL unordered collections
  */
 template<>
 struct std::hash<trezanik::core::UUID>
