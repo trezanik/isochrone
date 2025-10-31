@@ -50,6 +50,7 @@ ImNodeGraph::ImNodeGraph()
 		settings.grid_style.colours.secondary  = IM_COL32(100, 100,   0,  28);
 		settings.grid_style.colours.origins    = IM_COL32(200,   0,   0, 128);
 		settings.grid_style.colours.selector_rect = IM_COL32( 72, 200, 255, 255);
+		settings.grid_style.colours.link          = IM_COL32(200, 200, 200, 255);
 		settings.grid_style.size = 50;
 		settings.grid_style.subdivisions = settings.grid_style.size / 10;
 		settings.grid_style.draw = true;
@@ -200,6 +201,7 @@ ImNodeGraph::DrawDebug()
 		ImVec4  fs = ImGui::ColorConvertU32ToFloat4(settings.grid_style.colours.secondary);
 		ImVec4  fo = ImGui::ColorConvertU32ToFloat4(settings.grid_style.colours.origins);
 		ImVec4  fr = ImGui::ColorConvertU32ToFloat4(settings.grid_style.colours.selector_rect);
+		ImVec4  fl = ImGui::ColorConvertU32ToFloat4(settings.grid_style.colours.link);
 		if ( ImGui::ColorEdit4("Grid.Primary", &fp.x, ImGuiColorEditFlags_None) )
 		{
 			settings.grid_style.colours.primary = ImGui::ColorConvertFloat4ToU32(fp);
@@ -221,6 +223,10 @@ ImNodeGraph::DrawDebug()
 		if ( ImGui::ColorEdit4("Graph.SelectorRect", &fr.x, ImGuiColorEditFlags_None) )
 		{
 			settings.grid_style.colours.selector_rect = ImGui::ColorConvertFloat4ToU32(fr);
+		}
+		if ( ImGui::ColorEdit4("Graph.Link", &fl.x, ImGuiColorEditFlags_None) )
+		{
+			settings.grid_style.colours.link = ImGui::ColorConvertFloat4ToU32(fl);
 		}
 		int  sz = settings.grid_style.size;
 		if ( ImGui::SliderInt("Grid.Size", &sz, 10, 100) )
@@ -962,22 +968,18 @@ ImNodeGraph::UpdateLinkDragging()
 	}
 	if ( my_drag_out_pin != nullptr )
 	{
-		/// @todo handle line colours from style with consistency
+		/// @todo handle line thickness from style with consistency
 
 		if ( my_drag_out_pin->Type() == PinType_Server )
 		{
 			smart_bezier(ImGui::GetMousePos(), my_drag_out_pin->PinPoint(),
-				//my_drag_out_pin->GetStyle()->colour,
-				//my_drag_out_pin->GetStyle()->extra.link_dragged_thickness
-				IM_COL32(200, 200, 200, 255), 2.5f
+				settings.grid_style.colours.link, 2.5f
 			);
 		}
 		else
 		{
 			smart_bezier(my_drag_out_pin->PinPoint(), ImGui::GetMousePos(),
-				//my_drag_out_pin->GetStyle()->colour,
-				//my_drag_out_pin->GetStyle()->extra.link_dragged_thickness
-				IM_COL32(200, 200, 200, 255), 2.5f
+				settings.grid_style.colours.link, 2.5f
 			);
 		}
 	}

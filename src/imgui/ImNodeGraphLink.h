@@ -14,6 +14,7 @@
 #include "core/UUID.h"
 
 #include <memory>
+#include <vector>
 
 
 namespace trezanik {
@@ -22,6 +23,34 @@ namespace imgui {
 
 class ImNodeGraph;
 class Pin;
+
+
+static size_t   min_control_points = 2;
+static size_t   max_control_points_direct = 2;
+static size_t   max_control_points_quadbez = 3;
+static size_t   max_control_points_cubbez = 4;
+static size_t   max_control_points_autoline = 6;
+static size_t   max_control_points_autolinehyb = 16;
+
+enum class LinkMethod : int
+{
+	/** Invalid use only */
+	Invalid = 0,
+	/** Exact point-to-point straight line */
+	Direct,
+	/** Quadratic bezier curve (3 control points) */
+	QuadraticBezier,
+	/** Cubic bezier curve (4 control points) */
+	CubicBezier,
+	/*
+	 * No, I do not know the correct names of these, and modern search engines
+	 * are nigh-useless to find out
+	 */
+	/** Straight line navigation to target (min 2 control points, max 6) */
+	MultiLineAuto,
+	/** Straight line navigation to target with user additions (min 2 control points, limit to max 16) */
+	MultiLineHybrid
+};
 
 
 /**
@@ -39,25 +68,73 @@ class IMGUI_API Link
 	TZK_NO_CLASS_MOVECOPY(Link);
 
 private:
-	/// Unique link ID
+	/** Unique link ID **/
 	trezanik::core::UUID  my_uuid;
 	
-	/// Source pin for this link
+	/** Source pin for this link */
 	std::shared_ptr<Pin>  my_source;
-	/// Target pin for this link
+	/** Target pin for this link */
 	std::shared_ptr<Pin>  my_target;
 
-	/// Raw pointer to the nodegraph this link resides in
+	/** Raw pointer to the nodegraph this link resides in */
 	ImNodeGraph*  my_ctx;
-	/// Text displayed on the link line
+	/** Text displayed on the link line */
 	std::string*  my_text;
-	/// Offset the text is displayed at on the link line
+	/** Offset the text is displayed at on the link line */
 	ImVec2*  my_text_offset;
 
-	/// Is the link hovered
+	/** Is the link hovered */
 	bool  my_hovered;
-	/// Is the link selected
+	/** Is the link selected */
 	bool  my_selected;
+
+
+	/** Pointer to the link display method in use */
+	LinkMethod*   my_method;
+
+	/** (Not implemented) Location of all explicit control points for the link */
+	std::vector<ImVec2>*  my_control_points;
+
+
+	/**
+	 * Draws the link as a Cubic Bezier curve
+	 *
+	 * @sa DrawDirect, DrawMultiLineAuto, DrawMultiLineHybrid, DrawQuadraticBezier
+	 */
+	void
+	DrawCubicBezier();
+
+	/**
+	 * Draws the link as plain straight line
+	 *
+	 * @sa DrawCubicBezier, DrawMultiLineAuto, DrawMultiLineHybrid, DrawQuadraticBezier
+	 */
+	void
+	DrawDirect();
+
+	/**
+	 * Draws the link as multiple straight lines with automatic control points
+	 *
+	 * @sa DrawCubicBezier, DrawDirect, DrawMultiLineHybrid, DrawQuadraticBezier
+	 */
+	void
+	DrawMultiLineAuto();
+
+	/**
+	 * Draws the link as multiple straight lines with manual control points
+	 *
+	 * @sa DrawCubicBezier, DrawDirect, DrawMultiLineAuto, DrawQuadraticBezier
+	 */
+	void
+	DrawMultiLineHybrid();
+
+	/**
+	 * Draws the link as a Quadratic Bezier curve
+	 *
+	 * @sa DrawCubicBezier, DrawDirect, DrawMultiLineAuto, DrawMultiLineHybrid
+	 */
+	void
+	DrawQuadraticBezier();
 
 protected:
 public:
@@ -75,41 +152,26 @@ public:
 	 * @param[in] text
 	 *  Pointer to the text to display on the link
 	 * @param[in] text_offset
-	 *  (Optional) Relative offset of the text from the center-point of the link,
-	 *  where {0,0} is the center
+	 *  Pointer to the relative offset of the text from the center-point of the
+	 *  link, where {0,0} is the center
+	 * @param[in] method
+	 *  The display type method
 	 */
-	explicit Link(
+	Link(
 		const trezanik::core::UUID& uuid,
 		std::shared_ptr<Pin> source,
 		std::shared_ptr<Pin> target,
 		ImNodeGraph* context,
 		std::string* text,
-		ImVec2* text_offset
-	)
-	: my_uuid(uuid)
-	, my_source(source)
-	, my_target(target)
-	, my_ctx(context)
-	, my_text(text)
-	, my_text_offset(text_offset)
-	, my_hovered(false)
-	, my_selected(false)
-	{
-		assert(uuid != core::blank_uuid);
-		assert(source != nullptr);
-		assert(target != nullptr);
-		assert(context != nullptr);
-		assert(text != nullptr);
-		assert(text_offset != nullptr);
-	}
+		ImVec2* text_offset,
+		LinkMethod* method
+	);
 
 
 	/**
 	 * Standard destructor
 	 */
-	~Link()
-	{
-	}
+	~Link();
 
 
 	/**
@@ -122,6 +184,19 @@ public:
 	GetID()
 	{
 		return my_uuid;
+	}
+
+
+	/**
+	 * Gets the method used for connecting the source and target pins
+	 *
+	 * @return
+	 *  A pointer to the display method
+	 */
+	LinkMethod*
+	GetMethod()
+	{
+		return my_method;
 	}
 
 

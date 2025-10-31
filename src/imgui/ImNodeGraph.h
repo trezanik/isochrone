@@ -21,6 +21,7 @@
 TZK_CC_DISABLE_WARNING(-Wcomment) // multi-line comment, third-party
 #include "imgui/imgui_bezier_math.h"
 TZK_CC_RESTORE_WARNING
+#include "imgui/ImNodeGraphLink.h"
 
 #include "core/UUID.h"
 
@@ -82,6 +83,7 @@ struct grid_colours
 	ImU32  secondary;  ///< minor line colour
 	ImU32  origins;    ///< origin colour
 	ImU32  selector_rect;  ///< colour of the selection rectangle
+	ImU32  link;       ///< link line colour (only when making link; takes pin colour afterwards)
 };
 
 /**
@@ -332,6 +334,30 @@ private:
 
 
 	/**
+	 * Adds a link between two pins to the graph
+	 * 
+	 * @param[in] args
+	 *  The arguments to forward to the derived constructor
+	 * @return
+	 *  A new shared_ptr to the node type
+	 */
+	template<typename T, typename... Params>
+	std::shared_ptr<T>
+	AddLink(
+		Params&&... args
+	)
+	{
+		static_assert(std::is_base_of<Link, T>::value, "Added class is not a subclass of Link");
+
+		std::shared_ptr<T>  link = std::make_shared<T>(std::forward<Params>(args)...);
+
+		my_links.emplace_back(link);
+
+		return link;
+	}
+
+
+	/**
 	 * Adds a node to the graph
 	 * 
 	 * @param[in] pos
@@ -455,6 +481,7 @@ public:
 	*/
 	struct {
 		grid_settings  grid_style;
+		int   link_default_method = static_cast<int>(LinkMethod::CubicBezier);
 		bool  node_draw_headers = true;
 		bool  node_drag_from_headers_only = true;
 		ImGuiKey  next_node_key = ImGuiKey_N;
@@ -526,32 +553,22 @@ public:
 
 
 	/**
-	 * Creates a Link between the supplied source and target
-	 *
-	 * Listener Pins can only be targets
-	 *
-	 * @param[in] id
-	 *  The link UUID
-	 * @param[in] source
-	 *  The source Pin of the connection
-	 * @param[in] target
-	 *  The target Pin of the connection
-	 * @param[in] text
-	 *  The text to display on the link
-	 * @param[in] text_offset
-	 *  The offset for the text to display at. By default, it's the center of
-	 *  the bounding box between source + target
+	 * Creates a link
+	 * 
+	 * @param[in] args
+	 *  Arguments to be forwarded to the derived type
 	 * @return
-	 *  A Link shared_ptr
+	 *  A new shared_ptr to the link type
+	 * @sa AddLink
 	 */
-	std::shared_ptr<Link>
+	template<typename T, typename... Params>
+	std::shared_ptr<T>
 	CreateLink(
-		const trezanik::core::UUID& id,
-		std::shared_ptr<Pin> source,
-		std::shared_ptr<Pin> target,
-		std::string* text,
-		ImVec2* text_offset
-	);
+		Params&&... args
+	)
+	{
+		return AddLink<T>(std::forward<Params>(args)...);
+	}
 
 
 	/**
