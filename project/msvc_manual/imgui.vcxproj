@@ -9,7 +9,7 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
-	<ProjectConfiguration Include="Debug|Win32">
+    <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
@@ -31,6 +31,7 @@
     <ClInclude Include="..\..\src\imgui\dear_imgui\imstb_textedit.h" />
     <ClInclude Include="..\..\src\imgui\dear_imgui\imstb_truetype.h" />
     <ClInclude Include="..\..\src\imgui\definitions.h" />
+    <ClInclude Include="..\..\src\imgui\event\ImGuiEvent.h" />
     <ClInclude Include="..\..\src\imgui\IImGuiImpl.h" />
     <ClInclude Include="..\..\src\imgui\ImGuiImpl_Base.h" />
     <ClInclude Include="..\..\src\imgui\ImGuiImpl_SDL2.h" />

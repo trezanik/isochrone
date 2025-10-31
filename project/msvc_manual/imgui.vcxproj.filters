@@ -81,6 +81,9 @@
     <ClInclude Include="..\..\src\imgui\ImNodeGraphLink.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\imgui\event\ImGuiEvent.h">
+      <Filter>Header Files\event</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\imgui\TConverter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
