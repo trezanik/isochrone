@@ -43,9 +43,9 @@ struct cvar
 	std::string  attrib; ///< attribute name
 	std::string  value;  ///< data value
 	std::string  default_value;  ///< data value default
-	uint32_t     hash;   ///< hash value for this setting
+	size_t       hash;   ///< hash value for this setting
 
-	cvar(const char* vpath, const char* vattrib, const char* vvalue, const char* vdvalue, uint32_t vhash)
+	cvar(const char* vpath, const char* vattrib, const char* vvalue, const char* vdvalue, size_t vhash)
 		: path(vpath), attrib(vattrib), value(vvalue), default_value(vdvalue), hash(vhash)
 	{
 	}

@@ -36,12 +36,12 @@
 /////////////
 // HASHES
 /////////////
-#define TZK_CVAR_HASH_AUDIO_DEVICE                            trezanik::core::aux::compile_time_hash(TZK_CVAR_SETTING_AUDIO_DEVICE)
-#define TZK_CVAR_HASH_AUDIO_ENABLED                           trezanik::core::aux::compile_time_hash(TZK_CVAR_SETTING_AUDIO_ENABLED)
-#define TZK_CVAR_HASH_AUDIO_VOLUME_EFFECTS                    trezanik::core::aux::compile_time_hash(TZK_CVAR_SETTING_AUDIO_VOLUME_EFFECTS)
-#define TZK_CVAR_HASH_AUDIO_VOLUME_MUSIC                      trezanik::core::aux::compile_time_hash(TZK_CVAR_SETTING_AUDIO_VOLUME_MUSIC)
-#define TZK_CVAR_HASH_ENGINE_FPS_CAP                          trezanik::core::aux::compile_time_hash(TZK_CVAR_SETTING_ENGINE_FPS_CAP)
-#define TZK_CVAR_HASH_ENGINE_RESOURCES_LOADER_THREADS         trezanik::core::aux::compile_time_hash(TZK_CVAR_SETTING_ENGINE_RESOURCES_LOADER_THREADS)
+#define TZK_CVAR_HASH_AUDIO_DEVICE                            TZK_COMPILE_TIME_HASH(TZK_CVAR_SETTING_AUDIO_DEVICE)
+#define TZK_CVAR_HASH_AUDIO_ENABLED                           TZK_COMPILE_TIME_HASH(TZK_CVAR_SETTING_AUDIO_ENABLED)
+#define TZK_CVAR_HASH_AUDIO_VOLUME_EFFECTS                    TZK_COMPILE_TIME_HASH(TZK_CVAR_SETTING_AUDIO_VOLUME_EFFECTS)
+#define TZK_CVAR_HASH_AUDIO_VOLUME_MUSIC                      TZK_COMPILE_TIME_HASH(TZK_CVAR_SETTING_AUDIO_VOLUME_MUSIC)
+#define TZK_CVAR_HASH_ENGINE_FPS_CAP                          TZK_COMPILE_TIME_HASH(TZK_CVAR_SETTING_ENGINE_FPS_CAP)
+#define TZK_CVAR_HASH_ENGINE_RESOURCES_LOADER_THREADS         TZK_COMPILE_TIME_HASH(TZK_CVAR_SETTING_ENGINE_RESOURCES_LOADER_THREADS)
 
 /////////////
 // DEFAULTS
