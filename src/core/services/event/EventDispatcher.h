@@ -395,7 +395,7 @@ public:
 		std::shared_ptr<IEvent> event
 	)
 	{
-		if ( event )
+		if ( event != nullptr )
 		{
 			Lock();
 

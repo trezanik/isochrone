@@ -73,7 +73,7 @@ class Event : public IEvent
 
 private:
 	/** Unique identifier for this event type */
-	UUID  my_uuid;
+	UUID const&  my_uuid;
 
 	/** The callback function to invoke */
 	event_callback const  my_cb;
@@ -162,7 +162,7 @@ class DelayedEvent : public IDelayedEvent
 
 private:
 	/** Unique identifier for this event type */
-	UUID  my_uuid;
+	UUID const&  my_uuid;
 
 	/** The callback function to invoke */
 	event_callback const  my_cb;
@@ -246,8 +246,8 @@ public:
 	 * 
 	 * Sends the held data to the callback
 	 */
-	void
-	Trigger()
+	virtual void
+	Trigger() override
 	{
 		my_cb(ptr);
 	}
