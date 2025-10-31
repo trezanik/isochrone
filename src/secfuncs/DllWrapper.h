@@ -40,12 +40,12 @@
 class ProcPtr
 {
 private:
-	FARPROC my_ptr;
+	FARPROC  my_ptr;
 public:
 	explicit ProcPtr(FARPROC ptr) : my_ptr(ptr) {}
 
 	template <typename T, typename = std::enable_if_t<std::is_function_v<T>>>
-	operator T *() const
+	operator T*() const
 	{
 		return reinterpret_cast<T *>(my_ptr);
 	}
@@ -55,7 +55,7 @@ public:
 class DllWrapper
 {
 private:
-	HMODULE my_module;
+	HMODULE  my_module;
 public:
 	explicit DllWrapper(LPCWSTR filename) : my_module(::LoadLibrary(filename))
 	{
@@ -70,23 +70,29 @@ public:
 	{
 		return ProcPtr(::GetProcAddress(my_module, proc_name));
 	}
-
-	static HMODULE  my_parent_module;
 };
 
 
-// SYSTEM_INFORMATION_CLASS, SystemInformation, SystemInformationLength, ReturnLength
+// WinInternal: SYSTEM_INFORMATION_CLASS, SystemInformation, SystemInformationLength, ReturnLength
 typedef NTSTATUS(WINAPI* pf_NtQuerySystemInformation)(SYSTEM_INFORMATION_CLASS, PVOID, ULONG, PULONG);
+// WinInternal
 typedef NTSTATUS(WINAPI* pf_RtlGetVersion)(LPOSVERSIONINFOEX);
+// WinInternal
 typedef BOOLEAN(WINAPI* pf_RtlGenRandom)(PVOID, ULONG);
+// Windows 8+
 typedef NTSTATUS(WINAPI* pf_RtlDecompressBufferEx)(USHORT, PUCHAR, ULONG, PUCHAR, ULONG, PULONG, PVOID);
+// Windows XP+
 typedef NTSTATUS(WINAPI* pf_RtlGetCompressionWorkSpaceSize)(USHORT, PULONG, PULONG);
+// Windows Vista+
+typedef NTSTATUS(WINAPI* pf_SHGetKnownFolderPath)(GUID, DWORD, HANDLE, PWSTR*);
+// Windows XP+ - special handling for Windows 7+ with PSAPI version
+typedef BOOLEAN(WINAPI* pf_EnumProcesses)(PDWORD, DWORD, LPDWORD);
 
 
 class Module_advapi32
 {
 private:
-	DllWrapper my_dll{ L"advapi32.dll" };
+	DllWrapper  my_dll{ L"advapi32.dll" };
 public:
 	pf_RtlGenRandom  RtlGenRandom = my_dll["SystemFunction036"];
 };
@@ -95,17 +101,17 @@ public:
 class Module_kernel32
 {
 private:
-	DllWrapper my_dll{ L"kernel32.dll" };
+	DllWrapper  my_dll{ L"kernel32.dll" };
 public:
-	decltype(IsWow64Process)* IsWow64Process = my_dll["IsWow64Process"];
-	decltype(K32EnumProcesses)* K32EnumProcesses = my_dll["K32EnumProcesses"];
+	decltype(IsWow64Process)*  IsWow64Process = my_dll["IsWow64Process"];
+	pf_EnumProcesses  K32EnumProcesses = my_dll["K32EnumProcesses"];
 };
 
 
 class Module_ntdll
 {
 private:
-	DllWrapper my_dll{ L"ntdll.dll" };
+	DllWrapper  my_dll{ L"ntdll.dll" };
 public:
 	pf_NtQuerySystemInformation  NtQuerySystemInformation = my_dll["NtQuerySystemInformation"];
 	// introduced in Windows 8
@@ -132,9 +138,9 @@ EnumProcesses(
 class Module_psapi
 {
 private:
-	DllWrapper my_dll{ L"Psapi.dll" };
+	DllWrapper  my_dll{ L"Psapi.dll" };
 public:
-	decltype(EnumProcesses)* EnumProcesses = my_dll["EnumProcesses"];
+	decltype(EnumProcesses)*  EnumProcesses = my_dll["EnumProcesses"];
 };
 // note: EnumProcesses will no longer be redirected, it MUST be called through this wrapper if the header is included!!
 
@@ -142,29 +148,31 @@ public:
 class Module_shell32
 {
 private:
-	DllWrapper my_dll{ L"shell32.dll" };
+	DllWrapper  my_dll{ L"shell32.dll" };
 public:
-	decltype(SHGetKnownFolderPath)* SHGetKnownFolderPath = my_dll["SHGetKnownFolderPath"];
+	pf_SHGetKnownFolderPath  SHGetKnownFolderPath = my_dll["SHGetKnownFolderPath"];
 };
 
 
 class Module_secfuncs
 {
 private:
-	DllWrapper my_dll{ L"secfuncs.dll" };
+	DllWrapper  my_dll{ L"secfuncs.dll" };
 public:
-	decltype(GetAutostarts)* GetAutostarts = my_dll["GetAutostarts"];
-	decltype(GetEvidenceOfExecution)* GetEvidenceOfExecution = my_dll["GetEvidenceOfExecution"];
-	decltype(GetPowerShellInvokedCommandsForAll)*   GetPowerShellInvokedCommandsForAll = my_dll["GetPowerShellInvokedCommandsForAll"];
-	decltype(GetPowerShellInvokedCommandsForUser)* GetPowerShellInvokedCommandsForUser = my_dll["GetPowerShellInvokedCommandsForUser"];
-	decltype(ReadAmCache)* ReadAmCache = my_dll["ReadAmCache"];
-	decltype(ReadAppCompatFlags)* ReadAppCompatFlags = my_dll["ReadAppCompatFlags"];
-	decltype(ReadBAM)* ReadBAM = my_dll["ReadBAM"];
+	decltype(GetAutostarts)*  GetAutostarts = my_dll["GetAutostarts"];
+	decltype(GetEvidenceOfExecution)*  GetEvidenceOfExecution = my_dll["GetEvidenceOfExecution"];
+	decltype(GetPowerShellInvokedCommandsForAll)*    GetPowerShellInvokedCommandsForAll = my_dll["GetPowerShellInvokedCommandsForAll"];
+	decltype(GetPowerShellInvokedCommandsForUser)*  GetPowerShellInvokedCommandsForUser = my_dll["GetPowerShellInvokedCommandsForUser"];
+	decltype(ReadAmCache)*  ReadAmCache = my_dll["ReadAmCache"];
+	decltype(ReadAppCompatFlags)*  ReadAppCompatFlags = my_dll["ReadAppCompatFlags"];
+	decltype(ReadBAM)*  ReadBAM = my_dll["ReadBAM"];
 #if SECFUNCS_LINK_SQLITE3
-	decltype(ReadChromiumDataForAll)*   ReadChromiumDataForAll = my_dll["ReadChromiumDataForAll"];
-	decltype(ReadChromiumDataForUser)* ReadChromiumDataForUser = my_dll["ReadChromiumDataForUser"];
+	decltype(ReadChromiumDataForAll)*    ReadChromiumDataForAll = my_dll["ReadChromiumDataForAll"];
+	decltype(ReadChromiumDataForUser)*  ReadChromiumDataForUser = my_dll["ReadChromiumDataForUser"];
 #endif
-	decltype(ReadPrefetch)* ReadPrefetch = my_dll["ReadPrefetch"];
-	decltype(ReadUserAssist)* ReadUserAssist = my_dll["ReadUserAssist"];
+	decltype(ReadPrefetch)*  ReadPrefetch = my_dll["ReadPrefetch"];
+	decltype(ReadUserAssist)*  ReadUserAssist = my_dll["ReadUserAssist"];
+
+	//decltype(GetOption)* GetOption = my_dll["GetOption"];
 	//decltype(SetOption)* SetOption = my_dll["SetOption"];
 };

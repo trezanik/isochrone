@@ -14,6 +14,7 @@
 #include <taskschd.h> // Task Scheduler API
 #include <MSTask.h>   // Task Scheduler COM
 #include <comdef.h>   // _variant_t
+#include <ObjBase.h>  // COINIT_MULTITHREADED
 #include <WbemIdl.h>
 
 
@@ -34,7 +35,7 @@ GetAutostarts(
 	/*
 	 * COM is required for ScheduledTasks and WMI acquisition
 	 */
-	hres = ::CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
+	hres = ::CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	if ( SUCCEEDED(hres) )
 	{
 		com_available = true;
@@ -1038,9 +1039,10 @@ GetAutostarts_ScheduledTasks_API2(
 
 int
 GetAutostarts_ScheduledTasks_NT5(
-	windows_autostarts& autostarts
+	windows_autostarts& TZK_UNUSED(autostarts)
 )
 {
+#pragma message("GetAutostarts_ScheduledTasks_NT5 to implement")
 	// this would need doing at some point...
 	return -1;
 }
@@ -1115,16 +1117,17 @@ GetAutostarts_ScheduledTasks_NT6Plus(
 	std::wstring  val;
 	std::vector<std::wstring>  subkeys;
 
-	wchar_t  treepath[] = L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Schedule\\TaskCache\\Tree";
+	
 	wchar_t  taskspath[] = L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Schedule\\TaskCache\\Tasks";
 	//std::vector<std::wstring>  task_ids;
-	HKEY  hkey_tree;
 	HKEY  hkey_tasks;
 	LONG  res;
 
-
 	// enum Tree, obtain all task IDs and names
 #if 0
+	HKEY  hkey_tree;
+	wchar_t  treepath[] = L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Schedule\\TaskCache\\Tree";
+
 	if ( RegOpenKeyEx(HKEY_LOCAL_MACHINE, treepath, 0, KEY_READ, &hkey_tree) != ERROR_SUCCESS )
 	{
 		return retval;

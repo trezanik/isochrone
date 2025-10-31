@@ -439,7 +439,7 @@ reset:
 
 unsigned
 ServiceThread(
-	void* params
+	void* TZK_UNUSED(params)
 )
 {
 	SOCKET  listener = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);

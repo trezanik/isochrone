@@ -7,7 +7,7 @@
 
 #include "definitions.h"
 
-#if SECFUNCS_LINK_SQLITE3
+#if SECFUNCS_LINK_SQLITE3 // @todo offer raw file copy if no sqlite
 
 #include "Browsers.h"
 #include "Utility.h"

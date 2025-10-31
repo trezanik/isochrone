@@ -193,7 +193,7 @@ CreateShadowCopy(
 	wchar_t   prefix[] = L"vsc";
 	wchar_t   tempname[MAX_PATH];
 	wcscat_s(tmpdir, _countof(tmpdir), L"\\Temp");
-	if ( GetTempFileName(tmpdir, prefix, 0, tempname) == 0 )
+	if ( ::GetTempFileName(tmpdir, prefix, 0, tempname) == 0 )
 	{
 		wcscpy_s(tempname, _countof(tempname), sysbuf);
 		wcscat_s(tempname, _countof(tempname), L"\\sysprep\\vsctmp.dat");
@@ -205,7 +205,11 @@ CreateShadowCopy(
 	secattr.lpSecurityDescriptor = nullptr;
 
 	// does not get written to disk as long as cache space exists
-	HANDLE  file_handle = CreateFile(tempname, GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ, &secattr, CREATE_ALWAYS, FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM|FILE_ATTRIBUTE_TEMPORARY, nullptr);
+	DWORD   desired_access = GENERIC_READ | GENERIC_WRITE;
+	DWORD   share_mode = FILE_SHARE_READ;
+	DWORD   creation = CREATE_ALWAYS;
+	DWORD   flags_attrs = FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_TEMPORARY;
+	HANDLE  file_handle = ::CreateFile(tempname, desired_access, share_mode, &secattr, creation, flags_attrs, nullptr);
 
 	if ( file_handle == INVALID_HANDLE_VALUE )
 	{
@@ -1070,6 +1074,8 @@ GetSessionDetails(
 				wui_it->wkui1_oth_domains;
 				wui_it->wkui1_username;
 
+				/// @todo handle and retrieve
+
 				wui_it++;
 			}
 		}
@@ -1587,7 +1593,7 @@ int
 Spawn(
 	DWORD wait, // 0 for wait until completion
 	DWORD& exit_code,
-	const wchar_t* bin_path,
+	const wchar_t* bin_path, // unused
 	const wchar_t* bin_name,
 	wchar_t* args,
 	HANDLE stdout_file
@@ -1917,7 +1923,7 @@ WrapperFolderPath(
 	{
 		wchar_t  wpath[MAX_PATH];
 
-		if ( SHGetFolderPath(nullptr, csidl, token, shgrp, wpath) == S_OK )
+		if ( ::SHGetFolderPath(nullptr, csidl, token, shgrp, wpath) == S_OK )
 		{
 			retval = wpath;
 		}
@@ -1929,7 +1935,7 @@ WrapperFolderPath(
 		if ( shell32.SHGetKnownFolderPath(guid, flags, token, &path) == S_OK )
 		{
 			retval = path;
-			CoTaskMemFree(path);
+			::CoTaskMemFree(path);
 		}
 	}
 

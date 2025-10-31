@@ -113,7 +113,7 @@ extern "C" {
  * 'Full' runs will make use of multiple binaries, while the 'Fast' run just
  * uses the same one. 'Adv' (advanced) will scour the system and spread the
  * load even further, potentially making a dumb view of the folder appear to
- * be replete with legitmate activity. Timestamps!
+ * be replete with legitimate activity. Timestamps!
  */
 //__declspec(dllexport)
 int

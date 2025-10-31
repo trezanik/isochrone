@@ -89,13 +89,17 @@ Read_Prefetch_Common(
 
 	if ( memcmp(&file_data[4], sig, sizeof(sig)) != 0 )
 	{
-		// invalid signature
+		fprintf(stderr, "Invalid signature: expecting '%c %c %c %c', got '%c %c %c %c'\n",
+			file_data[0], file_data[1], file_data[2], file_data[3],
+			sig[0], sig[1], sig[2], sig[3]
+		);
+		return -1;
 	}
 
 	// next 4 bytes unknown 8-11 (always seem to be 0x00000011 from my side)
 
 	// 12-15 - prefetch file size
-	int32_t  pf_size;
+	uint32_t  pf_size;
 	memcpy_s(&pf_size, sizeof(pf_size), &file_data[12], sizeof(pf_size));
 	// redundant beyond sanity check
 	if ( entry.pf_size != pf_size )
@@ -191,8 +195,8 @@ Read_Prefetch_Common(
 		wchar_t* files_start = (wchar_t*)&file_data[filename_strings_offset];
 		wchar_t* p = files_start;
 		std::wstring  wstr;
-		size_t  inc = 0;
-		size_t  total = 0;
+		int32_t  inc = 0;
+		int32_t  total = 0;
 
 		for ( p = files_start; total < filename_strings_size; p += inc )
 		{
@@ -624,14 +628,21 @@ ReadPrefetch(
 				{
 					// Windows 8 or newer is required for RtlDecompressBufferEx
 					::CloseHandle(h);
+					fprintf(stderr, "Compressed prefetch file on Window system that doesn't use compression: %ws", entry.pf_file.c_str());
 					continue;
 				}
 
 				unsigned char* compressed = (unsigned char*)malloc(entry.pf_size);
+				if ( compressed == nullptr )
+				{
+					::CloseHandle(h);
+					continue;
+				}
 
 				// skip 4 bytes for checksum
 				if ( !::ReadFile(h, compressed, DWORD(entry.pf_size - 4), &read, nullptr) || read != (entry.pf_size - 4) )
 				{
+					free(compressed);
 					::CloseHandle(h);
 					continue;
 				}
