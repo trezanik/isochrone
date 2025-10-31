@@ -16,6 +16,9 @@
     <Filter Include="Resource Files">
       <UniqueIdentifier>{7704cacb-6811-4a6d-a558-9a8bb3d47e68}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\event">
+      <UniqueIdentifier>{6e195780-d244-46b3-81e6-f0a3b8ef5518}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\imgui\definitions.h">
@@ -78,6 +81,9 @@
     <ClInclude Include="..\..\src\imgui\ImNodeGraphLink.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\imgui\TConverter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\imgui\dear_imgui\imgui.cpp">
@@ -126,6 +132,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\imgui\ImNodeGraphLink.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\imgui\TConverter.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

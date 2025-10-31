@@ -32,6 +32,7 @@
 
 #include "imgui/dear_imgui/imgui_internal.h"
 #include "imgui/CustomImGui.h"
+#include "imgui/TConverter.h"
 #include "imgui/ImNodeGraphPin.h"
 #include "imgui/ImNodeGraphLink.h"
 #include "imgui/BaseNode.h"

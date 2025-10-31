@@ -39,6 +39,7 @@
     <ClInclude Include="..\..\src\imgui\ImNodeGraph.h" />
     <ClInclude Include="..\..\src\imgui\ImNodeGraphLink.h" />
     <ClInclude Include="..\..\src\imgui\ImNodeGraphPin.h" />
+    <ClInclude Include="..\..\src\imgui\TConverter.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="imgui.rc" />
@@ -58,6 +59,7 @@
     <ClCompile Include="..\..\src\imgui\ImNodeGraph.cc" />
     <ClCompile Include="..\..\src\imgui\ImNodeGraphLink.cc" />
     <ClCompile Include="..\..\src\imgui\ImNodeGraphPin.cc" />
+    <ClCompile Include="..\..\src\imgui\TConverter.cc" />
     <ClCompile Include="..\..\sys\win\src\imgui\dllmain.cc" />
     <ClCompile Include="..\..\sys\win\src\imgui\libhelper.cc" />
   </ItemGroup>

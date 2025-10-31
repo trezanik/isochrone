@@ -1157,8 +1157,9 @@ ImGuiStyleEditor::DrawPinStyleEdit()
 	auto comboshape = [&retval](imgui::PinSocketShape& shape, std::string& label)
 	{
 		/// @todo grab these from external so this doesn't need touching on amendments
-		const char* strs[] = { "Circle", "Square", "Diamond", "Hexagon" };
-		int   selected_num = TConverter<imgui::PinSocketShape>::ToUint8(shape) - 1;
+		//const char* strs[] = { str_circle, str_square, str_diamond, str_hexagon };
+		const char* strs[] = { "Circle", "Square", "Diamond", "Hexagon"};
+		int   selected_num = imgui::TConverter<imgui::PinSocketShape>::ToUint8(shape) - 1;
 		bool  selected = false;
 		int   num = 0;
 
@@ -1170,7 +1171,7 @@ ImGuiStyleEditor::DrawPinStyleEdit()
 				if ( ImGui::Selectable(str, &selected) )
 				{
 					selected_num = num;
-					shape = TConverter<imgui::PinSocketShape>::FromUint8((uint8_t)selected_num + 1); // +1 as 0=Invalid
+					shape = imgui::TConverter<imgui::PinSocketShape>::FromUint8((uint8_t)selected_num + 1); // +1 as 0=Invalid
 					retval |= true;
 				}
 				num++;
