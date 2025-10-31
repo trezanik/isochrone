@@ -64,7 +64,8 @@ struct style_edit_common
 	 * Flag, set if the style name matches a reserved/inbuilt or existing name
 	 * 
 	 * This is to cover a non-inbuilt style being configured to the same name as
-	 * one not permitted or already present;
+	 * one not permitted or already present; it also covers empty names, those
+	 * matching an existing entry, or containing unpermitted characters
 	 */
 	bool  name_is_not_permitted = false;
 
@@ -87,9 +88,23 @@ struct style_edit_common
 	std::string*  name = nullptr;
 
 	/**
-	 * The currently selected style, within the duplicated copy
+	 * The currently selected style, within the duplicated copy (shared_ptr type)
 	 */
 	T  active_style;
+
+	/**
+	 * Restores all members to the initial values, with the exception of the
+	 * selected index, as it remains permanently valid in state.
+	 */
+	void
+	reset()
+	{
+		active_style = nullptr;
+		name = nullptr;
+		name_is_not_permitted = false;
+		is_inbuilt = false;
+		modified = false;
+	}
 };
 
 

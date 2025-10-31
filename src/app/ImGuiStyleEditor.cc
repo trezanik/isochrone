@@ -119,7 +119,7 @@ ImGuiStyleEditor::Draw()
 
 	ImGuiWindowFlags  wnd_flags = ImGuiWindowFlags_NoCollapse;
 	ImVec2  min_size(360.f, 240.f);
-	ImVec2  start_size(ImGui::GetWindowContentRegionMax() * 0.75f);
+	ImVec2  start_size(_gui_interactions.app_usable_rect.Max * 0.75f);
 
 	//ImGuiWindowFlags_UnsavedDocument
 
@@ -433,11 +433,13 @@ ImGuiStyleEditor::DrawAppStyleTab()
 
 		/*
 		 * Crucial check - if the user has entered a reserved name, do not let
-		 * them switch to another item.
+		 * them switch to another item. Likewise for a blank string.
 		 * We disable the input if it's an inbuilt name, so there'd be no way
 		 * for it to be undone without cancelling everything - not very user
 		 * friendly.
 		 */
+		if ( my_appstyle_edit.name != nullptr && my_appstyle_edit.name->empty())
+			my_appstyle_edit.name_is_not_permitted = true;
 		if ( !my_appstyle_edit.is_inbuilt && my_appstyle_edit.name_is_not_permitted )
 			permit_change = false;
 
@@ -446,6 +448,9 @@ ImGuiStyleEditor::DrawAppStyleTab()
 
 		for ( auto& style : my_app_styles )
 		{
+			// prevent empty strings from asserting within imgui, as it uses them for IDs
+			ImGui::PushID(cur);
+
 			const bool  is_selected = (my_appstyle_edit.list_selected_index == cur);
 			if ( ImGui::Selectable(style->name.c_str(), is_selected) )
 			{
@@ -456,12 +461,15 @@ ImGuiStyleEditor::DrawAppStyleTab()
 				my_appstyle_edit.name = &style->name;
 				my_appstyle_edit.active_style = style;
 				my_appstyle_edit.is_inbuilt = NameMatchesExistingOrReserved(style->name.c_str());
+				my_appstyle_edit.name_is_not_permitted = my_appstyle_edit.is_inbuilt;
 			}
 
 			if ( is_selected )
 				ImGui::SetItemDefaultFocus();
 
 			cur++;
+
+			ImGui::PopID();
 		}
 
 		if ( !permit_change )
@@ -478,13 +486,13 @@ ImGuiStyleEditor::DrawAppStyleTab()
 	ImGui::BeginGroup();
 	ImVec2  button_size(120.f, 25.f); /// @todo set based on font size
 	bool  copy_disabled = my_appstyle_edit.list_selected_index == -1
-		|| my_appstyle_edit.name_is_not_permitted
+		|| (!my_appstyle_edit.is_inbuilt && my_appstyle_edit.name_is_not_permitted)
 		|| my_app_styles.size() == my_max_style_count;
 	bool  apply_disabled = copy_disabled;
 	bool  delete_disabled = my_appstyle_edit.list_selected_index == -1
 		|| my_appstyle_edit.is_inbuilt
-		|| my_appstyle_edit.name->empty();
-	bool  save_disabled = !my_appstyle_edit.modified || my_appstyle_edit.name_is_not_permitted;
+		|| my_appstyle_edit.name_is_not_permitted;
+	bool  save_disabled = !my_appstyle_edit.modified || (!my_appstyle_edit.is_inbuilt && my_appstyle_edit.name_is_not_permitted);
 	bool  cancel_disabled = !my_appstyle_edit.modified;
 
 	if ( apply_disabled )
@@ -815,6 +823,8 @@ ImGuiStyleEditor::DrawNodeStyleTab()
 		int   cur = 0;
 		bool  permit_change = true;
 
+		if ( my_nodestyle_edit.name != nullptr && my_nodestyle_edit.name->empty())
+			my_nodestyle_edit.name_is_not_permitted = true;
 		if ( !my_nodestyle_edit.is_inbuilt && my_nodestyle_edit.name_is_not_permitted )
 			permit_change = false;
 
@@ -833,6 +843,7 @@ ImGuiStyleEditor::DrawNodeStyleTab()
 				my_nodestyle_edit.name = &ns.first;
 				my_nodestyle_edit.is_inbuilt = NameMatchesExistingOrReserved(my_nodestyle_edit.name->c_str());
 				my_nodestyle_edit.active_style = ns.second;
+				my_nodestyle_edit.name_is_not_permitted = my_nodestyle_edit.is_inbuilt;
 			}
 			
 			if ( is_selected )
@@ -852,12 +863,12 @@ ImGuiStyleEditor::DrawNodeStyleTab()
 	ImGui::BeginGroup();
 	ImVec2  button_size(120.f, 25.f); /// @todo set based on font size
 	bool  copy_disabled = my_nodestyle_edit.list_selected_index == -1
-		|| my_nodestyle_edit.name_is_not_permitted
+		|| (!my_nodestyle_edit.is_inbuilt && my_nodestyle_edit.name_is_not_permitted)
 		|| my_node_styles.size() == my_max_style_count;
 	bool  delete_disabled = my_nodestyle_edit.list_selected_index == -1
 		|| my_nodestyle_edit.is_inbuilt
-		|| my_nodestyle_edit.name->empty();
-	bool  save_disabled = !my_nodestyle_edit.modified || my_nodestyle_edit.name_is_not_permitted;
+		|| my_nodestyle_edit.name_is_not_permitted;
+	bool  save_disabled = !my_nodestyle_edit.modified || (!my_nodestyle_edit.is_inbuilt && my_nodestyle_edit.name_is_not_permitted);
 	bool  cancel_disabled = !my_nodestyle_edit.modified;
 
 	if ( copy_disabled )
@@ -999,19 +1010,17 @@ ImGuiStyleEditor::DrawNodeStyleTab()
 			auto  wdat = my_active_workspace->WorkspaceData();
 
 			my_node_styles.clear();
-			// always invalidate after a clear, index reliance not safe
-			my_nodestyle_edit.active_style = nullptr;
-			my_nodestyle_edit.name = nullptr;
-			my_nodestyle_edit.name_is_not_permitted = true;
+			my_nodestyle_edit.reset();
 			int  i = 0;
+
 			for ( auto& ns : wdat.node_styles )
 			{
 				auto  sdup = std::make_shared<imgui::NodeStyle>();
 				*sdup = *ns.second;
 				my_node_styles.emplace_back(ns.first, sdup);
+
 				if ( i == my_nodestyle_edit.list_selected_index )
 				{
-					// restore prior selection *index* (may not be same object)
 					my_nodestyle_edit.name = &my_node_styles.back().first;
 					my_nodestyle_edit.active_style = my_node_styles.back().second;
 					my_nodestyle_edit.list_selected_index = i;
@@ -1021,7 +1030,6 @@ ImGuiStyleEditor::DrawNodeStyleTab()
 				i++;
 			}
 
-			my_nodestyle_edit.modified = false;
 			if ( my_nodestyle_edit.name == nullptr )
 			{
 				// ensure no selected item so no lookups attempted
@@ -1207,6 +1215,8 @@ ImGuiStyleEditor::DrawPinStyleTab()
 		int   cur = 0;
 		bool  permit_change = true;
 
+		if ( my_pinstyle_edit.name != nullptr && my_pinstyle_edit.name->empty())
+			my_pinstyle_edit.name_is_not_permitted = true;
 		if ( !my_pinstyle_edit.is_inbuilt && my_pinstyle_edit.name_is_not_permitted )
 			permit_change = false;
 
@@ -1225,6 +1235,7 @@ ImGuiStyleEditor::DrawPinStyleTab()
 				my_pinstyle_edit.name = &ps.first;
 				my_pinstyle_edit.is_inbuilt = NameMatchesExistingOrReserved(my_pinstyle_edit.name->c_str());
 				my_pinstyle_edit.active_style = ps.second;
+				my_pinstyle_edit.name_is_not_permitted = my_pinstyle_edit.is_inbuilt;
 			}
 
 			if ( is_selected )
@@ -1244,12 +1255,12 @@ ImGuiStyleEditor::DrawPinStyleTab()
 	ImGui::BeginGroup();
 	ImVec2  button_size(120.f, 25.f); /// @todo set based on font size
 	bool  copy_disabled = my_pinstyle_edit.list_selected_index == -1
-		|| my_pinstyle_edit.name_is_not_permitted
+		|| (!my_pinstyle_edit.is_inbuilt && my_pinstyle_edit.name_is_not_permitted)
 		|| my_pin_styles.size() == my_max_style_count;
 	bool  delete_disabled = my_pinstyle_edit.list_selected_index == -1 
-		|| my_pinstyle_edit.name->empty()
-		|| my_pinstyle_edit.is_inbuilt;
-	bool  save_disabled = !my_pinstyle_edit.modified || my_pinstyle_edit.name_is_not_permitted;
+		|| my_pinstyle_edit.is_inbuilt
+		|| my_pinstyle_edit.name_is_not_permitted;
+	bool  save_disabled = !my_pinstyle_edit.modified || (!my_pinstyle_edit.is_inbuilt && my_pinstyle_edit.name_is_not_permitted);
 	bool  cancel_disabled = !my_pinstyle_edit.modified;
 
 	if ( copy_disabled )
@@ -1355,10 +1366,9 @@ ImGuiStyleEditor::DrawPinStyleTab()
 
 			// Reduplicate, so we're not using the items currently in live
 			my_pin_styles.clear();
-			// always invalidate after a clear, index reliance not safe
-			my_pinstyle_edit.active_style = nullptr;
-			my_pinstyle_edit.name = nullptr;
+			my_pinstyle_edit.reset();
 			int  i = 0;
+
 			for ( auto& ps : dat.pin_styles )
 			{
 				my_pin_styles.emplace_back(ps.first, std::make_shared<imgui::PinStyle>(*ps.second.get()));
@@ -1373,10 +1383,10 @@ ImGuiStyleEditor::DrawPinStyleTab()
 				}
 				i++;
 			}
-			
-			my_pinstyle_edit.modified = false;
 
 			// null check not required, we're saving so elements in sync
+
+			my_pinstyle_edit.modified = false;
 		}
 		else
 		{
