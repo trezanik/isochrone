@@ -26,14 +26,14 @@
 #	define TZK_WINDOW_MINIMUM_WIDTH   768
 #endif
 
-#if !defined(TZK_WINDOW_DEFAULT_NEWNODE_HEIGHT)
+#if !defined(TZK_DEFAULT_NEWNODE_HEIGHT)
 	// Height new nodes are created with
-#	define TZK_WINDOW_DEFAULT_NEWNODE_HEIGHT  50
+#	define TZK_DEFAULT_NEWNODE_HEIGHT  50
 #endif
 
-#if !defined(TZK_WINDOW_DEFAULT_NEWNODE_WIDTH)
+#if !defined(TZK_DEFAULT_NEWNODE_WIDTH)
 	// Width new nodes are created with
-#	define TZK_WINDOW_DEFAULT_NEWNODE_WIDTH  100
+#	define TZK_DEFAULT_NEWNODE_WIDTH  100
 #endif
 
 #if !defined(TZK_CONFIG_FILENAME)
@@ -51,6 +51,11 @@
 #	define TZK_FILEDIALOG_INPUTBUF_SIZE     1024
 #endif
 
+#if !defined(TZK_MAX_NODES)
+	// Number of nodes that can be added; arbritrary, no real limit
+#	define TZK_MAX_NODES     1024
+#endif
+
 #if !defined(TZK_MAX_NUM_STYLES)
 	// Number of styles per-item that can be added, including inbuilt
 #	define TZK_MAX_NUM_STYLES     255
@@ -59,4 +64,14 @@
 #if !defined(TZK_XML_ATTRIBUTE_SEPARATOR)
 	// Delimiter for multiple items within a single attribute
 #	define TZK_XML_ATTRIBUTE_SEPARATOR  ";"
+#endif
+
+#if !defined(TZK_WKSPLISTNODE_HEIGHT)
+	// Nodelist node height
+#	define TZK_WKSPLISTNODE_HEIGHT  100
+#endif
+
+#if !defined(TZK_WKSPLISTNODE_WIDTH)
+	// Nodelist node width
+#	define TZK_WKSPLISTNODE_WIDTH   300
 #endif
