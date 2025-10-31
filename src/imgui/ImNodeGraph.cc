@@ -49,10 +49,12 @@ ImNodeGraph::ImNodeGraph()
 		settings.grid_style.colours.primary    = IM_COL32(200, 200, 200,  28);
 		settings.grid_style.colours.secondary  = IM_COL32(100, 100,   0,  28);
 		settings.grid_style.colours.origins    = IM_COL32(200,   0,   0, 128);
+		settings.grid_style.colours.selector_rect = IM_COL32( 72, 200, 255, 255);
 		settings.grid_style.size = 50;
 		settings.grid_style.subdivisions = settings.grid_style.size / 10;
 		settings.grid_style.draw = true;
 		settings.grid_style.draw_origin = false;
+		settings.grid_style.selector_rect_thickness = 1.5f;
 
 		my_canvas.configuration.colour = settings.grid_style.colours.background;
 	}
@@ -197,6 +199,7 @@ ImNodeGraph::DrawDebug()
 		ImVec4  fp = ImGui::ColorConvertU32ToFloat4(settings.grid_style.colours.primary);
 		ImVec4  fs = ImGui::ColorConvertU32ToFloat4(settings.grid_style.colours.secondary);
 		ImVec4  fo = ImGui::ColorConvertU32ToFloat4(settings.grid_style.colours.origins);
+		ImVec4  fr = ImGui::ColorConvertU32ToFloat4(settings.grid_style.colours.selector_rect);
 		if ( ImGui::ColorEdit4("Grid.Primary", &fp.x, ImGuiColorEditFlags_None) )
 		{
 			settings.grid_style.colours.primary = ImGui::ColorConvertFloat4ToU32(fp);
@@ -215,6 +218,10 @@ ImNodeGraph::DrawDebug()
 			my_canvas.configuration.colour = ImGui::ColorConvertFloat4ToU32(fb);
 			settings.grid_style.colours.background = my_canvas.configuration.colour;
 		}
+		if ( ImGui::ColorEdit4("Graph.SelectorRect", &fr.x, ImGuiColorEditFlags_None) )
+		{
+			settings.grid_style.colours.selector_rect = ImGui::ColorConvertFloat4ToU32(fr);
+		}
 		int  sz = settings.grid_style.size;
 		if ( ImGui::SliderInt("Grid.Size", &sz, 10, 100) )
 		{
@@ -231,6 +238,12 @@ ImNodeGraph::DrawDebug()
 		}
 		ImGui::SameLine();
 		ImGui::HelpMarker("Valid values are: 1, 2, 5, or 10");
+
+		float  thickness = settings.grid_style.selector_rect_thickness;
+		if ( ImGui::SliderFloat("Graph.SelectorRect.Thickness", &thickness, 0.5f, 5.f) )
+		{
+			settings.grid_style.selector_rect_thickness = thickness;
+		}
 
 		ImGui::Unindent();
 	}
@@ -447,6 +460,46 @@ ImNodeGraph::ReplaceSelectedNodes(
 }
 
 
+void
+ImNodeGraph::SelectNextNode()
+{
+	using namespace trezanik::core;
+
+	TZK_LOG_FORMAT(LogLevel::Debug, "Selecting next node");
+
+	if ( my_selected_nodes.empty() )
+	{
+		if ( my_nodes.empty() )
+		{
+			return;
+		}
+
+		my_nodes.front()->Selected(true);
+	}
+	else
+	{
+		size_t  cur = 0;
+		size_t  idx = 0;
+		for ( auto& n : my_nodes )
+		{
+			// no-op if already unselected;
+			n->Selected(false);
+			if ( n == my_selected_nodes.front() )
+			{
+				cur = idx;
+			}
+			idx++;
+		}
+
+		// increment to next node, or if already at the end, reset to the start
+		if ( ++cur >= my_nodes.size() )
+			cur = 0;
+
+		my_nodes.at(cur)->Selected(true);
+	}
+}
+
+
 void // return int for change count, use it to skip frame rendering?
 ImNodeGraph::Update()
 {
@@ -558,6 +611,17 @@ ImNodeGraph::Update()
 			clear_drag_state = true;
 		}
 		
+		if ( !ImGui::IsAnyItemActive() && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup) && canvas_hovered )
+		{
+			if ( /* NextNodeKeyEnabled && */ ImGui::IsKeyPressed(settings.next_node_key, false) )
+			{
+				SelectNextNode();
+			}
+			else if ( my_lclick_dragging )
+			{
+				UpdateSelectionDragging();
+			}
+		}
 	}
 
 	my_canvas.BeginFrame();
@@ -760,6 +824,14 @@ ImNodeGraph::Update()
 	}
 
 // ##########
+//  Node Select Dragging
+// ##########
+
+	{
+		UpdateSelectionDragging();
+	}
+
+// ##########
 //  Link Dragging
 // ##########
 
@@ -778,6 +850,49 @@ ImNodeGraph::Update()
 			my_lclick_was_dragging_prerelease = false;
 			my_rclick_was_dragging_prerelease = false;
 		}
+	}
+}
+
+
+void
+ImNodeGraph::UpdateSelectionDragging()
+{
+	using namespace trezanik::core;
+
+	my_dragging_selection = my_dragging_selection_next;
+
+	if ( ImGui::IsMouseDragging(ImGuiMouseButton_Left) && !my_dragging_selection && MouseOnFreeSpace() && !IsLinkDragging() )
+	{
+		ConsumeClick(ImGuiMouseButton_Left);
+		my_dragging_selection_next = true;
+
+		my_drag_start = ImGui::GetMousePos();
+		TZK_LOG_FORMAT(LogLevel::Trace, "Starting drag-selection from (%d,%d)", static_cast<uint32_t>(my_drag_start.x), static_cast<uint32_t>(my_drag_start.y));
+	}
+	else if ( my_dragging_selection )
+	{
+		if ( ImGui::IsMouseReleased(ImGuiMouseButton_Left) )
+		{
+			my_dragging_selection_next = false;
+		}
+
+		auto   mouse_pos = ImGui::GetMousePos();
+		auto   min = ImMin(my_drag_start, mouse_pos);
+		auto   max = ImMax(my_drag_start, mouse_pos);
+		my_drag_selection = ImRect(min, max);
+
+		for ( auto& n : my_nodes )
+		{
+			n->Selected(my_drag_selection.Overlaps(
+				ImRect(GetGridPosOnScreen(n->Position()), GetGridPosOnScreen(n->Position() + n->Size()))
+			));
+		}
+
+		float  rounding = 0.f;
+		ImGui::GetWindowDrawList()->AddRect(min, max,
+			settings.grid_style.colours.selector_rect, rounding, ImDrawFlags_None,
+			settings.grid_style.selector_rect_thickness
+		);
 	}
 }
 

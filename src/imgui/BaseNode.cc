@@ -581,6 +581,7 @@ BaseNode::HandleInteraction()
 		bool on_header = ImGui::IsMouseHoveringRect(_inner_header_rect_clipped.Min, _inner_header_rect_clipped.Max, false);
 		if ( on_header 
 		  && !my_ng->IsLinkDragging()
+		  && !my_ng->IsSelectDragging()
 		  && ImGui::IsMouseDragging(ImGuiMouseButton_Left)
 		  && my_selected )
 		{
@@ -598,6 +599,7 @@ BaseNode::HandleInteraction()
 		bool    clip = false;
 		ImRect  node_outer(my_ng->GetGridPosOnScreen() + my_pos, my_ng->GetGridPosOnScreen() + my_pos + my_size); // reacquisition
 		if ( !my_ng->IsLinkDragging()
+		  && !my_ng->IsSelectDragging()
 		  && ImGui::IsMouseHoveringRect(node_outer.Min, node_outer.Max, clip)
 		  && ImGui::IsMouseDragging(ImGuiMouseButton_Left)
 		  && my_selected )

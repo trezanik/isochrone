@@ -81,6 +81,7 @@ struct grid_colours
 	ImU32  primary;    ///< major line colour
 	ImU32  secondary;  ///< minor line colour
 	ImU32  origins;    ///< origin colour
+	ImU32  selector_rect;  ///< colour of the selection rectangle
 };
 
 /**
@@ -103,6 +104,9 @@ struct grid_settings
 	 * 1, 2, 5 and 10 are permitted values
 	 */
 	int  subdivisions;
+
+	/** Thickness of the node selector rectangle */
+	float  selector_rect_thickness;
 
 	/** structure containing the grid colours */
 	grid_colours  colours;
@@ -273,8 +277,17 @@ private:
 	/// Node dragging state for the next frame
 	bool   my_dragging_node_next;
 
-	/// used for dragging selection - not yet integrated
-	ImVec2  my_select_drag;
+	/// Selection-dragging state for the current frame
+	bool   my_dragging_selection;
+
+	/// Selection-dragging state for the next frame
+	bool   my_dragging_selection_next;
+
+	/// Starting point for selection-dragging
+	ImVec2  my_drag_start;
+
+	/// Container for node selection
+	ImRect  my_drag_selection;
 
 	/// Updated per frame; true if the canvas container has focus
 	bool  my_window_has_focus;
@@ -399,10 +412,34 @@ private:
 
 
 	/**
+	 * Updates node selection to the next node, looping at the end
+	 *
+	 * If no node is currently selected, the first node loaded is selected.
+	 *
+	 * If one already is selected, the next loaded node is the next selection;
+	 * if this is already the end, the first node is then used.
+	 *
+	 * If multiple nodes are selected, the node following the first selected
+	 * loaded node is selected. (e.g. nodes 2, 4, 6 selected - next is 3. nodes
+	 * 4 & 5 selected - next is 5). Naturally destructive to any existing multi
+	 * or singular selections.
+	 */
+	void
+	SelectNextNode();
+
+
+	/**
 	 * Handles initiation and dropping of link dragging operations
 	 */
 	void
 	UpdateLinkDragging();
+
+
+	/**
+	 * Handles initiation of and selection within dragging on the graph
+	 */
+	void
+	UpdateSelectionDragging();
 
 protected:
 public:
@@ -420,6 +457,7 @@ public:
 		grid_settings  grid_style;
 		bool  node_draw_headers = true;
 		bool  node_drag_from_headers_only = true;
+		ImGuiKey  next_node_key = ImGuiKey_N;
 	} settings;
 
 	
@@ -830,6 +868,19 @@ public:
 	IsLinkDragging() const
 	{
 		return my_drag_out_pin != nullptr;
+	}
+
+
+	/**
+	 * Gets the node-select dragging state within the graph
+	 *
+	 * @return
+	 *  Boolean state; true if a node selection is dragging
+	 */
+	bool
+	IsSelectDragging() const
+	{
+		return my_dragging_selection || my_dragging_selection_next;
 	}
 
 
