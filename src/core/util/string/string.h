@@ -13,6 +13,7 @@
 #include <vector>
 #include <sstream>
 #include <string>
+#include <functional>
 
 
 namespace trezanik {
@@ -106,6 +107,36 @@ std::string
 BytesToReadable(
 	uint64_t bytes,
 	ByteConversionFlags flags
+);
+
+
+/**
+ * Creates a 'copy' name for general items, filenames, etc.
+ * 
+ * Attempts to add a prefix and suffix to the input in that order; if the name
+ * is still not unique, it falls back to generating a canonical UUID which will
+ * be prefixed with 'autogen_'
+ * 
+ * Example:
+ *  Item called 'MyItem'
+ *  1) Becomes 'Copy of MyItem'
+ *  If not unique:
+ *  2) Becomes 'Copy of MyItem(copy)'
+ *  If still not unique:
+ *  3) Becomes 'autogen_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', where 'x' is hex
+ *
+ * @param[in] input
+ *  The named item to copy & manipulate
+ * @param[in] predicate
+ *  A method called to determine if the new name is now unique
+ * @return
+ *  The string object containing a unique name, based on the predicate
+ */
+TZK_CORE_API
+std::string
+CopyNameToUnique(
+	const char* input,
+	std::function<bool(const std::string&)> predicate
 );
 
 

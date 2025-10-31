@@ -8,6 +8,7 @@
 #include "core/definitions.h"
 
 #include "core/error.h"
+#include "core/UUID.h"
 #include "core/util/string/STR_funcs.h"
 #include "core/util/string/string.h"
 #include "core/services/memory/Memory.h"
@@ -117,6 +118,60 @@ BytesToReadable(
 	retval += units[inc];
 	
 	return retval;
+}
+
+
+std::string
+CopyNameToUnique(
+	const char* input,
+	std::function<bool(const std::string&)> predicate
+)
+{
+	std::string  new_prefix = "Copy of ";
+	std::string  new_suffix = "(copy)";
+	std::string  dupname = input;
+	bool  is_unique = false;
+	bool  autogen = false;
+
+	do
+	{
+		/*
+		 * Name was found; check if it already has our intended new prefix,
+		 * and if so, append the suffix instead
+		 */
+		if ( dupname.compare(0, new_prefix.length(), new_prefix) == 0 )
+		{
+			if ( core::aux::EndsWith(dupname, new_suffix) )
+			{
+				autogen = true;
+			}
+			else
+			{
+				dupname += new_suffix;
+			}
+		}
+		else
+		{
+			dupname.insert(0, new_prefix);
+		}
+
+		// don't entertain double-copies, switch to generation
+		if ( autogen )
+		{
+			UUID  uuid;
+			uuid.Generate();
+			dupname = "autogen_";
+			dupname += uuid.GetCanonical();
+			// we'll assume a uuid is unique and not recheck
+			break;
+		}
+
+		// caller-supplied unique check
+		is_unique = predicate(dupname);
+
+	} while ( !is_unique );
+
+	return dupname;
 }
 
 

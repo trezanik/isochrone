@@ -546,67 +546,23 @@ ImGuiStyleEditor::DrawAppStyleTab()
 	}
 	if ( ImGui::Button("Copy", button_size) )
 	{
-		TZK_LOG_FORMAT(LogLevel::Info, "Duplicating AppImGuiStyle: %s", my_appstyle_edit.name->c_str());
-
-		std::string  new_prefix = "Copy of ";
-		std::string  new_suffix = "(copy)";
-		std::string  dupname = *my_appstyle_edit.name;
-
-		dupname.insert(0, new_prefix);
-		{
+		std::string  dupname = core::aux::CopyNameToUnique(my_appstyle_edit.name->c_str(), [this](const std::string& name){
 			bool  case_sensitive = true;
-			bool  is_unique = false;
-			bool  autogen = false;
-
-			while ( !is_unique )
+			for ( auto& e : my_app_styles )
 			{
-				bool  found = false;
-
-				for ( auto& e : my_app_styles )
-				{
-					if ( STR_compare(e->name.c_str(), dupname.c_str(), case_sensitive) == 0 )
-					{
-						found = true;
-						break;
-					}
-				}
-
-				is_unique = !found;
-				if ( found )
-				{
-					if ( core::aux::EndsWith(dupname, new_suffix) )
-					{
-						autogen = true;
-					}
-					else
-					{
-						dupname += new_suffix;
-					}
-				}
-				else
-				{
-					std::string  dblprefix = new_prefix;
-					dblprefix += new_prefix;
-					autogen = dupname.compare(0, dblprefix.length(), dblprefix) == 0;
-				}
-
-				// don't entertain double-copies, switch to generation
-				if ( autogen )
-				{
-					UUID  uuid;
-					uuid.Generate();
-					dupname = "autogen_";
-					dupname += uuid.GetCanonical();
-					break;
-				}
+				if ( STR_compare(e->name.c_str(), name.c_str(), case_sensitive) == 0 )
+					return false;
 			}
-		}
-		
-		auto  sdup = std::make_shared<AppImGuiStyle>();
-		// can add copy constructor, inline for now
+			return true;
+		});
+
+		TZK_LOG_FORMAT(LogLevel::Info, "Duplicating AppImGuiStyle '%s' to '%s'", my_appstyle_edit.name->c_str(), dupname.c_str());
+
+		auto  sdup = std::make_shared<AppImGuiStyle>(my_appstyle_edit.active_style.get());
+
+		// replace the copied identifiers
 		sdup->name = dupname;
-		sdup->id.Generate();;
-		memcpy(&sdup->style, &my_appstyle_edit.active_style->style, sizeof(ImGuiStyle));
+		sdup->id.Generate();
 		
 		my_app_styles.emplace_back(std::move(sdup));
 		my_appstyle_edit.modified = true;
@@ -910,62 +866,17 @@ ImGuiStyleEditor::DrawNodeStyleTab()
 	}
 	if ( ImGui::Button("Copy", button_size) )
 	{
-		TZK_LOG_FORMAT(LogLevel::Info, "Duplicating node style: %s", my_nodestyle_edit.name->c_str());
-
-		// this is a duplicate and edit of the AppStyle unique name generation - make common method
-		std::string  new_prefix = "Copy of ";
-		std::string  new_suffix = "(copy)";
-		std::string  dupname = *my_nodestyle_edit.name;
-
-		dupname.insert(0, new_prefix);
-		{
+		std::string  dupname = core::aux::CopyNameToUnique(my_nodestyle_edit.name->c_str(), [this](const std::string& name){
 			bool  case_sensitive = true;
-			bool  is_unique = false;
-			bool  autogen = false;
-
-			while ( !is_unique )
+			for ( auto& e : my_node_styles )
 			{
-				bool  found = false;
-
-				for ( auto& e : my_node_styles )
-				{
-					if ( STR_compare(e.first.c_str(), dupname.c_str(), case_sensitive) == 0 )
-					{
-						found = true;
-						break;
-					}
-				}
-
-				is_unique = !found;
-				if ( found )
-				{
-					if ( core::aux::EndsWith(dupname, new_suffix) )
-					{
-						autogen = true;
-					}
-					else
-					{
-						dupname += new_suffix;
-					}
-				}
-				else
-				{
-					std::string  dblprefix = new_prefix;
-					dblprefix += new_prefix;
-					autogen = dupname.compare(0, dblprefix.length(), dblprefix) == 0;
-				}
-
-				// don't entertain double-copies, switch to generation
-				if ( autogen )
-				{
-					UUID  uuid;
-					uuid.Generate();
-					dupname = "autogen_";
-					dupname += uuid.GetCanonical();
-					break;
-				}
+				if ( STR_compare(e.first.c_str(), name.c_str(), case_sensitive) == 0 )
+					return false;
 			}
-		}
+			return true;
+		});
+
+		TZK_LOG_FORMAT(LogLevel::Info, "Duplicating node style '%s' to '%s'", my_nodestyle_edit.name->c_str(), dupname.c_str());
 		
 		my_node_styles.emplace_back(dupname, my_nodestyle_edit.active_style);
 		my_nodestyle_edit.modified = true;
@@ -1347,62 +1258,17 @@ ImGuiStyleEditor::DrawPinStyleTab()
 	}
 	if ( ImGui::Button("Copy", button_size) )
 	{
-		TZK_LOG_FORMAT(LogLevel::Info, "Duplicating pin style: %s", my_pinstyle_edit.name->c_str());
-
-		// this is a duplicate and edit of the AppStyle unique name generation - make common method
-		std::string  new_prefix = "Copy of ";
-		std::string  new_suffix = "(copy)";
-		std::string  dupname = *my_pinstyle_edit.name;
-
-		dupname.insert(0, new_prefix);
-		{
+		std::string  dupname = core::aux::CopyNameToUnique(my_pinstyle_edit.name->c_str(), [this](const std::string& name){
 			bool  case_sensitive = true;
-			bool  is_unique = false;
-			bool  autogen = false;
-
-			while ( !is_unique )
+			for ( auto& e : my_pin_styles )
 			{
-				bool  found = false;
-
-				for ( auto& e : my_pin_styles )
-				{
-					if ( STR_compare(e.first.c_str(), dupname.c_str(), case_sensitive) == 0 )
-					{
-						found = true;
-						break;
-					}
-				}
-
-				is_unique = !found;
-				if ( found )
-				{
-					if ( core::aux::EndsWith(dupname, new_suffix) )
-					{
-						autogen = true;
-					}
-					else
-					{
-						dupname += new_suffix;
-					}
-				}
-				else
-				{
-					std::string  dblprefix = new_prefix;
-					dblprefix += new_prefix;
-					autogen = dupname.compare(0, dblprefix.length(), dblprefix) == 0;
-				}
-
-				// don't entertain double-copies, switch to generation
-				if ( autogen )
-				{
-					UUID  uuid;
-					uuid.Generate();
-					dupname = "autogen_";
-					dupname += uuid.GetCanonical();
-					break;
-				}
+				if ( STR_compare(e.first.c_str(), name.c_str(), case_sensitive) == 0 )
+					return false;
 			}
-		}
+			return true;
+		});
+
+		TZK_LOG_FORMAT(LogLevel::Info, "Duplicating pin style '%s' to '%s'", my_pinstyle_edit.name->c_str(), dupname.c_str());
 
 		my_pin_styles.emplace_back(dupname, std::make_shared<imgui::PinStyle>(*my_pinstyle_edit.active_style.get()));
 		my_pinstyle_edit.modified = true;
