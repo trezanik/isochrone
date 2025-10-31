@@ -482,8 +482,8 @@ public:
 	struct {
 		grid_settings  grid_style;
 		int   link_default_method = static_cast<int>(LinkMethod::CubicBezier);
-		bool  node_draw_headers = true;
-		bool  node_drag_from_headers_only = true;
+		bool  node_draw_headers = false;
+		bool  node_drag_from_headers_only = false;
 		ImGuiKey  next_node_key = ImGuiKey_N;
 	} settings;
 
