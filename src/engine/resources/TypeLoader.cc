@@ -90,7 +90,7 @@ TypeLoader::NotifyFailure(
 
 	state_data->state = ResourceState::Failed;
 
-	TZK_LOG_FORMAT(LogLevel::Debug,
+	TZK_LOG_FORMAT(LogLevel::Warning,
 		"Resource load failed for %s",
 		state_data->resource->GetResourceID().GetCanonical()
 	);
