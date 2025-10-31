@@ -75,9 +75,8 @@ const float  default_socket_radius_hovered = 7.5f;
 const float  default_socket_thickness = 2.0f; // applicable only when disconnected
 const float  default_link_thickness = 2.0f;
 const float  default_link_thickness_dragged = 3.0f;
-const float  default_link_thickness_hovered = 3.5f;
-const float  default_link_thickness_selected_outline = 0.5f; // also pending removal, not yet used
-const ImU32  default_link_outline_colour = IM_COL32(15, 15, 200, 200);
+const float  default_link_thickness_selected = 3.5f;
+const float  default_link_hovered_extra_thickness = 1.0f;
 const float  default_image_scale = 1.0f;
 
 
@@ -128,9 +127,8 @@ struct IMGUI_API PinStyle
 	, socket_thickness(socket_thickness)
 	, link_thickness(default_link_thickness)
 	, link_dragged_thickness(default_link_thickness_dragged)
-	, link_hovered_thickness(default_link_thickness_hovered)
-	, link_selected_outline_thickness(default_link_thickness_selected_outline)
-	, outline_colour(default_link_outline_colour)
+	, link_hovered_extra_thickness(default_link_hovered_extra_thickness)
+	, link_selected_thickness(default_link_thickness_selected)
 	{
 	}
 
@@ -161,9 +159,8 @@ struct IMGUI_API PinStyle
 	, socket_thickness(default_socket_thickness)
 	, link_thickness(default_link_thickness)
 	, link_dragged_thickness(default_link_thickness_dragged)
-	, link_hovered_thickness(default_link_thickness_hovered)
-	, link_selected_outline_thickness(default_link_thickness_selected_outline)
-	, outline_colour(default_link_outline_colour)
+	, link_hovered_extra_thickness(default_link_hovered_extra_thickness)
+	, link_selected_thickness(default_link_thickness_selected)
 	{
 	}
 
@@ -195,9 +192,8 @@ struct IMGUI_API PinStyle
 		socket_thickness = other.socket_thickness;
 		link_thickness = other.link_thickness;
 		link_dragged_thickness = other.link_dragged_thickness;
-		link_hovered_thickness = other.link_hovered_thickness;
-		link_selected_outline_thickness = other.link_selected_outline_thickness;
-		outline_colour = other.outline_colour;
+		link_hovered_extra_thickness = other.link_hovered_extra_thickness;
+		link_selected_thickness = other.link_selected_thickness;
 	}
 	
 
@@ -243,18 +239,14 @@ struct IMGUI_API PinStyle
 	float  socket_offset;
 #endif
 
-	/// @todo move these into dedicated link styling (Pin src-vs-dst choices!)
-	
-	/// Link thickness
+	/// Link thickness as standard (connected)
 	float  link_thickness;
-	/// Link thickness when dragged
+	/// Link thickness when being dragged (not connected)
 	float  link_dragged_thickness;
-	/// Link thickness when hovered
-	float  link_hovered_thickness;
-	/// Thickness of the outline of a selected link
-	float  link_selected_outline_thickness;
-	/// Colour of the outline of a selected link
-	ImU32  outline_colour;
+	/// Link additional thickness to base value when hovered
+	float  link_hovered_extra_thickness;
+	/// Link thickness when selected
+	float  link_selected_thickness;
 
 
 	/**
