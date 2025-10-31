@@ -102,6 +102,11 @@ char  nodename_display_safe_area_padding[] = "display_safe_area_padding";
 char  nodename_window_border[] = "window_border";
 char  nodename_frame_border[] = "frame_border";
 char  nodename_popup_border[] = "popup_border";
+
+// operating system
+char  nodename_opsyss[] = "operating_systems";
+char  nodename_opsys[] = "operating_system";
+
 char  xmlstr_attr_enabled[] = "enabled";
 char  xmlstr_attr_r[] = "r";
 char  xmlstr_attr_g[] = "g";
@@ -1182,14 +1187,23 @@ AppImGui::LoadUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
 	 *     ...
 	 *   </style>
 	 * </styles>
+	 * <operating_systems>
+	 *   <operating_system>
+	 *     ...
+	 *   <operating_system>
+	 * </operating_systems>
 	 * </userdata>
 	 */
 	pugi::xml_node  node_styles = node_udata.child(nodename_styles);
+	pugi::xml_node  node_os = node_udata.child(nodename_opsyss);
 	// ..other resource roots..
 
 	if ( node_styles )
 	{
 		LoadStyles_783d1279_05ca_40af_b1c2_cfc40c212658(node_styles);
+	}
+	if ( node_os )
+	{
 	}
 	// ..other loaders..
 }
@@ -1820,6 +1834,20 @@ AppImGui::SaveUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
 	}
 
 
+#if 0
+	//
+	// ## Operating Systems
+	//
+
+	bool  has_opsys;
+	pugi::xml_node  opsys;
+
+	for (auto& os : my_gui.operating_systems)
+	{
+
+
+	}
+#endif
 }
 
 
@@ -1830,6 +1858,8 @@ AppImGui::UpdateDimensions()
 	 * ideally, once executed successfully this should only be recalled whenever
 	 * a size adjustment occurs; there's no need to be doing it every frame!
 	 */
+	//bool  dimensions_dirty = false;
+	// if ( !dimensions_dirty ) return;
 
 	auto cfg = core::ServiceLocator::Config();
 
@@ -2003,6 +2033,7 @@ AppImGui::UpdateDimensions()
 		bottom_hidden ? my_gui.app_usable_rect.Max.y - (my_gui.app_usable_rect.Min.y + (top_hidden ? 0 : my_gui.top_size.y))
 		              : my_gui.bottom_pos.y - my_gui.workspace_pos.y
 	};
+
 #if TZK_IS_DEBUG_BUILD
 	my_gui.workspace_rect = { my_gui.workspace_pos, my_gui.workspace_pos + my_gui.workspace_size };
 	my_gui.left_rect   = { my_gui.left_pos,   my_gui.left_pos + my_gui.left_size };
