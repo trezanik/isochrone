@@ -23,17 +23,23 @@ namespace app {
 
 //-------------- AudioAction
 
+const char  str_play[] = "Play";
+const char  str_pause[] = "Pause";
+const char  str_stop[] = "Stop";
+
 template<>
 AudioAction
 TConverter<AudioAction>::FromString(
 	const char* str
 )
 {
-	if ( STR_compare(str, "Play", false) == 0 )
+	bool  case_sensitive = false;
+
+	if ( STR_compare(str, str_play, case_sensitive) == 0 )
 		return AudioAction::Play;
-	if ( STR_compare(str, "Pause", false) == 0 )
+	if ( STR_compare(str, str_pause, case_sensitive) == 0 )
 		return AudioAction::Pause;
-	if ( STR_compare(str, "Stop", false) == 0 )
+	if ( STR_compare(str, str_stop, case_sensitive) == 0 )
 		return AudioAction::Stop;
 
 	return AudioAction::None;
@@ -72,9 +78,9 @@ TConverter<AudioAction>::ToString(
 {
 	switch ( value )
 	{
-	case AudioAction::Play:  return "Play";
-	case AudioAction::Pause: return "Pause";
-	case AudioAction::Stop:  return "Stop";
+	case AudioAction::Play:  return str_play;
+	case AudioAction::Pause: return str_pause;
+	case AudioAction::Stop:  return str_stop;
 	default:
 		break;
 	}
@@ -95,9 +101,9 @@ TConverter<AudioAction>::ToUint8(
 
 //-------------- PinType
 
-constexpr char  str_svr[] = "Server";
-constexpr char  str_cli[] = "Client";
-constexpr char  str_con[] = "Connector";
+const char  str_svr[] = "Server";
+const char  str_cli[] = "Client";
+const char  str_con[] = "Connector";
 
 template<>
 PinType
@@ -171,9 +177,9 @@ TConverter<PinType>::ToUint8(
 
 //-------------- IPProto
 
-constexpr char  str_tcp[] = "tcp";
-constexpr char  str_udp[] = "udp";
-constexpr char  str_icmp[] = "icmp";
+const char  str_tcp[]  = "tcp";
+const char  str_udp[]  = "udp";
+const char  str_icmp[] = "icmp";
 
 template<>
 IPProto
@@ -249,11 +255,11 @@ TConverter<IPProto>::ToUint8(
 
 //-------------- WindowLocation
 
-constexpr char  str_hidden[] = "Hidden";
-constexpr char  str_left[] = "Left";
-constexpr char  str_right[] = "Right";
-constexpr char  str_top[] = "Top";
-constexpr char  str_bottom[] = "Bottom";
+const char  str_hidden[] = "Hidden";
+const char  str_left[]   = "Left";
+const char  str_right[]  = "Right";
+const char  str_top[]    = "Top";
+const char  str_bottom[] = "Bottom";
 
 template<>
 WindowLocation
