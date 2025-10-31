@@ -417,9 +417,10 @@ ImGuiFileDialog::Draw()
 			TZK_LOG_FORMAT(LogLevel::Trace, "Navigated to: %s", entry.c_str());
 
 			std::string  newdir;
-			for ( auto sub : _current_path_dirs )
+			for ( auto& sub : _current_path_dirs )
 			{
-				newdir += sub;
+				if ( sub != TZK_PATH_CHARSTR ) // root path, no double-insert
+					newdir += sub;
 				newdir += TZK_PATH_CHARSTR;
 				if ( sub == entry )
 				{
