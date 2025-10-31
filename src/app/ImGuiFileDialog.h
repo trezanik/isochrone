@@ -113,9 +113,9 @@ class ImGuiFileDialog
 	: public IImGui
 	, private trezanik::core::SingularInstance<ImGuiFileDialog>
 {
-	TZK_NO_CLASS_ASSIGNMENT(ImGuiFileDialog);
+	//TZK_NO_CLASS_ASSIGNMENT(ImGuiFileDialog);  // fine on msvc
 	TZK_NO_CLASS_COPY(ImGuiFileDialog);
-	TZK_NO_CLASS_MOVEASSIGNMENT(ImGuiFileDialog);
+	//TZK_NO_CLASS_MOVEASSIGNMENT(ImGuiFileDialog);  // fine on msvc
 	TZK_NO_CLASS_MOVECOPY(ImGuiFileDialog);
 
 private:
