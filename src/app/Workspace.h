@@ -18,31 +18,201 @@
 
 #include "core/services/log/LogLevel.h"
 #include "core/util/filesystem/Path.h"
-#include "core/util/net/net_structs.h"
-#include "core/util/string/STR_funcs.h"  // inline
+#include "core/util/hash/compile_time_hash.h"
 #include "core/UUID.h"
 
-#include "imgui/dear_imgui/imgui.h" // only for ImVec2, shame
+#include "imgui/ImNodeGraphLink.h"  // only for LinkMethod - refactor like pin, avoid imgui headers here
 
 #if TZK_USING_PUGIXML
 #	include <pugixml.hpp>
 #endif
 
 #include <array>
+#include <map>
 #include <set>
 #include <unordered_set>
-#include <map>
 #include <typeindex>
 
 
 namespace trezanik {
-namespace imgui {
-
-	struct NodeStyle;
-	struct PinStyle;
-
-} // namespace imgui
 namespace app {
+
+
+struct workspace_data;
+struct nodelist_style;
+
+/*
+ * Once somewhat finalized, structures rigidity must be ensured for compatibility.
+ * This is also why we use pointers when they could just be passed by value; the
+ * offset for elements is identical.
+ * 
+ * Undocumented (albeit easy to determine) until put through trials
+ */
+struct wksp_load
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_root;
+#else
+	void*  dummy;
+#endif
+};
+
+struct wksp_load_links
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_links_root;
+#else
+	void*  dummy;
+#endif
+};
+
+struct wksp_load_nodes
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_nodes_root;
+#else
+	void*  dummy;
+#endif
+};
+
+struct wksp_load_services
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_services_root;
+#else
+	void*  dummy;
+#endif
+};
+
+struct wksp_load_service_groups
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_service_groups_root;
+#else
+	void*  dummy;
+#endif
+};
+
+struct wksp_load_settings
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_settings_root;
+#else
+	void*  dummy;
+#endif
+};
+
+struct wksp_load_styles
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_styles_root;
+#else
+	void*  dummy;
+#endif
+};
+
+
+struct wksp_save
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_workspace;
+#else
+	void*  dummy;
+#endif
+	
+};
+
+struct wksp_save_links
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_links_root;
+#else
+	void*  dummy;
+#endif
+};
+
+struct wksp_save_nodes
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_nodes_root;
+#else
+	void*  dummy;
+#endif
+};
+
+struct wksp_save_services
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_services_root;
+#else
+	void*  dummy;
+#endif
+};
+
+struct wksp_save_service_groups
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_service_groups_root;
+#else
+	void*  dummy;
+#endif
+};
+
+struct wksp_save_settings
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_settings_root;
+#else
+	void*  dummy;
+#endif
+};
+
+struct wksp_save_styles
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_styles_root;
+#else
+	void*  dummy;
+#endif
+};
+
+class IWorkspacePimpl;
+
+
+// too noisy; split into:
+// WorkspaceForensicTypes.h
+// WorkspaceTopologyTypes.h
+
+
+/*
+ * Component identifiers
+ *
+ * Using compile time hashes and not full-blown UUID objects for switch-states.
+ * Workspace versions determine which of these are known and will be handled.
+ * 
+ * Downside: must be 32-bit compatible as the values will be written to file,
+ * workspaces must be cross-architecture.
+ * 
+ * Duplicates must be avoided, but if present, the first one checked will win.
+ */
+static constexpr uint32_t  cth_credentials = trezanik::core::aux::compile_time_crc32_hash("Credentials");
+static constexpr uint32_t  cth_header = trezanik::core::aux::compile_time_crc32_hash("Header");
+static constexpr uint32_t  cth_online_track = trezanik::core::aux::compile_time_crc32_hash("OnlineStateTracker");
+static constexpr uint32_t  cth_sysinfo = trezanik::core::aux::compile_time_crc32_hash("SystemInfo");
 
 
 /**
@@ -69,6 +239,11 @@ struct link
 	 */
 	ImVec2  offset;
 
+	/**
+	 * Optional: The method of displaying the link between the source and target
+	 */
+	imgui::LinkMethod  method;
+
 
 	/**
 	 * Standard constructor
@@ -83,13 +258,16 @@ struct link
 	 *  [Optional] The text displayed on the link
 	 * @param[in] textoffset
 	 *  [Optional] Offset from the link center to display the text at
+	 * @param[in] lmethod
+	 *  [Optional] Display type method; defaults to Cubic Bezier
 	 */
 	link(
 		const trezanik::core::UUID& uuid,
 		const trezanik::core::UUID& src,
 		const trezanik::core::UUID& tgt,
 		const char* textstr = nullptr,
-		ImVec2 textoffset = ImVec2{0,0}
+		ImVec2 textoffset = ImVec2{0,0},
+		imgui::LinkMethod lmethod = imgui::LinkMethod::CubicBezier
 	)
 	{
 		id = uuid;
@@ -98,6 +276,7 @@ struct link
 		offset = textoffset;
 		if ( textstr != nullptr )
 			text = textstr;
+		method = lmethod;
 	}
 
 	bool operator !=(const link& rhs) const
@@ -225,155 +404,115 @@ namespace app {
 
 
 /**
- * Base struct for a node in the workspace
+ * Base structure of a component that can be added to nodes
  * 
- * Not an abstract type, but should be - plain instances are never expected to
- * be seen or used.
+ * Not fully fleshed out, documentation to be completed once design settled.
  */
-struct graph_node
+struct node_component
 {
-	/**
-	 * Standard constructor
-	 * 
-	 * @param[in] ti
-	 *  The type_index of the derived implementation type
-	 */
-	graph_node(
-		std::type_index ti
+	node_component() = default;
+	virtual ~node_component() = default;
+
+	// not using our UUID for these; debate for it, but I can use compile-time hashes to switch
+	// if the uuids are known at compile time (they will be), we can use runtime hash to still switch on canonicals!
+	uint32_t  component_id = 0;
+	//trezanik::core::UUID  component_id = trezanik::core::blank_uuid;
+
+	virtual bool
+	compatible_with(
+		trezanik::app::workspace_node* TZK_UNUSED(n)
 	)
-	: type(ti)
 	{
-	}
-
-
-	/**
-	 * Standard destructor
-	 */
-	virtual ~graph_node()
-	{
-	}
-
-
-	/** Unique ID of this node */
-	trezanik::core::UUID  id = core::blank_uuid;
-
-	/** Type index of this node */
-	std::type_index  type;
-	
-	/** Main name, used for headers/titles and human identification */
-	std::string  name;
-
-	/** Data to display in the node body */
-	std::string  datastr;
-	
-	/** Name of the style to use for this node, overriding default */
-	std::string  style;
-	
-	/** The position of this node within the graph, 0,0 as the origin */
-	ImVec2  position;
-	
-	/** The node size */
-	ImVec2  size;
-
-	/** Flag if the node size is static, explicit values and not dynamic */
-	bool    size_is_static = false;
-
-	/** Collection of all pins hosted on this node */
-	std::vector<pin>   pins;
-
-	// per my original design, will bring this in eventually
-	//std::vector<component>  components;
-
-	bool operator !=(const graph_node& rhs) const
-	{
-		return id != rhs.id;
-	}
-	bool operator ==(const graph_node& rhs) const
-	{
-		return id == rhs.id;
-	}
-	bool operator <(const graph_node& rhs) const
-	{
-		return id < rhs.id;
+		// everything compatible unless explicitly marked false
+		return true;
 	}
 };
 
 
-/**
- * A boundary graph node
- * 
- * Intended to constrain connections from system nodes and ensuring a common
- * crossing point when exiting a VLAN, LAN, WAN, etc.
- * 
- * @note
- *  Incomplete, pending implementation
- */
-struct graph_node_boundary : public graph_node
+#if 0
+struct node_component_boundary : public node_component_header
 {
-	/**
-	 * Standard constructor
-	 */
-	graph_node_boundary()
-	: graph_node(typeid(this))
+	
+};
+#endif
+
+
+/**
+ * .
+ */
+struct node_component_credentials : public node_component
+{
+	node_component_credentials()
 	{
+		component_id = cth_credentials;
 	}
 
-	// constraints
+	/*virtual bool
+	conflicts_with(
+		trezanik::core::UUID& other
+	) override
+	{
+		return false;
+	}*/
+};
+
+
+struct node_component_header : public node_component
+{
+	node_component_header()
+	: bg(0)
+	, fg(0)
+	{
+		component_id = cth_header;
+	}
+
+	std::string  text;
+	uint32_t     bg;
+	uint32_t     fg;
+	// font is bound to application, unless we create an extra special one per custom entry...
+	
+	// size
 };
 
 
 /**
- * A multi-system graph node
- * 
- * These are intended to be:
- * a) representation only in topology
- * b) a target list for a system node source
- * There is not intended to be any multisystem-source to multisystem-target ever
- * used in this application.
- * 
- * They are also extremely problematic when considering boundaries! This is the
- * main reason I haven't yet started to implement boundary constraints, until
- * the use case here is stable and potential workarounds can be identified.
+ * .
  */
-struct graph_node_multisystem : public graph_node
+struct node_component_online_tracker : public node_component
 {
-	/**
-	 * Standard constructor
-	 */
-	graph_node_multisystem()
-	: graph_node(typeid(this))
+	node_component_online_tracker()
 	{
+		component_id = cth_online_track;
 	}
 
-	/** Data to display in the node body */
-	//std::string  datastr;
-
-	/** vector of IP ranges encompassed by this node */
-	std::vector<std::string>  ip_ranges; // e.g. 1.1.1.1-1.1.1.250
-	/** vector of IP subnets encompassed by this node */
-	std::vector<std::string>  subnets; // e.g. 1.1.1.1/23
-	/** vector of hostnames encompassed by this node */
-	std::vector<std::string>  hostnames;
-	/** vector of single IPs encompassed by this node */
-	std::vector<std::string>  ips;
+	/*virtual bool
+	conflicts_with(
+		trezanik::core::UUID& other
+	) override
+	{
+		return false;
+	}*/
 };
 
 
 /**
- * A single-system graph node
+ * .
  */
-struct graph_node_system : public graph_node
+struct node_component_systeminfo : public node_component
 {
-	/**
-	 * Standard constructor
-	 */
-	graph_node_system()
-	: graph_node(typeid(this))
+	node_component_systeminfo()
 	{
+		component_id = cth_sysinfo;
 	}
 
-	/** Data to display in the node body */
-	//std::string  datastr;
+	/*virtual bool
+	conflicts_with(
+		trezanik::core::UUID& other
+	) override
+	{
+		//other == component_id_multisystem
+		return false;
+	}*/
 
 	/*
 	 * These are all strings, primarily for ease of use within the imgui API
@@ -548,38 +687,43 @@ struct graph_node_system : public graph_node
 	};
 
 
-	/** Data hold for automatically discovered system information */
-	system  system_autodiscover;
 	/** Manually entered system information */
-	system  system_manual;
+	system  system_info;
 };
 
 
 /**
- * A plain text graph node
- * 
- * @note
- *  Placeholder, will be added in upcoming development works
+ * A node in the topology node graph
  */
-struct graph_node_text : public graph_node
+struct graph_node
 {
-	graph_node_text()
-	: graph_node(typeid(this))
-	{
-	}
+	/**
+	 * Pointer to the node UUID
+	 * 
+	 * struct users commonly need to refer to what object ID they're working
+	 * with, and the methods only need a graph_node, not the full workspace
+	 * one. Despite being public already, use like this (refactoring caused
+	 * this 'overlap')
+	 */
+	trezanik::core::UUID*  id = nullptr;
 
+	/** Data to display in the node body */
+	std::string  datastr;
+
+	/** Name of the style to use for this node, overriding default */
+	std::string  style;
+
+	/** The position of this node within the graph, 0,0 as the origin */
+	ImVec2  position;
+
+	/** The node size */
+	ImVec2  size;
+
+	/** Collection of all pins hosted on this node */
+	std::vector<pin>  pins;
 };
 
 
-/*
- * Choice for these.
- * Have the name a struct member and the map key (doubling memory), on name
- * change sync the update to the map.
- * Or, do not track the name with the struct, and instead rely on the map key.
- * Which would need special handling to enable renames within the code body,
- * mandating non-immediate mode operations.
- * So we go for the former.
- */
 
 
 /**
@@ -709,30 +853,6 @@ struct service_group
 
 
 /**
- * Function object to sort service groups by name
- */
-struct SortServiceGroup
-{
-	bool operator()(const std::shared_ptr<service_group>& lhs, const std::shared_ptr<service_group>& rhs) const
-	{
-		return lhs->name < rhs->name;
-	}
-};
-
-
-/**
- * Function object to sort services by name
- */
-struct SortService
-{
-	bool operator()(const std::shared_ptr<service>& lhs, const std::shared_ptr<service>& rhs) const
-	{
-		return lhs->name < rhs->name;
-	}
-};
-
-
-/**
  * Numerical representation for supported IP protocols
  */
 enum IPProto : uint8_t
@@ -744,92 +864,141 @@ enum IPProto : uint8_t
 };
 
 
-
 /**
- * Style names starting with this string are reserved for internal application
- * use only; attempts to rename or delete said styles will be rejected.
- * They can still be modified however, with per-Workspace override!
- */
-static std::string  reserved_style_prefix      = "Default:";
-// nodes
-static std::string  reserved_style_base        = "Default:Base";
-static std::string  reserved_style_boundary    = "Default:Boundary";
-static std::string  reserved_style_multisystem = "Default:MultiSystem";
-static std::string  reserved_style_system      = "Default:System";
-// pins
-static std::string  reserved_style_client        = "Default:Client";
-static std::string  reserved_style_connector     = "Default:Connector";
-static std::string  reserved_style_service_group = "Default:ServiceGroup";
-static std::string  reserved_style_service_icmp  = "Default:ServiceICMP";
-static std::string  reserved_style_service_tcp   = "Default:ServiceTCP";
-static std::string  reserved_style_service_udp   = "Default:ServiceUDP";
-
-
-/**
- * Helper function; determines if the input string contains a reserved style name
+ * Holds details for a nodes target
  * 
- * @param[in] name
- *  The name (or any string) to compare against. Not case sensitive
- * @return
- *  Boolean state; true if a reserved name, otherwise false
+ * The target is used as a remote/local system(s) that will be operated against
+ * when using forensics/discovery tooling
  */
-static inline bool
-IsReservedStyleName(
-	const char* name
-)
+struct workspace_node_target
 {
-	return STR_compare_n(name, reserved_style_prefix.c_str(), reserved_style_prefix.length(), false) == 0;
-}
+	/** The target - can be a subnet, hostname, raw IP. No validation checks */
+	std::string  target;
+	/** Flag if this target should be disabled from processing */
+	bool  disabled;
 
-
-
-} // namespace app
-} // namespace trezanik
-
-
-// inject hash into std for our types, enabling use in unordered_set
-namespace std {
-	template<>
-	struct hash<trezanik::app::graph_node> {
-		size_t operator()(const trezanik::app::graph_node& node) const {
-			return std::hash<std::string>{}(node.id.GetCanonical());
-		}
-	};
-	template<>
-	struct hash<trezanik::app::graph_node_boundary>
+	/**
+	 * Determines if the target is a single item, not multiple
+	 * 
+	 * Can't handle situations such as multiple DNS records for a single host,
+	 * but don't consider this a fault; is supposed to be simple.
+	 * 
+	 * Checks for an IP range/subnet; if not present, is considered singular.
+	 * 
+	 * @return
+	 *  Boolean result
+	 */
+	bool
+	target_is_single_item()
 	{
-		size_t operator()(const trezanik::app::graph_node_boundary& node) const
-		{
-			return std::hash<std::string>{}(node.id.GetCanonical());
-		}
-	};
-	template<>
-	struct hash<trezanik::app::graph_node_multisystem>
-	{
-		size_t operator()(const trezanik::app::graph_node_multisystem& node) const
-		{
-			return std::hash<std::string>{}(node.id.GetCanonical());
-		}
-	};
-	template<>
-	struct hash<trezanik::app::graph_node_system>
-	{
-		size_t operator()(const trezanik::app::graph_node_system& node) const
-		{
-			return std::hash<std::string>{}(node.id.GetCanonical());
-		}
-	};
-	template<>
-	struct hash<trezanik::app::link> {
-		size_t operator()(const trezanik::app::link& l) const {
-			return std::hash<std::string>{}(l.source.GetCanonical() + std::string(l.target.GetCanonical()));
-		}
-	};
-}
+		/// @todo implement
+		return true;
+	}
+};
 
 
-namespace trezanik {
-namespace app {
+/**
+ * Workspace interaction node
+ * 
+ * Used as the trigger-point for forensics initiation & topology mapping
+ */
+struct workspace_node
+{
+	/** Unique node identifier */
+	trezanik::core::UUID  id = trezanik::core::blank_uuid;
+
+	/** Human-readable name, as displayed in the UI */
+	std::string  name;
+
+	/**
+	 * Collection of targets, being a single address/hostname through to multiple
+	 * elements of mixed types, such as entire subnets or hostnames.
+	 * 
+	 * More than one target will flag this as a 'multi-system' node, which
+	 * adds and removes certain functionality automatically (e.g. systeminfo is
+	 * a single IP/hostname only - also incompatible if this target is more than
+	 * a single item).
+	 */
+	std::vector<workspace_node_target>  targets;
+
+	/** All components attached to this node, expanding functionality/storage */
+	std::vector<std::unique_ptr<node_component>>  components;
+
+	// not a fan of this here, since it's imgui-specific; but without duplicating data...
+	int  selected_target = -1;
+
+	/** Topology-view (nodegraph) specific node data */
+	graph_node  graph;
+
+	/**
+	 * The time this node was added to the workspace, as seconds since the Unix epoch
+	 */
+	time_t  added = 0;
+
+
+	/**
+	 * Checks if this node has a component of the supplied ID
+	 * 
+	 * ID is a compile-time CRC32 hash value
+	 * 
+	 * @param[in] id_hash
+	 *  The hash value to lookup
+	 * @return
+	 *  Boolean result, true if found
+	 */
+	bool
+	has_component(
+		uint32_t id_hash
+	)
+	{
+		for ( auto& c : components )
+		{
+			if ( c->component_id == id_hash )
+				return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Gets the component of the supplied ID from this node
+	 *
+	 * @sa has_component
+	 * @param[in] id_hash
+	 *  The hash value to lookup
+	 * @return
+	 *  Raw pointer (from unique_ptr) to the base component type
+	 */
+	node_component*
+	get_component(
+		uint32_t id_hash
+	)
+	{
+		for ( auto& c : components )
+		{
+			if ( c->component_id == id_hash )
+				return c.get();
+		}
+
+#if 0  // Code Disabled: we use this function for failure detection (dynamic_cast a nullptr will fail equally)
+		assert(1 == 1 && "Non-existing component requested; use has_component to validate existence");
+#endif
+		return nullptr;
+	}
+
+	bool operator !=(const workspace_node& rhs) const
+	{
+		return id != rhs.id;
+	}
+	bool operator ==(const workspace_node& rhs) const
+	{
+		return id == rhs.id;
+	}
+	bool operator <(const workspace_node& rhs) const
+	{
+		return id < rhs.id;
+	}
+};
 
 
 /**
@@ -839,50 +1008,100 @@ namespace app {
  * if modifications have been performed.
  * 
  * These use shared_ptrs so the ImGuiWorkspace can perform pass-down without
- * needing to duplicate the object set yet again
+ * needing to duplicate the object set yet again.
+ * 
+ * These are declared in order of XML presence
  */
 struct workspace_data
 {
+	/** Unique workspace identifier */
+	trezanik::core::UUID  id;
+
 	/** The workspace name */
 	std::string  name;
-	
-	/** All nodes in the graph */
-	std::unordered_set<std::shared_ptr<graph_node>>  nodes;
-	
-	/** All links in the graph */
-	std::unordered_set<std::shared_ptr<link>>  links;
-	
-	/** All node styles available for use */
-	std::vector<std::pair<std::string, std::shared_ptr<trezanik::imgui::NodeStyle>>>  node_styles;
-	
-	/** All pin styles available for use */
-	std::vector<std::pair<std::string, std::shared_ptr<trezanik::imgui::PinStyle>>>  pin_styles;
-	
-	/** Backend service_group definitions */
-	std::vector<std::shared_ptr<service_group>>  service_groups;
+
+	/** User-defined settings, as read and stored within the workspace file */
+	std::map<std::string, std::string>  settings;
 
 	/** Backend service definitions */
 	std::vector<std::shared_ptr<service>>  services;
 
-	/** User-defined settings */
-	std::map<std::string, std::string>  settings;
+	/** Backend service_group definitions */
+	std::vector<std::shared_ptr<service_group>>  service_groups;
 
-	// to add: custom operating system definitions
+	/**
+	 * All nodes
+	 * Ordering is based around user customisation, or as default, the time
+	 * of the node addition (aka insertion order).
+	 *
+	 * This is handled with the UI, the vector state is actively updated for new
+	 * items based on the current configuration (on demand or node additions)
+	 */
+	std::vector<std::shared_ptr<workspace_node>>  nodes;
+
+	/** All links in the graph */
+	std::unordered_set<std::shared_ptr<link>>  links;
+
+	/** All node styles available for use */
+	std::vector<std::pair<std::string, std::shared_ptr<trezanik::imgui::NodeStyle>>>  node_styles;
+
+	/** All pin styles available for use */
+	std::vector<std::pair<std::string, std::shared_ptr<trezanik::imgui::PinStyle>>>  pin_styles;
+
+	/** If enabled, the nodelist style to override the active application verison */
+	std::shared_ptr<nodelist_style>  nlist_style;
 };
 
 
-static const char  settingname_dock_canvasdbg[] = "dock.canvasdbg";
-static const char  settingname_dock_propview[] = "dock.propview";
-static const char  settingname_grid_colour_background[] = "grid.colour.background";
-static const char  settingname_grid_colour_primary[] = "grid.colour.primary";
-static const char  settingname_grid_colour_secondary[] = "grid.colour.secondary";
-static const char  settingname_grid_colour_origin[] = "grid.colour.origin";
-static const char  settingname_grid_draw[] = "grid.draw";
-static const char  settingname_grid_draworigin[] = "grid.draw_origin";
-static const char  settingname_grid_size[] = "grid.size";
-static const char  settingname_grid_subdivisions[] = "grid.subdivisions";
-static const char  settingname_node_dragfromheadersonly[] = "node.drag_from_headers_only";
-static const char  settingname_node_drawheaders[] = "node.draw_headers";
+// nodes
+extern const std::string  reserved_style_base;
+extern const std::string  reserved_style_boundary;
+extern const std::string  reserved_style_multisystem;
+extern const std::string  reserved_style_system;
+// pins
+extern const std::string  reserved_style_client;
+extern const std::string  reserved_style_connector;
+extern const std::string  reserved_style_service_group;
+extern const std::string  reserved_style_service_icmp;
+extern const std::string  reserved_style_service_tcp;
+extern const std::string  reserved_style_service_udp;
+// settings
+/*
+ * Use token-pasting to automatically provide a character array (setting name)
+ * and compile-time hash (of setting name) variables,
+ * Based on: https://stackoverflow.com/a/71899854/4561887
+ */
+#define TZK_CONCAT_(prefix, suffix) prefix##suffix
+#define TZK_CONCAT(prefix, suffix) TZK_CONCAT_(prefix, suffix)
+#define TZK_DECLARE_SETTING(name, str)  \
+	static constexpr char  TZK_CONCAT(settingname_, name)[] = str; \
+	static constexpr size_t  TZK_CONCAT(cth_, name) = TZK_COMPILE_TIME_HASH(str)
+
+TZK_DECLARE_SETTING(dock_canvasdbg, "dock.canvasdbg");
+TZK_DECLARE_SETTING(dock_propview, "dock.propview");
+TZK_DECLARE_SETTING(forensics_datapath, "forensics.datapath");
+TZK_DECLARE_SETTING(grid_colour_background, "grid.colour.background");
+TZK_DECLARE_SETTING(grid_colour_link, "grid.colour.link");
+TZK_DECLARE_SETTING(grid_colour_origin, "grid.colour.origin"); 
+TZK_DECLARE_SETTING(grid_colour_primary, "grid.colour.primary");
+TZK_DECLARE_SETTING(grid_colour_secondary, "grid.colour.secondary");
+TZK_DECLARE_SETTING(grid_colour_selector, "grid.colour.selector");
+TZK_DECLARE_SETTING(grid_draw, "grid.draw");
+TZK_DECLARE_SETTING(grid_draworigin, "grid.draw_origin");
+TZK_DECLARE_SETTING(grid_size, "grid.size");
+TZK_DECLARE_SETTING(grid_subdivisions, "grid.subdivisions");
+TZK_DECLARE_SETTING(link_defaultmethod, "link.default_method");
+TZK_DECLARE_SETTING(nodelist_overrideappstyle, "nodelist.override_app_style");
+TZK_DECLARE_SETTING(nodelist_sortorder, "nodelist.sort_order");
+TZK_DECLARE_SETTING(node_dragfromheadersonly, "node.drag_from_headers_only");
+TZK_DECLARE_SETTING(node_drawheaders, "node.draw_headers");
+TZK_DECLARE_SETTING(node_trackonlinestate, "node.track_online_state");
+// setting types
+constexpr char  strtype_bool[] = "boolean";
+constexpr char  strtype_float[] = "float";
+constexpr char  strtype_rgba[] = "rgba";
+constexpr char  strtype_string[] = "string";
+constexpr char  strtype_uint[] = "uinteger";
 
 
 /**
@@ -906,7 +1125,8 @@ static const char  settingname_node_drawheaders[] = "node.draw_headers";
  * This table represents all known versions and their IDs:
  * Version | UUID
  * --------+--------------------------------------
- *     1.0 | 60e18b8b-b4af-4065-af5e-a17c9cb73a41 (not finalized)
+ *     0.1 | 60e18b8b-b4af-4065-af5e-a17c9cb73a41 (topology only - not finalized)
+ *     0.2 | cc47a409-fbfe-49fc-846a-c36045257a00 (forensics added - not finalized)
  */
 class Workspace
 {
@@ -922,12 +1142,9 @@ private:
 	 * Will be duplicated and supplied to the ImGuiWorkspace for modification
 	 */
 	workspace_data  my_wksp_data;
-	
+
 	/** Unique ID of this workspace */
 	trezanik::core::UUID  my_id;
-
-	/** Hash value of the workspace data content */
-	size_t  my_wksp_data_hash;
 
 	/** Load and save directory of workspace files */
 	core::aux::Path  my_save_dir;
@@ -939,6 +1156,25 @@ private:
 	 * Set of all the registered event callback IDs
 	 */
 	std::set<uint64_t>  my_reg_ids;
+
+	/** Load and Save implementation for the workspace version */
+	std::unique_ptr<IWorkspacePimpl>  my_impl;
+
+
+
+	/**
+	 * Adds a graph node to the workspace data
+	 * 
+	 * @param[in] gn
+	 *  A shared_ptr to the graph node
+	 * @return
+	 *  - ErrNONE if the node is added
+	 *  - EEXIST if the node already exists
+	 */
+	int
+	AddGraphNode(
+		std::shared_ptr<graph_node> gn
+	);
 
 
 	/**
@@ -965,17 +1201,19 @@ private:
 
 
 	/**
-	 * Adds a node to the workspace data
+	 * Adds a workspace node to the workspace data
 	 * 
-	 * @param[in] gn
-	 *  A shared_ptr to the graph node
+	 * Automatically creates an associated graph node
+	 * 
+	 * @param[in] node
+	 *  A shared_ptr to the workspace node
 	 * @return
 	 *  - ErrNONE if the node is added
 	 *  - EEXIST if the node already exists
 	 */
 	int
 	AddNode(
-		std::shared_ptr<graph_node> gn
+		std::shared_ptr<workspace_node> node
 	);
 
 
@@ -1032,7 +1270,7 @@ private:
 	 */
 	int
 	AddService(
-		service&& svc
+		std::shared_ptr<service> svc
 	);
 
 
@@ -1049,80 +1287,9 @@ private:
 	 */
 	int
 	AddServiceGroup(
-		service_group&& svc_grp
+		std::shared_ptr<service_group> svc_grp
 	);
-
-
-	/**
-	 * Writes the workspace UUID version detail to the XML hierarchy
-	 * 
-	 * When the workspace is saved to file, the entire structure is generated
-	 * and written from scratch.
-	 *
-	 * @param[in] xmlroot
-	 *  The workspace root XML element
-	 */
-	void
-	AppendVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
-		pugi::xml_node xmlroot
-	);
-
-
-	/**
-	 * Gets a service by its name
-	 *
-	 * @param[in] name
-	 *  The name to lookup
-	 * @return
-	 *  The service shared_ptr if found, otherwise nullptr
-	 */
-	std::shared_ptr<service>
-	GetService(
-		const char* name
-	);
-
-
-	/**
-	 * Gets a service by its UUID
-	 *
-	 * @param[in] id
-	 *  Unique runtime identifier of the service
-	 * @return
-	 *  The service shared_ptr if found, otherwise nullptr
-	 */
-	std::shared_ptr<service>
-	GetService(
-		trezanik::core::UUID& id
-	);
-
-
-	/**
-	 * Gets a service_group by its name
-	 *
-	 * @param[in] name
-	 *  The group name to lookup
-	 * @return
-	 *  The service_group shared_ptr if found, otherwise nullptr
-	 */
-	std::shared_ptr<service_group>
-	GetServiceGroup(
-		const char* name
-	);
-
-
-	/**
-	 * Gets a service_group by its UUID
-	 *
-	 * @param[in] id
-	 *  Unique runtime identifier of the service_group
-	 * @return
-	 *  The service_group shared_ptr if found, otherwise nullptr
-	 */
-	std::shared_ptr<service_group>
-	GetServiceGroup(
-		trezanik::core::UUID& id
-	);
-
+	
 
 	/**
 	 * Event handler for a Process Abort notification
@@ -1172,49 +1339,59 @@ private:
 	);
 
 
-#if TZK_USING_PUGIXML
+
 	/**
-	 * Handler for UUID version
 	 * 
-	 * Any invalid items are raised as warnings but do not trigger errors, nor
-	 * termination of the rest of the load. May not have a return value in
-	 * future as a result, undecided so far.
-	 * 
-	 * @todo
-	 *  Huge method, needs splitting up. Started with pins
-	 *
-	 * @param[in] workspace
-	 *  The XML node, root workspace element
-	 * @return
-	 *  Only returns ErrNONE at present, no failure paths
 	 */
-	int
-	LoadVersion_60e18b8b_b4af_4065_af5e_a17c9cb73a41(
-		pugi::xml_node workspace
+	void
+	HandleLoadedLink(
+		app::EventData::loaded_link loaded
 	);
 
 
 	/**
-	 * Loads the pins for a node
-	 *
-	 * @param[in] node_pins
-	 *  The XML node for the pins root
-	 * @param[in] gn
-	 *  The graph_node
-	 * @return
-	 *  - ErrNONE if all pins were loaded successfully; includes if 0 pins
-	 *  - ErrPARTIAL if all pins were loaded successfully
-	 *  - ErrFAILED if all pins failed to load
+	 * 
 	 */
-	int
-	LoadPins_Version_1_0(
-		pugi::xml_node node_pins,
-		trezanik::app::graph_node* gn
+	void
+	HandleLoadedNode(
+		app::EventData::loaded_node loaded
 	);
-	// int LoadLinks_Version_1_0
-	// int LoadNodes_Version_1_0
 
-#endif  // TZK_USING_PUGIXML
+
+	/**
+	 * 
+	 */
+	void
+	HandleLoadedNodeStyle(
+		app::EventData::loaded_nodestyle loaded
+	);
+
+
+	/**
+	 * 
+	 */
+	void
+	HandleLoadedPinStyle(
+		app::EventData::loaded_pinstyle loaded
+	);
+
+	
+	/**
+	 * 
+	 */
+	void
+	HandleLoadedService(
+		app::EventData::loaded_service loaded
+	);
+
+
+	/**
+	 * 
+	 */
+	void
+	HandleLoadedServiceGroup(
+		app::EventData::loaded_service_group loaded
+	);
 
 protected:
 public:
@@ -1248,6 +1425,10 @@ public:
 	CheckServiceName(
 		std::string& service_name
 	);
+	void
+	CheckWorkspaceName(
+		std::string& workspace_name
+	);
 
 
 	/**
@@ -1271,16 +1452,6 @@ public:
 
 
 	/**
-	 * Gets the workspace data
-	 *
-	 * @return
-	 *  Reference to the workspace data
-	 */
-	const workspace_data&
-	GetWorkspaceData() const;
-
-
-	/**
 	 * Gets the workspace file path
 	 *
 	 * @return
@@ -1288,6 +1459,16 @@ public:
 	 */
 	trezanik::core::aux::Path&
 	GetPath();
+
+
+	/**
+	 * Gets the workspace data
+	 *
+	 * @return
+	 *  Reference to the workspace data
+	 */
+	const workspace_data&
+	GetWorkspaceData() const;
 
 
 	/**
@@ -1329,45 +1510,6 @@ public:
 	 */
 	std::string
 	Name() const;
-
-
-	/**
-	 * Determines if the parameters make up a valid relative position.
-	 *
-	 * Copy of imgui::Pin::SetRelativePosition validation, which was written
-	 * first.
-	 * 
-	 * This could be anywhere, but we want it to be accessible for use in our
-	 * AppendVersion function, and it can't be in Pin so ImGuiWorkspace can 
-	 * actually call it.
-	 * For now, easy enough to duplicate it here given how small it is.
-	 *
-	 * @param[in] x
-	 *  The x position
-	 * @param[in] y
-	 *  The y position
-	 * @return
-	 *  Boolean state, true if valid
-	 */
-	bool
-	IsValidRelativePosition(
-		float x,
-		float y
-	) const;
-
-
-	/**
-	 * Calls IsValidRelativePosition with an ImVec2
-	 * 
-	 * @param[in] xy
-	 *  Reference to an ImVec2, with x & y components passed on
-	 * @return
-	 *  Return value of IsValidRelativePosition
-	 */
-	bool
-	IsValidRelativePosition(
-		ImVec2& xy
-	) const;
 
 
 	/**
@@ -1420,19 +1562,6 @@ public:
 	WorkspaceData() const;
 
 
-	/**
-	 * Gets the workspace data hash
-	 * 
-	 * Not presently implemented, only returns 0. May never be required, in
-	 * which case will be removed.
-	 *
-	 * @return
-	 *  The hash value
-	 */
-	size_t
-	WorkspaceDataHash() const;
-
-
 	bool operator == (const trezanik::core::UUID& id) const
 	{
 		return my_id == id;
@@ -1444,6 +1573,177 @@ public:
 	bool operator <(const Workspace& rhs) const
 	{
 		return this->my_id < rhs.my_id;
+	}
+};
+
+
+
+/**
+ * Node sorting method for code to select the matching function object
+ */
+enum class SortNodeMethod : uint8_t
+{
+	Chronological_Forward = 0,
+	Chronological_Reverse,
+	Alphabetical_Forward,
+	Alphabetical_Reverse,
+	Targets_Forward,
+	Targets_Reverse,
+	Invalid
+};
+const char  str_disp_alpha_fwd[] = "Alphabetical";
+const char  str_disp_alpha_rev[] = "Alphabetical (Reverse)";
+const char  str_disp_chrono_fwd[] = "Chronological";
+const char  str_disp_chrono_rev[] = "Chronological (Reverse)";
+const char  str_disp_target_fwd[] = "Target Count";
+const char  str_disp_target_rev[] = "Target Count (Reverse)";
+/** 
+ * imgui-specific; string used for Combo box selection
+ * 
+ * Must match the numeric order of SortNodeMethod (which is why this is here)
+ */
+static std::vector<std::string>  nodelist_sortstrs = { 
+	str_disp_chrono_fwd,
+	str_disp_chrono_rev,
+	str_disp_alpha_fwd,
+	str_disp_alpha_rev,
+	str_disp_target_fwd,
+	str_disp_target_rev
+};
+// TConverter.cc
+extern const char  str_alpha_fwd[];
+extern const char  str_alpha_rev[];
+extern const char  str_chrono_fwd[];
+extern const char  str_chrono_rev[];
+extern const char  str_target_fwd[];
+extern const char  str_target_rev[];
+/*
+ * Map the display string to the setting string, so they don't need further
+ * runtime resolution.
+ * Don't like this but best I could think of in the spur of the moment.
+ * 
+ * Do not want the setting name as-is displayed in the combo, as it's geared
+ * for CLI input. Display string looks awful for CLI use, so here we go
+ */
+static std::map<std::string, std::string>  nodelist_sortstrmap = {
+	{ str_disp_alpha_fwd, str_alpha_fwd },
+	{ str_disp_alpha_rev, str_alpha_rev },
+	{ str_disp_chrono_fwd, str_chrono_fwd },
+	{ str_disp_chrono_rev, str_chrono_rev },
+	{ str_disp_target_fwd, str_target_fwd },
+	{ str_disp_target_rev, str_target_rev }
+};
+
+
+/**
+ * Function object to sort nodes by their added time
+ *
+ * If sorting chronologically and the times are identical, uses the equivalent
+ * alphabetical order as a secondary route, just like we do in our file dialog
+ */
+struct SortNodes_ChronoForward
+{
+	bool operator()(const std::shared_ptr<workspace_node>& lhs, const std::shared_ptr<workspace_node>& rhs) const
+	{
+		if ( lhs->added == rhs->added )
+		{
+			return lhs->name < rhs->name;
+		}
+		return lhs->added < rhs->added;
+	}
+};
+
+/**
+ * Function object to sort nodes by their added time, in reverse
+ * 
+ * If sorting chronologically and the times are identical, uses the equivalent
+ * alphabetical order as a secondary route, just like we do in our file dialog
+ */
+struct SortNodes_ChronoReverse
+{
+	bool operator()(const std::shared_ptr<workspace_node>& lhs, const std::shared_ptr<workspace_node>& rhs) const
+	{
+		if ( lhs->added == rhs->added )
+		{
+			return rhs->name < lhs->name;
+		}
+		return rhs->added < lhs->added;
+	}
+};
+
+/**
+ * Function object to sort nodes alphabetically
+ */
+struct SortNodes_AlphaForward
+{
+	bool operator()(const std::shared_ptr<workspace_node>& lhs, const std::shared_ptr<workspace_node>& rhs) const
+	{
+		return lhs->name < rhs->name;
+	}
+};
+
+/**
+ * Function object to sort nodes alphabetically, in reverse
+ */
+struct SortNodes_AlphaReverse
+{
+	bool operator()(const std::shared_ptr<workspace_node>& lhs, const std::shared_ptr<workspace_node>& rhs) const
+	{
+		return rhs->name < lhs->name;
+	}
+};
+
+/**
+ * Function object to sort nodes by target count (greatest on top)
+ */
+struct SortNodes_TargetForward
+{
+	bool operator()(const std::shared_ptr<workspace_node>& lhs, const std::shared_ptr<workspace_node>& rhs) const
+	{
+		if ( lhs->targets.size() == rhs->targets.size() )
+		{
+			return lhs->name < rhs->name;
+		}
+		return rhs->targets.size() < lhs->targets.size();
+	}
+};
+
+/**
+* Function object to sort nodes by target count, in reverse
+*/
+struct SortNodes_TargetReverse
+{
+	bool operator()(const std::shared_ptr<workspace_node>& lhs, const std::shared_ptr<workspace_node>& rhs) const
+	{
+		if ( lhs->targets.size() == rhs->targets.size() )
+		{
+			return rhs->name < lhs->name;
+		}
+		return lhs->targets.size() < rhs->targets.size();
+	}
+};
+
+
+/**
+ * Function object to sort service groups by name
+ */
+struct SortServiceGroup
+{
+	bool operator()(const std::shared_ptr<service_group>& lhs, const std::shared_ptr<service_group>& rhs) const
+	{
+		return lhs->name < rhs->name;
+	}
+};
+
+
+/**
+ * Function object to sort services by name
+ */
+struct SortService
+{
+	bool operator()(const std::shared_ptr<service>& lhs, const std::shared_ptr<service>& rhs) const
+	{
+		return lhs->name < rhs->name;
 	}
 };
 

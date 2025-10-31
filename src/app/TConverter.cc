@@ -253,6 +253,97 @@ TConverter<IPProto>::ToUint8(
 }
 
 
+//-------------- SortNodeMethod
+
+const char  str_alpha_fwd[]  = "alphabetical-forward";
+const char  str_alpha_rev[]  = "alphabetical-reverse";
+const char  str_chrono_fwd[] = "chronological-forward";
+const char  str_chrono_rev[] = "chronological-reverse";
+const char  str_target_fwd[] = "targets-forward";
+const char  str_target_rev[] = "targets-reverse";
+
+template<>
+SortNodeMethod
+TConverter<SortNodeMethod>::FromString(
+	const char* str
+)
+{
+	bool  case_sensitive = false;
+
+	if ( STR_compare(str, str_alpha_fwd, case_sensitive) == 0 )
+		return SortNodeMethod::Alphabetical_Forward;
+	if ( STR_compare(str, str_alpha_rev, case_sensitive) == 0 )
+		return SortNodeMethod::Alphabetical_Reverse;
+	if ( STR_compare(str, str_chrono_fwd, case_sensitive) == 0 )
+		return SortNodeMethod::Chronological_Forward;
+	if ( STR_compare(str, str_chrono_rev, case_sensitive) == 0 )
+		return SortNodeMethod::Chronological_Reverse;
+	if ( STR_compare(str, str_target_fwd, case_sensitive) == 0 )
+		return SortNodeMethod::Targets_Forward;
+	if ( STR_compare(str, str_target_rev, case_sensitive) == 0 )
+		return SortNodeMethod::Targets_Reverse;
+
+	return SortNodeMethod::Invalid;
+}
+
+
+template<>
+SortNodeMethod
+TConverter<SortNodeMethod>::FromString(
+	const std::string& str
+)
+{
+	return FromString(str.c_str());
+}
+
+
+ 
+template<>
+SortNodeMethod
+TConverter<SortNodeMethod>::FromUint8(
+	const uint8_t uint8
+)
+{
+	// the last element
+	if ( uint8 > static_cast<uint8_t>(SortNodeMethod::Targets_Reverse) )
+		return SortNodeMethod::Invalid;
+
+	return static_cast<SortNodeMethod>(uint8);
+}
+ 
+ 
+template<>
+std::string
+TConverter<SortNodeMethod>::ToString(
+	SortNodeMethod proto
+)
+{
+	switch ( proto )
+	{
+	case SortNodeMethod::Alphabetical_Forward:   return str_alpha_fwd;
+	case SortNodeMethod::Alphabetical_Reverse:   return str_alpha_rev;
+	case SortNodeMethod::Chronological_Forward:  return str_chrono_fwd;
+	case SortNodeMethod::Chronological_Reverse:  return str_chrono_rev;
+	case SortNodeMethod::Targets_Forward:        return str_target_fwd;
+	case SortNodeMethod::Targets_Reverse:        return str_target_rev;
+	default:
+		break;
+	}
+
+	return text_invalid;
+}
+ 
+ 
+template<>
+uint8_t
+TConverter<SortNodeMethod>::ToUint8(
+	SortNodeMethod method
+)
+{
+	return static_cast<uint8_t>(method);
+}
+
+
 //-------------- WindowLocation
 
 const char  str_hidden[] = "Hidden";

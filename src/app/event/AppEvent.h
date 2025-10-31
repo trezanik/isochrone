@@ -12,10 +12,16 @@
 
 #include "core/UUID.h"
 
+#include <memory>
+#include <string>
+
 
 namespace trezanik {
+namespace imgui {
+	struct NodeStyle;  // BaseNode.h
+	struct PinStyle;   // ImNodeGraphPin.h
+}
 namespace app {
-
 
 /*
  * These could easily be in a standalone, dedicated file to save including UUID,
@@ -24,21 +30,34 @@ namespace app {
 static trezanik::core::UUID  uuid_buttonpress("b4a4256a-86e0-4688-b956-d751ce21e924");
 static trezanik::core::UUID  uuid_filedialog_cancel("f0961c70-e21A-4f13-848e-5a23af015d5c");
 static trezanik::core::UUID  uuid_filedialog_confirm("97997a0c-0a31-455e-bd97-5d43474786f1");
-static trezanik::core::UUID  uuid_linkcreate("a3e2f351-f497-41df-a8c3-e885e5a8428a");
-static trezanik::core::UUID  uuid_linkdelete("560a0935-b1C9-4212-a5b3-1e2373938f65");
-static trezanik::core::UUID  uuid_linkestablish("812285f4-2e0e-4616-8d2e-39089ebd25e0");
-static trezanik::core::UUID  uuid_linkupdate("38902343-6d75-4dfd-8a75-3cb7f36bb924");
-static trezanik::core::UUID  uuid_nodecreate("9be93411-2c9a-498f-bce2-932a223a588f");
-static trezanik::core::UUID  uuid_nodedelete("640dc606-9949-4773-a6d0-d64dda21719b");
-static trezanik::core::UUID  uuid_nodeupdate("dcf2d845-096b-4923-86c5-b89014ba3b7f");
 static trezanik::core::UUID  uuid_process_aborted("30143875-970b-4538-8873-aaf17d693519");
 static trezanik::core::UUID  uuid_process_created("25f6e3cf-0f6b-4f67-8dff-d6e3c800Bf12");
 static trezanik::core::UUID  uuid_process_stoppedfailure("f351235f-e4de-45fc-a21c-7b0873d97c28");
 static trezanik::core::UUID  uuid_process_stoppedsuccess("bbb8c4a7-64b8-4e67-90bf-0224e0381205");
 static trezanik::core::UUID  uuid_userdata_update("dde82b54-382b-4710-a859-b0701d275b8f");
 
+static trezanik::core::UUID  uuid_loaded_link("67487b8a-4d80-43c3-9f5b-fa5e29506062");
+static trezanik::core::UUID  uuid_loaded_node("1445a68e-c2aa-464c-8566-7fc498610b61");
+static trezanik::core::UUID  uuid_loaded_nodestyle("0fbcb7bb-b3aa-457f-b8eb-8bf6b344914b");
+static trezanik::core::UUID  uuid_loaded_pinstyle("8d6b1d89-603a-46cf-8c6e-274ee350b1fa");
+static trezanik::core::UUID  uuid_loaded_service("172f08d5-363d-4e4a-9718-a588a6e700f7");
+static trezanik::core::UUID  uuid_loaded_servicegroup("c083c616-2aa5-47d1-ab90-d125af461a0a");
+static trezanik::core::UUID  uuid_loaded_setting("00c964d8-67b9-4c69-90d1-993c96976c67");
+static trezanik::core::UUID  uuid_loaded_workspace("13a8c2a8-e8ec-435d-ab97-3e9cd2893b99");
+static trezanik::core::UUID  uuid_loading_workspace("6c329ce1-de1d-47e1-97f5-8312dfa52435");
+
+static trezanik::core::UUID  uuid_listnode_selected("c84fe4f6-c81e-48eb-a6d0-23d3d8796952");
+static trezanik::core::UUID  uuid_listnode_clearselected("da83f5c1-04cf-4690-ae5e-65ed42e0f74b");
+static trezanik::core::UUID  uuid_listnode_updated("201ff46b-a4a0-42f0-ac3e-549902bcf474");
 
 enum class WindowLocation;  // ImGuiSemiFixedDock.h
+
+struct link;
+struct graph_node;
+struct service;
+struct service_group;
+struct setting;
+struct workspace_node;
 
 
 /**
@@ -191,6 +210,76 @@ struct process_stopped_success
 	std::string   process_name;
 	std::string   process_path;
 	std::string   command_line;
+};
+
+
+struct loaded_link
+{
+	trezanik::core::UUID  workspace_id;
+	std::shared_ptr<link>  lnk;
+};
+
+struct loaded_node
+{
+	trezanik::core::UUID  workspace_id;
+	std::shared_ptr<workspace_node>  node;
+};
+
+struct loaded_nodestyle
+{
+	trezanik::core::UUID  workspace_id;
+	std::string  name;
+	std::shared_ptr<trezanik::imgui::NodeStyle>  style;
+};
+
+struct loaded_pinstyle
+{
+	trezanik::core::UUID  workspace_id;
+	std::string  name;
+	std::shared_ptr<trezanik::imgui::PinStyle>  style;
+};
+
+struct loaded_service
+{
+	trezanik::core::UUID  workspace_id;
+	std::shared_ptr<service>  svc;
+};
+
+struct loaded_service_group
+{
+	trezanik::core::UUID  workspace_id;
+	std::shared_ptr<service_group>  svcgrp;
+};
+
+struct loaded_setting
+{
+	std::string  name;
+	std::string  value;
+};
+
+
+
+struct selected_node
+{
+	trezanik::core::UUID  workspace_id;
+	std::shared_ptr<workspace_node>  node;
+};
+
+
+struct clear_selected_nodes
+{
+	trezanik::core::UUID  workspace_id;
+};
+
+
+struct updated_node
+{
+	trezanik::core::UUID  workspace_id;
+	std::shared_ptr<workspace_node>  node;
+	/*
+	 * for a rename, would love to have the original name - we CAN get it, but
+	 * only from last save, without more work
+	 */
 };
 
 
