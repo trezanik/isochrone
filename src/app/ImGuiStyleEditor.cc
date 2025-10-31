@@ -16,6 +16,7 @@
 #include "app/event/AppEvent.h"
 
 #include "imgui/CustomImGui.h"
+#include "imgui/TConverter.h"
 
 #include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
