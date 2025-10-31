@@ -39,7 +39,7 @@ get_current_time_format(
 	const char* format
 )
 {
-	return get_time_format(time(nullptr), buf, buf_size, format);
+	return get_time_format(get_secs_since_epoch(), buf, buf_size, format);
 }
 
 
@@ -181,6 +181,13 @@ get_perf_frequency()
 	TZK_DEBUG_BREAK;
 	return 1000000;
 #endif
+}
+
+
+time_t
+get_secs_since_epoch()
+{
+	return time(nullptr);
 }
 
 

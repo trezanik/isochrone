@@ -106,6 +106,10 @@ get_ms_as_max(
  * Adapted from the original code at:
  * http://stackoverflow.com/questions/1861294/how-to-calculate-execution-time-of-a-code-snippet-in-c
  *
+ * @warning
+ *  This is not a time_t type, which represents seconds for use in tm structs
+ * 
+ * @sa get_secs_since_epoch
  * @return
  *  Unsigned 64-bit value representing the amount of ms since the epoch
  */
@@ -145,6 +149,21 @@ get_perf_counter();
 TZK_CORE_API
 uint64_t
 get_perf_frequency();
+
+
+/**
+ * Gets the number of seconds since the Unix epoch
+ *
+ * This is just @code time(nullptr) @endcode, wrapped in another function for
+ * aiding identification of the type, as we also offer a milliseconds one
+ *
+ * @sa get_ms_since_epoch
+ * @return
+ *  The frequency value
+ */
+TZK_CORE_API
+time_t
+get_secs_since_epoch();
 
 
 /**
