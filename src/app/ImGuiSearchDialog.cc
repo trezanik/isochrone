@@ -271,57 +271,56 @@ ImGuiSearchDialog::SearchWorkspace(
 	// and now I can't access the workspace object itself, nor use the data object!
 	//srch(data.name.c_str(), "Workspace:Name", <data>);
 
+	for ( auto& n : data.nodes )
+	{
+		srch(n->name.c_str(), "Node:Name", n.get());
+		// choosing not to search IDs, but could be added
+		
+		for ( auto& t : n->targets )
+		{
+			srch(t.target.c_str(), "Node:Target", &t);
+		}
+	}
 	for ( auto& l : data.links )
 	{
 		srch(l->text.c_str(), "Link:Text", l.get());
 	}
 	for ( auto& n : data.nodes )
 	{
-		srch(n->datastr.c_str(), "Node:Data", n.get());
-		srch(n->name.c_str(), "Node:Name", n.get());
-		for ( auto& p : n->pins )
+		srch(n->graph.datastr.c_str(), "Node:Data", n.get());
+
+		for ( auto& p : n->graph.pins )
 		{
 			srch(p.name.c_str(), "Pin:Name", &p);
 			srch(p.style.c_str(), "Pin:Style", &p);
 		}
 		//n->position; ?
 		//n->size; ?
-		srch(n->style.c_str(), "Node:Style", n.get());
-		//n->type; ?
+		srch(n->graph.style.c_str(), "Node:Style", n.get()); ///////// not actually graph-bound
+		
+		auto  gnc_sysinf = dynamic_cast<node_component_systeminfo*>(n->get_component(cth_sysinfo));
+		if ( gnc_sysinf != nullptr )
+		{ 
+			node_component_systeminfo::system&  sysinf = gnc_sysinf->system_info;
 
-		/*
-		 * Not putting too much effort here for now, since long-term I plan
-		 * these to be component-based
-		 */
-		auto  gnms = std::dynamic_pointer_cast<trezanik::app::graph_node_multisystem>(n);
-		auto  gns = std::dynamic_pointer_cast<trezanik::app::graph_node_system>(n);
-
-		if ( gns != nullptr )
-		{
-			// ugh, all types within these... nothing iterative
-			for ( auto& e : gns->system_manual.cpus )
+			// ugh, all types within these... nothing iterative - needs adding!
+			for ( auto& e : sysinf.cpus )
 			{
-				srch(e.model.c_str(), "Node:SystemInfo.Manual:CPU:Model", &e);
-				srch(e.serial.c_str(), "Node:SystemInfo.Manual:CPU:Serial", &e);
-				srch(e.vendor.c_str(), "Node:SystemInfo.Manual:CPU:Vendor", &e);
+				srch(e.model.c_str(), "Node:SystemInfo:CPU:Model", &e);
+				srch(e.serial.c_str(), "Node:SystemInfo:CPU:Serial", &e);
+				srch(e.vendor.c_str(), "Node:SystemInfo:CPU:Vendor", &e);
 			}
-			for ( auto& e : gns->system_manual.dimms )
+			for ( auto& e : sysinf.dimms )
 			{
-				srch(e.model.c_str(), "Node:SystemInfo.Manual:DIMM:Model", &e);
-				srch(e.serial.c_str(), "Node:SystemInfo.Manual:DIMM:Serial", &e);
-				srch(e.vendor.c_str(), "Node:SystemInfo.Manual:DIMM:Vendor", &e);
-				srch(e.capacity.c_str(), "Node:SystemInfo.Manual:DIMM:Capacity", &e);
-				srch(e.slot.c_str(), "Node:SystemInfo.Manual:DIMM:Slot", &e);
+				srch(e.model.c_str(), "Node:SystemInfo:DIMM:Model", &e);
+				srch(e.serial.c_str(), "Node:SystemInfo:DIMM:Serial", &e);
+				srch(e.vendor.c_str(), "Node:SystemInfo:DIMM:Vendor", &e);
+				srch(e.capacity.c_str(), "Node:SystemInfo:DIMM:Capacity", &e);
+				srch(e.slot.c_str(), "Node:SystemInfo:DIMM:Slot", &e);
 			}
-			//gns->system_autodiscover;
+			// ... all others
 		}
-		else if ( gnms != nullptr )
-		{
-			//gnms->hostnames;
-			//gnms->ips;
-			//gnms->ip_ranges;
-			//gnms->subnets;
-		}
+		
 	}
 	for ( auto& s : data.node_styles )
 	{
@@ -345,11 +344,11 @@ ImGuiSearchDialog::SearchWorkspace(
 	}
 	for ( auto& s : data.service_groups )
 	{
-		srch(s->comment.c_str(), "Service:Comment", s.get());
-		srch(s->name.c_str(), "Service:Name", s.get());
+		srch(s->comment.c_str(), "ServiceGroup:Comment", s.get());
+		srch(s->name.c_str(), "ServiceGroup:Name", s.get());
 		for ( auto& l : s->services )
 		{
-			srch(l.c_str(), "Service:Services", s.get());
+			srch(l.c_str(), "ServiceGroup:Services", s.get());
 		}
 	}
 }
