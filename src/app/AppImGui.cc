@@ -529,28 +529,58 @@ AppImGui::HandleResourceState(
 		{
 			auto  reswksp = std::dynamic_pointer_cast<Resource_Workspace>(res_state.resource);
 			auto  wksp = reswksp->GetWorkspace();
+			auto  imwksp = reswksp->GetImGuiWorkspace();
 
-			if ( wksp != nullptr )
-			{
-				// prevent race conditions with other threads, could be drawing
-				std::lock_guard<std::mutex>  lock(my_gui.mutex);
+			// should be impossible conventionally
+			assert(wksp != nullptr);
+			assert(imwksp != nullptr);
 
-				auto   imguiwksp = std::make_shared<ImGuiWorkspace>(my_gui);
-				auto&  uuid = wksp->GetID();
-				my_gui.workspaces[uuid] = std::make_pair<>(imguiwksp, wksp);
-				my_gui.workspaces[uuid].first->SetWorkspace(wksp);
-				my_gui.active_workspace = uuid;
-			}
+			const UUID&  id = wksp->GetID();
+
+			std::lock_guard<std::mutex>  lock(my_gui.mutex);
+
+			/// @todo check if we can just use the ResourceID here
+			/*
+			 * Update the key to reflect the loaded UUID.
+			 * We could always use the resource ID as the key permanently instead,
+			 * since we're already using it as a stop-gap! Certain other code I
+			 * believe expects this to be the wksp UUID though
+			 * 
+			 * C++17 - use extract for efficiency
+			 */
+#if __cplusplus < 201703L // C++14 workaround
+			 /*
+			 * Resource holds the shared_ptrs open, so they won't be destroyed.
+			 * Remove the element, and a new entry re-using the existing
+			 * variables
+			 */
+			my_gui.workspaces.erase(my_loading_workspace_resid);
+			my_gui.workspaces[id] = std::make_pair<>(imwksp, wksp);
+#else
+			auto  x = my_gui.workspaces.extract(my_loading_workspace_resid);
+			x.key() = id;
+			my_gui.workspaces.insert(std::move(x));
+#endif			
+
+			my_gui.active_workspace = id;
 
 			// make available for future load calls
 			my_loading_workspace_resid = blank_uuid;
+			imwksp->SetWorkspace(wksp);
 		}
 	}
 	break;
 	case ResourceState::Loading:
 		if ( res_state.resource->GetResourceID() == my_loading_workspace_resid )
 		{
-			// future: open loading dialog
+			auto  reswksp = std::dynamic_pointer_cast<Resource_Workspace>(res_state.resource);
+			auto  wksp = reswksp->GetWorkspace();
+			auto  imwksp = reswksp->GetImGuiWorkspace();
+
+			assert(wksp != nullptr);
+			assert(imwksp != nullptr);
+
+			my_gui.workspaces[my_loading_workspace_resid] = std::make_pair<>(imwksp, wksp);
 		}
 		break;
 	case ResourceState::Failed:
@@ -558,6 +588,8 @@ AppImGui::HandleResourceState(
 	{
 		if ( res_state.resource->GetResourceID() == my_loading_workspace_resid )
 		{
+			std::lock_guard<std::mutex>  lock(my_gui.mutex);
+			my_gui.workspaces.erase(my_loading_workspace_resid);
 			my_loading_workspace_resid = blank_uuid;
 		}
 	}
@@ -1303,7 +1335,7 @@ AppImGui::PostEnd()
 				}
 				else
 				{
-					std::shared_ptr<Resource_Workspace>  wksp_res = std::make_shared<Resource_Workspace>(path);
+					std::shared_ptr<Resource_Workspace>  wksp_res = std::make_shared<Resource_Workspace>(my_gui, path);
 
 					if ( my_gui.resource_loader.AddResource(std::dynamic_pointer_cast<engine::Resource>(wksp_res)) != ErrNONE )
 					{
@@ -1343,7 +1375,7 @@ AppImGui::PostEnd()
 	{
 		/*if ( my_gui.workspaces[my_gui.active_workspace].first->IsModified() )
 		{
-			// handle
+			// handle confirm prompt
 		}*/
 
 		// untrack the workspace
@@ -1354,7 +1386,7 @@ AppImGui::PostEnd()
 		my_gui.active_workspace = blank_uuid;
 		my_gui.close_current_workspace = false;
 	}
-#if 0  // Code Disabled: moved into ImGuiWorkspace::Draw
+#if 0  // Code Disabled: moved into ImGuiWorkspace::Draw, to handle Workspace data update. Original data resaved otherwise!
 	if ( my_gui.save_current_workspace )
 	{
 		/* add in future, if desired - don't re-write unless modified?
@@ -1481,6 +1513,11 @@ AppImGui::PreEnd()
 		my_gui.menubar_size = ImGui::GetItemRectSize();
 	}
 	// status bar in future
+
+	if ( my_gui.workspaces.size() > 1 )
+	{
+		// tab bar switcher for workspaces if more than one open
+	}
 
 	// update dimensions; done now to accommodate main menu bar in availability
 	UpdateDimensions();

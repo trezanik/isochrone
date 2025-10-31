@@ -9,8 +9,10 @@
 
 #include "app/resources/TypeLoader_Workspace.h"
 #include "app/Workspace.h"
-#include "engine/resources/IResource.h"
+#include "app/ImGuiWorkspace.h"
 #include "app/resources/Resource_Workspace.h"
+
+#include "engine/resources/IResource.h"
 #include "engine/services/event/EngineEvent.h"
 #include "engine/services/ServiceLocator.h"
 
@@ -60,18 +62,35 @@ TypeLoader_Workspace::Load(
 {
 	using namespace trezanik::core;
 
+	/*
+	 * Workspace object contains the loaded data target storage
+	 * 
+	 * ImGuiWorkspace object hooks into each loaded item, as display feedback
+	 * for the user (also indirectly available in the Log window, but this is
+	 * completely optional).
+	 * 
+	 * Create both objects in advance of the load notification, so they can be
+	 * acquired by the listeners, and integrated into the UI. Naturally will
+	 * also have to handle their removal on a failure notification.
+	 */
+	std::shared_ptr<Workspace>         wksp = std::make_shared<Workspace>();
 	engine::EventData::resource_state  data{ resource, engine::ResourceState::Loading };
-
-	NotifyLoad(&data);
-
 	auto  resptr = std::dynamic_pointer_cast<Resource_Workspace>(resource);
 
 	if ( resptr == nullptr )
 	{
+		// ugh, hack, but should never occur
+		NotifyLoad(&data);
+
 		TZK_LOG(LogLevel::Error, "dynamic_pointer_cast failed on IResource -> Resource_Workspace");
 		NotifyFailure(&data);
 		return EFAULT;
 	}
+
+	std::shared_ptr<ImGuiWorkspace>  imwksp = std::make_shared<ImGuiWorkspace>(resptr->GetGuiInteractions());
+	
+	resptr->AssignWorkspace(wksp, imwksp);
+	NotifyLoad(&data);
 
 	auto   filepath = resource->GetFilepath();
 	int    openflags = aux::file::OpenFlag_ReadOnly | aux::file::OpenFlag_DenyW;
@@ -83,33 +102,34 @@ TypeLoader_Workspace::Load(
 		NotifyFailure(&data);
 		return ErrFAILED;
 	}
-	// using pugixml, which loads file itself
-	aux::file::close(fp);
-
-
-	std::shared_ptr<Workspace>  wksp = std::make_shared<Workspace>();
 
 	/*
 	 * actual loading code. We handoff to Workspace::Load since all the code was
 	 * originally written in that function; we could migrate over to here but at
-	 * present there's no benefit, if unusual.
+	 * present there's no benefit, if unusual (it also handles saving, which we
+	 * do not action for anything else).
 	 * 
-	 * Main reason for splitting back:
-	 * NotifyStep() desired call, to allow display tracking in loading window.
-	 * Will require loading code to then be in here, achievable but another big
-	 * refactor.
-	 * Future action post-beta - for now, this works.
+	 * For now, this works, up for debate if it should be split out.
 	 */
 	aux::Path  fpath { filepath };
 	int  rc = wksp->Load(fpath);
+
+	// double-opened for TOCTOU
+	aux::file::close(fp);
+	
+	/*
+	 * Can't set readystate here, and seems redundant adding a method that could
+	 * be called from anywhere to 'set' it true. So as per the workspace resource
+	 * comments, _readystate is assigned when the objects are created and can
+	 * then be used, but success notification means it's actually loaded.
+	 */
 
 	if ( rc != ErrNONE )
 	{
 		NotifyFailure(&data);
 		return rc;
 	}
-
-	resptr->AssignWorkspace(wksp);
+	
 	NotifySuccess(&data);
 	return ErrNONE;
 }

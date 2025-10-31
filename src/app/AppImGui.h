@@ -199,7 +199,14 @@ struct GuiInteractions
 	/** Pointer to the font used for fixed-width font rendering in all dialogs */
 	ImFont*  font_fixed_width = nullptr;
 
-	/** All loaded workspaces, their ID used as the primary key */
+	/**
+	 * All loaded workspaces, their ID used as the primary key
+	 * 
+	 * While loading, the key ID is the resource ID and NOT the workspace ID.
+	 * It will be automatically replaced/updated upon completion of loading;
+	 * this allows loading feedback by providing a UI capability.
+	 * Yes, it could just be a separate variable too.
+	 */
 	std::map<trezanik::core::UUID, std::pair<std::shared_ptr<ImGuiWorkspace>, std::shared_ptr<Workspace>>, core::uuid_comparator>  workspaces;
 	/** UUID of the active workspace; set to a blank_uuid when none */
 	trezanik::core::UUID  active_workspace = trezanik::core::blank_uuid;
@@ -243,6 +250,8 @@ struct GuiInteractions
 	ImVec2  bottom_pos {};
 	/** for positional layout, the workspace starting position */
 	ImVec2  workspace_pos {};
+	/** for positional layout, the workspace starting position */
+	ImVec2  tabchild_pos {};
 
 	// These are exact sizes
 
@@ -252,10 +261,12 @@ struct GuiInteractions
 	ImVec2  top_size {};
 	/** for positional layout, the right dock size */
 	ImVec2  right_size {};
-	/** for positional layout, the bottom dick size */
+	/** for positional layout, the bottom dock size */
 	ImVec2  bottom_size {};
 	/** for positional layout, the workspace size */
 	ImVec2  workspace_size {};
+	/** for positional layout, the tab child size within the workspace */
+	ImVec2  tabchild_size {};
 
 #if TZK_IS_DEBUG_BUILD
 	// These are screen co-ordinates of the actual drawing area
@@ -270,6 +281,8 @@ struct GuiInteractions
 	ImRect  bottom_rect {};
 	/** for positional layout, app area for the workspace */
 	ImRect  workspace_rect {};
+	/** for positional layout, tab area for the workspace */
+	ImRect  tabchild_rect {};
 #endif
 };
 

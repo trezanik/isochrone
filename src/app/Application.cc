@@ -2439,7 +2439,7 @@ Application::NewWorkspace(
 		return rc;
 	}
 
-	std::shared_ptr<Resource_Workspace>  wksp_res = std::make_shared<Resource_Workspace>(fpath);
+	std::shared_ptr<Resource_Workspace>  wksp_res = std::make_shared<Resource_Workspace>(*my_gui_interactions.get(), fpath);
 	auto& loader = my_context->GetResourceLoader();
 
 	rc = loader.AddResource(std::dynamic_pointer_cast<engine::Resource>(wksp_res));
@@ -2939,7 +2939,7 @@ Application::SaveWorkspace(
 {
 	for ( auto& wm : my_workspaces )
 	{
-		if ( wm.second->ID() == workspace_id )
+		if ( wm.second->GetID() == workspace_id )
 		{
 			return wm.second->Save(wm.second->GetPath());
 		}
