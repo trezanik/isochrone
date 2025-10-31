@@ -165,23 +165,17 @@ ImGuiMenuBar::Draw()
 
 			for ( auto& ast : _gui_interactions.app_styles )
 			{
-				bool  not_current = !(ast->name == _gui_interactions.active_app_style);
+				bool  not_current = !(ast->name == _gui_interactions.active_app_style.name);
 
 				if ( ImGui::MenuItem(ast->name.c_str(), "", nullptr, not_current) )
 				{
-					_gui_interactions.active_app_style = ast->name;
+					_gui_interactions.active_app_style = *ast;
 
 					/*
 					 * We can apply it immediately here, but config change will
 					 * trigger AppImGui to apply the style anyway since it has
 					 * the handling for modification in the Preferences dialog.
-					 * 
-					 * Without a config change, enable this code
 					 */
-#if 0
-					auto&  st = ImGui::GetStyle();
-					memcpy(&st, &ast->style, sizeof(ImGuiStyle));
-#else
 					// actually update the setting
 					auto  cfg = core::ServiceLocator::Config();
 					cfg->Set(TZK_CVAR_SETTING_UI_STYLE_NAME, ast->name.c_str());
@@ -192,7 +186,6 @@ ImGuiMenuBar::Draw()
 
 					// notify out, as appimgui has custom tweaks to perform on theme changes currently
 					core::ServiceLocator::EventDispatcher()->DelayedDispatch(uuid_configchange, cc);
-#endif
 					break;
 				}
 			}

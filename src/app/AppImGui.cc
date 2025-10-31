@@ -451,33 +451,38 @@ AppImGui::HandleConfigChange(
 		auto& st = ImGui::GetStyle();
 
 		/*
-		* When changing the style, the expectation is the active
-		* app style is updated to the new value, and the config
-		* entry set & then event dispatched of the change.
-		* 
-		* This will be the case if the change is made via the
-		* preferences dialog, and we don't handle it explicitly,
-		* which I don't want to.
-		* So, making it an info and not a warning log entry.
-		*/
-		if ( cc->new_config[TZK_CVAR_SETTING_UI_STYLE_NAME] != my_gui.active_app_style )
+		 * When changing the style, the expectation is the name setting
+		 * being updated, but no 'activation' is done, as each source
+		 * point would need to invoke or handle the change.
+		 * 
+		 * This is most notable given the capability to switch from the
+		 * preferences dialog (no settings apply immediately there),
+		 * the menu bar, and even command-based input.
+		 * 
+		 * Might as well make this the dedicated handler for it as we'll
+		 * receive all notifications, and make it consistent.
+		 */
+		if ( cc->new_config[TZK_CVAR_SETTING_UI_STYLE_NAME] != my_gui.active_app_style.name )
 		{
 			TZK_LOG_FORMAT(LogLevel::Info, "Application active app style ('%s') not updated to configuration ('%s')",
-				cc->new_config[TZK_CVAR_SETTING_UI_STYLE_NAME].c_str(), my_gui.active_app_style.c_str()
+				cc->new_config[TZK_CVAR_SETTING_UI_STYLE_NAME].c_str(), my_gui.active_app_style.name.c_str()
 			);
 			// forcefully set
-			my_gui.active_app_style = cc->new_config[TZK_CVAR_SETTING_UI_STYLE_NAME];
+			my_gui.active_app_style.name = cc->new_config[TZK_CVAR_SETTING_UI_STYLE_NAME];
 		}
 
 		for ( auto& ast : my_gui.app_styles )
 		{
-			if ( ast->name == my_gui.active_app_style )
+			if ( ast->name == my_gui.active_app_style.name )
 			{
 				TZK_LOG_FORMAT(LogLevel::Info, "Updating active style to '%s'", ast->name.c_str());
+				// must replace the in-memory imgui styling, or won't reflect until reload
 				memcpy(&st, &ast->style, sizeof(ImGuiStyle));
+				my_gui.active_app_style = *ast;
 				break;
 			}
 		}
+
 
 		/*
 		 * Special case; debug and warning look unreadable in light

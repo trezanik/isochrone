@@ -72,12 +72,78 @@ enum class FileDialogType : uint8_t;
 enum class WindowLocation;
 struct DrawClient;
 
+
+extern const char  inbuilt_style_classic_name[];
+extern const char  inbuilt_style_dark_name[];
+extern const char  inbuilt_style_light_name[];
+
 // cth or ids??? can switch on hashes...
 static trezanik::core::UUID  drawclient_log_uuid("2e1ee664-2e7a-4d46-aca8-eea523a85cc5");
 static trezanik::core::UUID  drawclient_virtualkeyboard_uuid("b7c7a899-7a91-48c5-a6c0-a5f29e64130c");
 static trezanik::core::UUID  drawclient_rss_uuid("212c97f6-16a9-4be7-979f-b894d4a62c35");
 static trezanik::core::UUID  drawclient_console_uuid("ffb0709f-88cd-41cb-9b50-7d84b0537373");
 static trezanik::core::UUID  drawclient_svcmgmt_uuid("6adf273a-4886-4bfd-969e-e5571d49a84e");
+
+/**
+ * Style names starting with this string are reserved for internal application
+ * use only; attempts to rename or delete said styles will be rejected.
+ * They can still be modified however, with per-Workspace override!
+ */
+static std::string  reserved_style_prefix      = "Default:";
+
+
+// add CheckServiceName and CheckWorkspaceName here too??
+	
+
+/**
+ * Helper function; determines if the input string contains a reserved style name
+ * 
+ * @param[in] name
+ *  The name (or any string) to compare against. Not case sensitive
+ * @return
+ *  Boolean state; true if a reserved name, otherwise false
+ */
+static inline bool
+IsReservedStyleName(
+	const char* name
+)
+{
+	return STR_compare_n(name, reserved_style_prefix.c_str(), reserved_style_prefix.length(), false) == 0;
+}
+
+
+static bool
+IsValidRelativePosition(
+	float x,
+	float y
+)
+{
+	if ( x < 0 || x > 1 || y < 0 || y > 1 )
+	{
+		return false;
+	}
+	if ( x > 0 && x < 1 )
+	{
+		if ( y != 0 && y != 1 )
+			return false;
+	}
+	if ( y > 0 && y < 1 )
+	{
+		if ( x != 0 && x != 1 )
+			return false;
+	}
+
+	return true;
+}
+
+static bool
+IsValidRelativePosition(
+	ImVec2& xy
+)
+{
+	return IsValidRelativePosition(xy.x, xy.y);
+}
+
 
 
 
@@ -193,6 +259,22 @@ struct AppImGuiStyle
 	 * doesn't override a style setting.
 	 */
 	nodelist_style  nl_style;
+
+
+	AppImGuiStyle()
+	{
+		name = "Unnamed";
+	}
+
+	AppImGuiStyle(
+		AppImGuiStyle* src
+	)
+	{
+		name = src->name;
+		id = src->id;
+		memcpy(&style, &src->style, sizeof(ImGuiStyle));
+		nl_style = src->nl_style;
+	}
 };
 
 
@@ -307,9 +389,10 @@ struct GuiInteractions
 	 * Would be a set, but returns const, so have to self-sort and duplicate
 	 * check..
 	 */
-	std::vector<std::unique_ptr<AppImGuiStyle>>  app_styles;
-	/** Name of the active application style; yes, we could use an id instead */
-	std::string  active_app_style;
+	std::vector<std::shared_ptr<AppImGuiStyle>>  app_styles;
+
+	/** Copy of the selected active style. Replaced when switching styles */
+	AppImGuiStyle  active_app_style;
 
 	/** The left dock window */
 	std::unique_ptr<ImGuiSemiFixedDock>  dock_left;

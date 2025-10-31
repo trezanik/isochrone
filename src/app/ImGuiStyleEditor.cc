@@ -48,11 +48,7 @@ ImGuiStyleEditor::ImGuiStyleEditor(
 		 */
 		for ( auto& as : _gui_interactions.app_styles )
 		{
-			auto  sdup = std::make_shared<AppImGuiStyle>();
-			// can add copy constructor, inline for now
-			sdup->name = as->name;
-			sdup->id = as->id;
-			memcpy(&sdup->style, &as->style, sizeof(ImGuiStyle));
+			auto  sdup = std::make_shared<AppImGuiStyle>(as.get());
 			my_app_styles.emplace_back(std::move(sdup));
 		}
 
@@ -516,7 +512,7 @@ ImGuiStyleEditor::DrawAppStyleTab()
 
 	if ( apply_disabled )
 	{
-		ImGui::BeginDisabled(true);
+		ImGui::BeginDisabled();
 	}
 	if ( ImGui::Button("Activate Style##AppStyle", button_size) )
 	{
@@ -527,17 +523,18 @@ ImGuiStyleEditor::DrawAppStyleTab()
 		 * Doesn't matter if a rename matches up, that one will be activated and
 		 * new effect on an application relaunch/reapply.
 		 */
-		ImGuiStyle*  liveptr = nullptr;
+		std::shared_ptr<AppImGuiStyle>  activating = nullptr;
+
 		for ( auto& as : _gui_interactions.app_styles )
 		{
 			if ( as->name == *my_appstyle_edit.name )
 			{
-				liveptr = &as->style;
+				activating = as;
 				break;
 			}
 		}
 
-		if ( liveptr == nullptr )
+		if ( activating == nullptr )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, "AppImGuiStyle '%s' not found; did you forget to save?", my_appstyle_edit.name->c_str());
 		}
@@ -547,17 +544,19 @@ ImGuiStyleEditor::DrawAppStyleTab()
 
 			TZK_LOG_FORMAT(LogLevel::Info, "Activating AppImGuiStyle: %s", my_appstyle_edit.name->c_str());
 
-			memcpy(&st, liveptr, sizeof(ImGuiStyle));
+			memcpy(&st, &activating->style, sizeof(ImGuiStyle));
+			_gui_interactions.active_app_style = *activating;
 
-			_gui_interactions.active_app_style = *my_appstyle_edit.name;
+			// actually update the setting
+			auto  cfg = core::ServiceLocator::Config();
+			cfg->Set(TZK_CVAR_SETTING_UI_STYLE_NAME, _gui_interactions.active_app_style.name.c_str());
 
-			/*
-			 * By design, we do not save this modification; it's live, but the app
-			 * preferences will continue to show whatever is configured and that will
-			 * continue to be used on load.
-			 * It MUST be assigned by the preferences route. Custom style mods do
-			 * get immediately saved, but again, they won't touch the app config.
-			 */
+			// track the setting for notification to listeners
+			auto  cc = std::make_shared<engine::EventData::config_change>();
+			cc->new_config.emplace(TZK_CVAR_SETTING_UI_STYLE_NAME, _gui_interactions.active_app_style.name.c_str());
+
+			// notify out, as appimgui has custom tweaks to perform on theme changes currently
+			core::ServiceLocator::EventDispatcher()->DelayedDispatch(engine::uuid_configchange, cc);
 		}
 	}
 	if ( apply_disabled )
@@ -649,12 +648,14 @@ ImGuiStyleEditor::DrawAppStyleTab()
 		for ( auto& as : my_app_styles )
 		{
 			// this also recreates the inbuilt styles
-			auto  app_style = std::make_unique<AppImGuiStyle>();
-			app_style->name = as->name;
-			app_style->id.Generate();
-			memcpy(&app_style->style, &as->style, sizeof(ImGuiStyle));
-
+			auto  app_style = std::make_shared<AppImGuiStyle>(as.get());
 			_gui_interactions.app_styles.emplace_back(std::move(app_style));
+
+			// reassign since we wiped it out, this is actively used by drawing clients
+			if ( _gui_interactions.active_app_style.name == as->name )
+			{
+				_gui_interactions.active_app_style = *as;
+			}
 		}
 
 		/*
@@ -683,17 +684,12 @@ ImGuiStyleEditor::DrawAppStyleTab()
 	{
 		my_app_styles.clear();
 		// always invalidate after a clear, index reliance not safe
-		my_appstyle_edit.active_style = nullptr;
-		my_appstyle_edit.name = nullptr;
-		my_appstyle_edit.name_is_not_permitted = true;
+		my_appstyle_edit.reset();
 		int  i = 0;
+
 		for ( auto& as : _gui_interactions.app_styles )
 		{
-			auto  sdup = std::make_shared<AppImGuiStyle>();
-			// can add copy constructor, inline for now
-			sdup->name = as->name;
-			sdup->id = as->id;
-			memcpy(&sdup->style, &as->style, sizeof(ImGuiStyle));
+			auto  sdup = std::make_shared<AppImGuiStyle>(as.get());
 			my_app_styles.emplace_back(std::move(sdup));
 
 			if ( i == my_appstyle_edit.list_selected_index )
@@ -707,8 +703,7 @@ ImGuiStyleEditor::DrawAppStyleTab()
 			}
 			i++;
 		}
-
-		my_appstyle_edit.modified = false;
+		
 		if ( my_appstyle_edit.name == nullptr )
 		{
 			// no selected item, ensure index invalidated so no lookups attempted

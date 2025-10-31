@@ -1468,19 +1468,29 @@ TZK_CC_RESTORE_WARNING // -Wmissing-field-initializers
 		{
 			auto&  st = ImGui::GetStyle();
 			memcpy(&st, &ast->style, sizeof(ImGuiStyle));
-			my_gui_interactions->active_app_style = my_cfg.ui.style.name;
+			my_gui_interactions->active_app_style = *ast;
 			break;
 		}
 	}
 
 	// coverage for no configuration or failure to load
-	if ( my_gui_interactions->active_app_style.empty() )
+	if ( my_gui_interactions->active_app_style.name.empty() )
 	{
-		TZK_LOG_FORMAT(LogLevel::Warning, "Unable to find configured style '%s', reverting to inbuilt", my_cfg.ui.style.name.c_str());
+		TZK_LOG_FORMAT(LogLevel::Warning, "Unable to find configured style '%s'; reverting to inbuilt", my_cfg.ui.style.name.c_str());
 		
 		ImGui::StyleColorsDark();
 		my_cfg.ui.style.name = inbuilt_style_dark_name;
-		my_gui_interactions->active_app_style = my_cfg.ui.style.name;
+		my_gui_interactions->active_app_style.name = my_cfg.ui.style.name;
+		for ( auto& ast : my_gui_interactions->app_styles )
+		{
+			if ( ast->name == my_gui_interactions->active_app_style.name )
+			{
+				auto& st = ImGui::GetStyle();
+				memcpy(&st, &ast->style, sizeof(ImGuiStyle));
+				my_gui_interactions->active_app_style = *ast;
+				break;
+			}
+		}
 	}
 
 	TZK_LOG(LogLevel::Debug, "ImGui Initialization complete");
