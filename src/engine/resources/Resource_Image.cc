@@ -144,6 +144,7 @@ Resource_Image::AssignPNG(
 	 * RAM (all images are present twice in memory)
 	 */
 
+	LoadComplete();
 	TZK_LOG(LogLevel::Debug, "PNG assignment completed");
 
 	return ErrNONE;

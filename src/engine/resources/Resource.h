@@ -60,6 +60,21 @@ protected:
 
 
 	/**
+	 * Marks the resource load as complete
+	 * 
+	 * Sets the _readystate flag. Each implementing class should call this, as
+	 * we're designed to throw (assuming called) if it's not ready.
+	 * 
+	 * @sa ThrowUnlessReady
+	 */
+	void
+	LoadComplete()
+	{
+		_readystate = true;
+	}
+
+
+	/**
 	 * As implied, throws a runtime_error unless the resource is ready
 	 *
 	 * Invoked with each function that requires the resource to have been
@@ -135,6 +150,8 @@ public:
 
 	// this class *assigns* the mediatype in suited scenarios
 	friend class ResourceLoader;
+	// sets _readystate in successful load notifications
+	friend class TypeLoader;
 };
 
 

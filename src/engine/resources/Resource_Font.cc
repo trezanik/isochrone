@@ -63,7 +63,7 @@ Resource_Font::SetFont_Freetype(
 {
 	my_fnt = fnt;
 
-	_readystate = true;
+	LoadComplete();
 }
 #endif // TZK_USING_FREETYPE
 

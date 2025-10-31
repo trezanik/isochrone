@@ -110,7 +110,7 @@ Resource_Audio::SetAudioFile(
 	my_filetype = type;
 	my_file = audiofile;
 
-	_readystate = true;
+	LoadComplete();
 }
 
 
