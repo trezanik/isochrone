@@ -212,10 +212,20 @@ time_taken(
 	size_t buf_size
 )
 {
-	uint64_t  delta = (end - start);
+	return time_taken(end - start, buf, buf_size);
+}
+
+
+void
+time_taken(
+	uint64_t duration,
+	char* buf,
+	size_t buf_size
+)
+{
 	uint16_t  days, hours, mins, secs, ms;
 
-	get_ms_as_max(delta, days, hours, mins, secs, ms);
+	get_ms_as_max(duration, days, hours, mins, secs, ms);
 
 	if ( days > 0 )
 		STR_format(buf, buf_size, "%ud %uh %um %us %ums", days, hours, mins, secs, ms);

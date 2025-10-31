@@ -224,6 +224,29 @@ time_taken(
 );
 
 
+/**
+ * Second implementation of time_taken, using a pre-computed duration
+ *
+ * @sa time_taken
+ * 
+ * @param[in] duration
+ *  The differential between a start and end time to convert
+ * @param[out] buf
+ *  The output buffer; with uint16_t used internally, combined with days being
+ *  the largest unit, a 29 character buffer including nul terminator will be
+ *  sufficient for all values
+ * @param[in] buf_size
+ *  The number of bytes contained within buf
+ */
+TZK_CORE_API
+void
+time_taken(
+	uint64_t duration,
+	char* buf,
+	size_t buf_size
+);
+
+
 } // namespace aux
 } // namespace core
 } // namespace trezanik
