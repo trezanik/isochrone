@@ -20,6 +20,23 @@ namespace core {
 namespace aux {
 
 
+/**
+ * Creates a common/filesystem path out of the input directory and filename
+ *
+ * Simple helper that inserts path separators if required, sets the file
+ * extension if applicable and returns the combined string
+ *
+ * @param[in] directory
+ *  The directory
+ * @param[in] filename
+ *  The filename; if an extension is specified in the next parameter, this
+ *  should not have a file extension included
+ * @param[in] extension
+ *  (Optional) The file extension to set. The dot '.' is automatically added
+ *  if missing
+ * @return
+ *  The combined directory and filename into a single string
+ */
 TZK_CORE_API
 std::string
 BuildPath(
@@ -69,7 +86,7 @@ enum byte_conversion_flags_ : ByteConversionFlags
  * The threshold is upon reaching the value of an upper marker, e.g. 1023 will
  * still be 1023 bytes; 1024 will be 1 KiB. 1024 KiB = 1 MiB, etc.
  * 
- * The default (non-flagged) output for 1,000,000 bytes is: 1MB
+ * The default (no flags) output for 1,000,000 bytes is: 1MB
  * 
  * Input bytes is a forced 64-bit type to accommodate sizes that are greater
  * than 4GB on 32-bit if we have a 32-bit build. Rare and unlikely, however is
@@ -92,6 +109,16 @@ BytesToReadable(
 );
 
 
+/**
+ * Determines if the input string ends with the string to check
+ *
+ * @param[in] source
+ *  The source string
+ * @param[in] check
+ *  The comparison string
+ * @return
+ *  Boolean result
+ */
 TZK_CORE_API
 bool
 EndsWith(
@@ -100,6 +127,21 @@ EndsWith(
 );
 
 
+/**
+ * Extracts the file name from a full path
+ *
+ * If no path separators are found, the input string is returned.
+ *
+ * This function will interpret both a backslash and forward-slash as a path
+ * separator (for multi-platform); if both exist in the input, whichever char
+ * appears last will be interpretted as the path separator. These should be
+ * edge cases at best, but we want to be consistent in such a situation.
+ *
+ * @param[in] path
+ *  The path string to process
+ * @return
+ *  The filename string
+ */
 TZK_CORE_API
 std::string
 FilenameFromPath(
@@ -107,6 +149,20 @@ FilenameFromPath(
 );
 
 
+/**
+ * Searches for and replaces the input string with the replacment string
+ *
+ * Simple wrapper around std::replace, tracking the number of replacements.
+ *
+ * @param[in,out] source
+ *  The string to search, and modify in-place
+ * @param[in] search
+ *  What to search for
+ * @param[in] replacement
+ *  What to replace search with
+ * @return
+ *  The number of replacements performed
+ */
 TZK_CORE_API
 size_t
 FindAndReplace(
@@ -134,6 +190,21 @@ float_string_precision(
 );
 
 
+/**
+ * Generates a random string within the specified parameters
+ *
+ * ASCII printable chars only; will not include numbers.
+ *
+ * @note
+ *  Uses rand(); the caller is responsible for seeding rand as appropriate
+ *
+ * @param[in] max_length
+ *  The maximum length of the generated string. Cannot be greater than 65535
+ * @param[in] min_length
+ *  The minimum length of the generated string. Cannot be smaller than 1
+ * @return
+ *  A randomly generated string
+ */
 TZK_CORE_API
 std::string
 GenRandomString(
@@ -159,6 +230,18 @@ InsertDigitCommas(
 );
 
 
+/**
+ * Left-pads the input string with a number of pad characters
+ *
+ * @param[in] max
+ *  The allowed maximum length of the string after padding
+ * @param[in] pad_char
+ *  The character to pad with
+ * @param[in] str
+ *  The original string to be padded
+ * @return
+ *  The input string, with pad_char left-padding up to max
+ */
 TZK_CORE_API
 std::string
 LPad(
@@ -168,6 +251,11 @@ LPad(
 );
 
 
+/**
+ * @copydoc LPad
+ * @return
+ *  The input string, with pad_char left-padding up to max in a new string object
+ */
 TZK_CORE_API
 std::string
 LPad(
@@ -177,6 +265,18 @@ LPad(
 );
 
 
+/**
+ * Inserts quotation marks at the beginning and end of the input string
+ *
+ * Used primarily for Win32 to prevent execution errors and/or security issues
+ * via PATH ordering.
+ *
+ * Mismatched quotations will be fixed (e.g. if the string starts with one,
+ * but doesn't finish with one, the latter will be added).
+ *
+ * @param[in,out] path
+ *  The path to modify. If quotes already exist, no action is taken
+ */
 TZK_CORE_API
 void
 QuotePath(
@@ -184,6 +284,14 @@ QuotePath(
 );
 
 
+/**
+ * Performs QuotePath, but only inserts quotes if required
+ *
+ * @param[in,out] path
+ *  The path to modify. If quotes already exist, or no space character is
+ *  found, then no action is taken.
+ * @sa QuotePath
+ */
 TZK_CORE_API
 void
 QuotePathIfNeeded(
@@ -191,6 +299,19 @@ QuotePathIfNeeded(
 );
 
 
+/**
+ * Replaces the file extension with the one supplied as a new string
+ *
+ * If the input path does not have an extension, or is a dot file, then an
+ * empty string will be returned.
+ *
+ * @param[in] path
+ *  The path the replacement will be based on
+ * @param[in] new_extension
+ *  The new file extension
+ * @return
+ *  A new string containing the input path with the new extension
+ */
 TZK_CORE_API
 std::string
 ReplaceFileExtension(
@@ -199,6 +320,22 @@ ReplaceFileExtension(
 );
 
 
+/**
+ * Converts a suitable dimension/resolution string into its x and y components
+ *
+ * The permitted input format is: 'X x Y', e.g. '1024 x 768'. Anything
+ * not matching this format, including alphabetical characters where
+ * numerics are expected, will result in failure.
+ *
+ * @param[in] str
+ *  The string to parse
+ * @param[out] out_x
+ *  Destination for the x component
+ * @param[out] out_y
+ *  Destination for the y component
+ * @return
+ *  An error code on failure, otherwise ErrNONE.
+ */
 TZK_CORE_API
 int
 ResolutionFromString(
@@ -208,6 +345,20 @@ ResolutionFromString(
 );
 
 
+/**
+ * Converts any X and Y dimension/resolution value into a string
+ *
+ * The output format will be 'X x Y', e.g. '1024 x 768'. As the input values
+ * are unsigned, negative values are not possible and the function will always
+ * succeed.
+ *
+ * @param[in] x
+ *  X (width) component
+ * @param[in] y
+ *  Y (height) component
+ * @param[out] str
+ *  Destination for the output
+ */
 TZK_CORE_API
 void
 ResolutionToString(
@@ -217,6 +368,20 @@ ResolutionToString(
 );
 
 
+/**
+ * Converts any X and Y dimension/resolution value into a string
+ *
+ * The output format will be 'X x Y', e.g. '1024 x 768'. As the input values
+ * are unsigned, negative values are not possible and the function will always
+ * succeed.
+ *
+ * @param[in] x
+ *  X (width) component
+ * @param[in] y
+ *  Y (height) component
+ * @return
+ *  The constructed string object
+ */
 TZK_CORE_API
 std::string
 ResolutionToString(
@@ -234,6 +399,18 @@ RPad(
 );
 
 
+/**
+ * Right-pads the input string with a number of pad characters
+ *
+ * @param[in] max
+ *  The allowed maximum length of the string after padding
+ * @param[in] pad_char
+ *  The character to pad with
+ * @param[in] str
+ *  The original string to be padded
+ * @return
+ *  The input string, with pad_char right-padding up to max
+ */
 TZK_CORE_API
 std::string
 RPad(
@@ -243,6 +420,20 @@ RPad(
 );
 
 
+/**
+ * Splits the source string into individual tokens, added to a vector
+ *
+ * Uses our c-style functions simply because they're already there, and should
+ * be slightly faster than using std::string methods everywhere; we use a
+ * stack variable to hold the string if it's small enough to do so.
+ *
+ * @param[in] src
+ *  The string to split
+ * @param[in] delim
+ *  The delimiter to split by
+ * @return
+ *  A vector holding a string for each delimited token
+ */
 TZK_CORE_API
 std::vector<std::string>
 Split(
