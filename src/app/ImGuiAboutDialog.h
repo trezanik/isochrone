@@ -51,17 +51,30 @@ private:
 	/** The application icon resource ID */
 	trezanik::core::UUID  my_icon_resource_id;
 
-	/** Open flag; do not show if false. This dialog always exists */
-	bool  my_open;
-
-	/** Source license open flag; replaces the main dialog, but reverts when closed */
-	bool  my_open_source_license;
 
 	/**
 	 * Set of all the registered event callback IDs
 	 */
 	std::set<uint64_t>  my_reg_ids;
 
+
+	/**
+	 * Dedicated method for drawing the 'Acknowledgements' tab
+	 */
+	void
+	DrawAcknowledgements() const;
+
+	/**
+	 * Dedicated method for drawing the 'Build Config' tab
+	 */
+	void
+	DrawBuildConfiguration() const;
+
+	/**
+	 * Dedicated method for drawing the 'License' tab
+	 */
+	void
+	DrawLicense() const;
 
 	/**
 	 * Handles resource state change events

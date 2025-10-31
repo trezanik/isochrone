@@ -1229,6 +1229,12 @@ AppImGui::PostEnd()
 	 * bit cleaner. Also makes rendering time faster.
 	 *
 	 * Well this can easily be condensed. And is ugly as sin.
+	 * 
+	 * Note that due to us instantiating objects that self-handle, we screw
+	 * ourselves a little rather than having them as plain methods. It means we
+	 * need to be conscious of the imgui stack, not opening the popups here or
+	 * in constructors and handling at the source (or we could call OpenPopup
+	 * each frame, but you're not supposed to. Would work though)
 	 */
 	if ( TZK_UNLIKELY(my_gui.show_about && my_gui.about_dialog == nullptr) )
 	{
