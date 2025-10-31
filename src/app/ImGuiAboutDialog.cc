@@ -48,7 +48,11 @@ ImGuiAboutDialog::ImGuiAboutDialog(
 
 
 		Context&     ctx = Context::GetSingleton();
+#if 0  // Code Disabled: AppIcon vs Banner
 		std::string  fpath = aux::BuildPath(ctx.AssetPath() + assetdir_images, "app_icon-128x128.png");
+#else
+		std::string  fpath = aux::BuildPath(ctx.AssetPath() + assetdir_images, "isochrone-banner.png");
+#endif
 		auto         id = ctx.GetResourceCache().GetResourceID(fpath.c_str());
 
 		// if not in the cache, trigger the load (could be a re-open, used elsewhere)
@@ -60,13 +64,13 @@ ImGuiAboutDialog::ImGuiAboutDialog(
 			if ( ldr.AddResource(std::dynamic_pointer_cast<Resource>(res)) == ErrNONE )
 			{
 				// track the resource so we can assign it when ready
-				my_icon_resource_id = res->GetResourceID();
+				my_img_resource_id = res->GetResourceID();
 				ldr.Sync();
 			}
 		}
 		else
 		{
-			my_icon = std::dynamic_pointer_cast<Resource_Image>(ctx.GetResourceCache().GetResource(id));
+			my_img = std::dynamic_pointer_cast<Resource_Image>(ctx.GetResourceCache().GetResource(id));
 		}
 
 		// can't call ImGui::OpenPopup here, we're created post-frame end
@@ -108,12 +112,18 @@ ImGuiAboutDialog::Draw()
 	if ( ImGui::BeginPopupModal(about_popup, &_gui_interactions.show_about) )
 	{
 		// application icon
-		if ( my_icon != nullptr )
+		if ( my_img != nullptr )
 		{
-			int  h = my_icon->Height();
-			int  w = my_icon->Width();
+			int  h = my_img->Height();
+			int  w = my_img->Width();
+			// resize until we fit inside maximum confines, in case of image replacement
+			while ( h > 256 || w > 256 )
+			{
+				h /= 2;
+				w /= 2;
+			}
 			ImGui::Text("Image: %d x %d", w, h);
-			ImGui::Image((void*)my_icon->AsSDLTexture(), ImVec2(static_cast<float>(w), static_cast<float>(h)));
+			ImGui::Image((void*)my_img->AsSDLTexture(), ImVec2(static_cast<float>(w), static_cast<float>(h)));
 		}
 		ImGui::SameLine();
 		ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
@@ -379,9 +389,9 @@ ImGuiAboutDialog::HandleResourceState(
 {
 	if ( res_state.state == engine::ResourceState::Ready )
 	{
-		if ( res_state.resource->GetResourceID() == my_icon_resource_id )
+		if ( res_state.resource->GetResourceID() == my_img_resource_id )
 		{
-			my_icon = std::dynamic_pointer_cast<engine::Resource_Image>(res_state.resource);
+			my_img = std::dynamic_pointer_cast<engine::Resource_Image>(res_state.resource);
 		}
 	}
 }

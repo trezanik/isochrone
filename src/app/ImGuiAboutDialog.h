@@ -46,11 +46,10 @@ class ImGuiAboutDialog
 private:
 
 	// more suitable for pairing these up
-	/** The application icon */
-	std::shared_ptr<trezanik::engine::Resource_Image>  my_icon;
-	/** The application icon resource ID */
-	trezanik::core::UUID  my_icon_resource_id;
-
+	/** The application icon or banner image */
+	std::shared_ptr<trezanik::engine::Resource_Image>  my_img;
+	/** The application icon/banner image resource ID */
+	trezanik::core::UUID  my_img_resource_id;
 
 	/**
 	 * Set of all the registered event callback IDs
