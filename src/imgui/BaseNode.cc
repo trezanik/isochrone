@@ -137,7 +137,11 @@ BaseNode::Draw()
 {
 	ImDrawList* draw_list = ImGui::GetWindowDrawList();
 	ImDrawListSplitter&  dl_splitter = my_ng->GetDrawListSplitter();
-	ImVec2  offset = my_ng->GetGridPosOnScreen();
+	ImVec2   offset = my_ng->GetGridPosOnScreen();
+	ImVec2   header_size(0.f, 0.f);
+	float&   margin_l = my_style->margin.x;
+	float&   margin_t = my_style->margin.y;
+	float&   margin_r = my_style->margin.z;
 
 	ImGui::PushID(this);
 
@@ -149,68 +153,66 @@ BaseNode::Draw()
 	// container
 	ImGui::BeginGroup();
 
-	/// @todo add drawing without headers (consider node types that might mandate a header!)
-	//my_ng->settings.node_draw_headers
-
-	// ImVec4 is Left(x),Top(y),Right(z),Bottom(w)
-	float   margin_l_header = my_style->margin_header.x;
-	float   margin_t_header = my_style->margin_header.y;
-	//float   margin_r_header = my_style->margin_header.z;
-	//float   margin_b_header = my_style->margin_header.w;
-	float   margin_l = my_style->margin.x;
-	float   margin_t = my_style->margin.y;
-	float   margin_r = my_style->margin.z;
-	//float   margin_b = my_style->margin.w;
-
-	// prevent header from being larger than node size (and hiding the body, too)
-	float   header_height = ImGui::GetTextLineHeightWithSpacing();
-	ImVec2  header_size(my_size.x, header_height + margin_t_header);
-
-	// validation; 20px must be left for data at minimum
+	if ( my_node_flags & NodeFlags_Header )
 	{
-		float  avail = my_size.y;
-		if ( header_size.y > (avail - 20.f) )
+		// ImVec4 is Left(x),Top(y),Right(z),Bottom(w)
+		float&   margin_l_header = my_style->margin_header.x;
+		float&   margin_t_header = my_style->margin_header.y;
+		//float   margin_r_header = my_style->margin_header.z;
+		//float   margin_b_header = my_style->margin_header.w;
+		//float   margin_b = my_style->margin.w;
+
+		// prevent header from being larger than node size (and hiding the body, too)
+		header_size.x = my_size.x;
+		header_size.y = ImGui::GetTextLineHeightWithSpacing() + margin_t_header;
+
+		// validation; 20px must be left for data at minimum
 		{
-			header_size.y = (avail - 20.f);
+			float&  avail = my_size.y;
+			if ( header_size.y > (avail - 20.f) )
+			{
+				header_size.y = (avail - 20.f);
+			}
 		}
-	}
 
-	// although R is unused, we'll use L*2 to accommodate for what it should/would be
-	float   inner_header_width = header_size.x - (margin_l_header * 2);
+		// although R is unused, we'll use L*2 to accommodate for what it should/would be
+		float   inner_header_width = header_size.x - (margin_l_header * 2);
 
-	/*
-	 * these are presently the same since we don't handle or render excess
-	 * content (i.e. they're already clipped).
-	 * Should handle excess sizing and adjust the non-clipped rect as suited,
-	 * and add scrollbars/scrolling where possible.
-	 * Same applies to the main body further down.
-	 */
-	_inner_header_rect_clipped.Min = offset + my_pos;
-	_inner_header_rect_clipped.Max = offset + my_pos + header_size;
-	_inner_header_rect.Min = _inner_header_rect_clipped.Min;
-	_inner_header_rect.Max = _inner_header_rect_clipped.Max;
+		/*
+		 * these are presently the same since we don't handle or render excess
+		 * content (i.e. they're already clipped).
+		 * Should handle excess sizing and adjust the non-clipped rect as suited,
+		 * and add scrollbars/scrolling where possible.
+		 * Same applies to the main body further down.
+		 */
+		_inner_header_rect_clipped.Min = offset + my_pos;
+		_inner_header_rect_clipped.Max = offset + my_pos + header_size;
+		_inner_header_rect.Min = _inner_header_rect_clipped.Min;
+		_inner_header_rect.Max = _inner_header_rect_clipped.Max;
 
-	// we use tables to provide text clipping on width and height; prime for proper element replacement
-	if ( ImGui::BeginTable("###nodetbl", 1, ImGuiTableFlags_NoHostExtendY, header_size, inner_header_width) )
-	{
-		ImGui::TableNextRow();
-		ImGui::TableNextColumn();
+		// we use tables to provide text clipping on width and height; prime for proper element replacement
+		if ( ImGui::BeginTable("###nodetbl", 1, ImGuiTableFlags_NoHostExtendY, header_size, inner_header_width) )
+		{
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
 
-		auto p = ImGui::GetCursorPos();
-		p.x += margin_l_header;
-		p.y += margin_t_header;
-		ImGui::SetCursorPos(p);
-		ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(my_style->header_title_colour), "%s", my_name->c_str());
+			auto p = ImGui::GetCursorPos();
+			p.x += margin_l_header;
+			p.y += margin_t_header;
+			ImGui::SetCursorPos(p);
 
-		ImGui::EndTable();
+			// temp fix, must have data to call against - imgui assertion
+			//ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(my_style->header_title_colour), "%s", my_name->c_str());
+			ImGui::Text("");
+
+			ImGui::EndTable();
+		}
 	}
 
 	for ( auto& p : _pins )
 	{
 		p->Update();
 	}
-
-	// ensure body_size (x&y) & header_size == node_size
 
 	{
 		// unsure on this and suitability, value works for desired position
@@ -249,12 +251,11 @@ BaseNode::Draw()
 		p.y += margin_t;
 		ImGui::SetCursorPos(p);
 
+		// draw derived class implementations for the 'body' of the nodes, if existing
 		DrawContent();
 
 		ImGui::EndTable();
-
 	}
-	// draw derived class implementations for the 'body' of the nodes, if existing
 
 	ImGui::EndGroup(); // container
 

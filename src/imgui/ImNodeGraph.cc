@@ -661,7 +661,31 @@ ImNodeGraph::Update()
 		const std::string&  type = node->Typename();
 		const std::string*  name = node->GetName();
 #endif
-		
+		/*
+		 * Debating best location to do this, as node itself can do this check
+		 * and update - imagine we might want derived types to enforce a header
+		 * presence so we don't want to be unsetting it here.
+		 * Expect relocation & optimization in future, is fine for now.
+		 */
+		auto nflags = node->GetFlags();
+
+		if ( settings.node_draw_headers )
+		{
+			if ( !(nflags & NodeFlags_Header) )
+			{
+				nflags |= NodeFlags_Header;
+				node->SetFlags(nflags);
+			}
+		}
+		else
+		{
+			if ( (nflags & NodeFlags_Header) )
+			{
+				nflags = nflags & ~NodeFlags_Header;
+				node->SetFlags(nflags);
+			}
+		}
+
 		node->Update();
 
 		/**

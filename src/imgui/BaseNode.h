@@ -348,12 +348,14 @@ enum class NodeGraphChannels : uint8_t
  * 
  * Consideration done for per-frame state; e.g. if we're resizing a node, then
  * all other nodes will have the NoResize flag temporarily added; original flags
- * then restored once the operation is complete
+ * then restored once the operation is complete.
+ * 
+ * By default, all flags are off (== NodeFlags_None) if unconfigured.
  */
 enum NodeFlags_
 {
 	NodeFlags_None = 0,
-	NodeFlags_NoHeader = 1 << 0,  // No styled header
+	NodeFlags_Header = 1 << 0,  // Draw a styled header containing the node name
 	NodeFlags_NoResize = 1 << 1,  // Resize by edge grips disabled; done via properties only
 	NodeFlags_NoMove = 1 << 2,    // Repositioning disabled; done via properties only
 	NodeFlags_Scrollbar = 1 << 3,  // Include a scrollbar if data content is culled
