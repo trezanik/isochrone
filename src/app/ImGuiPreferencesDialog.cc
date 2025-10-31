@@ -708,6 +708,15 @@ ImGuiPreferencesDialog::Draw_Display()
 		Draw_ComboItem(my_style_list, TZK_CVAR_SETTING_UI_STYLE_NAME);
 		ImGui::SameLine();
 		ImGui::HelpMarker("To view, create or delete styles and settings, open the Style Editor");
+
+		int  font_style = 0; /// @todo to implement soon
+		ImGui::Text("Style:");
+		ImGui::SameLine();
+		ImGui::RadioButton("Default", &font_style);
+		ImGui::RadioButton("Light", &font_style); // for darker elements
+		ImGui::RadioButton("Dark", &font_style); // for lighter elements
+		ImGui::SameLine();
+		ImGui::HelpMarker("Changes to styles may make certain text illegible; this allows setting something more suitable");
 #endif
 	}
 	ImGui::Unindent();
