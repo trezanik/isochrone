@@ -25,19 +25,17 @@ strtobool(
 	if ( val[0] == '1' )
 		return true;
 
-	// we usually use 'yes', so put it first
-	if (   STR_compare(val, "yes", 0) == 0
-		|| STR_compare(val, "true", 0) == 0
-		|| STR_compare(val, "on", 0) == 0 )
+	if ( STR_compare(val, "true", 0) == 0
+	  || STR_compare(val, "yes", 0) == 0
+	  || STR_compare(val, "on", 0) == 0 )
 	{
 		return true;
 	}
 
-	// we usually use 'no', so put it first
-	if (   STR_compare(val, "no", 0) == 0
-		|| STR_compare(val, "false", 0) == 0
-		|| STR_compare(val, "off", 0) == 0
-		|| val[0] == '0' )
+	if ( STR_compare(val, "false", 0) == 0
+	  || STR_compare(val, "no", 0) == 0
+	  || STR_compare(val, "off", 0) == 0
+	  || val[0] == '0' )
 	{
 		return false;
 	}

@@ -28,6 +28,12 @@ namespace aux {
  * - First character '0'
  * - The string equals 'no', 'off', or 'false'
  * 
+ * @note
+ *  This is in deviation to the C/C++ standards, where anything non-zero is
+ *  deemed to be true. This is in line with our 'sane defaults' strategy, where
+ *  things like configuration settings must be explicitly enabled since they
+ *  could cause impacts to networks, systems, or data leaks
+ * 
  * Invalid values will raise a warning. Case insensitive.
  *
  * @param[in] val
