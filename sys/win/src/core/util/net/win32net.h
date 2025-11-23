@@ -42,6 +42,7 @@
  *  The dest pointer on success, otherwise a nullptr. Use errno to determine
  *  the cause of failure
  */
+TZK_CORE_API
 const char*
 inet_ntop(
 	int family,
@@ -56,6 +57,7 @@ inet_ntop(
  *
  * @sa inet_ntop
  */
+TZK_CORE_API
 const char*
 inet_ntop4(
 	const uint8_t* src,
@@ -69,6 +71,7 @@ inet_ntop4(
  *
  * @sa inet_ntop
  */
+TZK_CORE_API
 const char*
 inet_ntop6(
 	const uint8_t* src,
@@ -95,6 +98,7 @@ inet_ntop6(
  *  0 if src does not represent a valid IP address
  *  -1 if the family is unknown
  */
+TZK_CORE_API
 int
 inet_pton(
 	int family,
@@ -108,6 +112,7 @@ inet_pton(
  *
  * @sa inet_pton
  */
+TZK_CORE_API
 int
 inet_pton4(
 	const char* src,
@@ -120,6 +125,7 @@ inet_pton4(
  *
  * @sa inet_pton
  */
+TZK_CORE_API
 int
 inet_pton6(
 	const char* src,
