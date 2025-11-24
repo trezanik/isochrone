@@ -12,6 +12,14 @@ project('isochrone', 'cpp',
 
 compiler = meson.get_compiler('cpp')
 
+if compiler.has_function('strlcat')
+	add_project_arguments(['-DHAVE_STRLCAT'], language: 'cpp')
+endif
+if compiler.has_function('strlcpy')
+	add_project_arguments(['-DHAVE_STRLCPY'], language: 'cpp')
+endif
+
+
 # configure args. Must be supplied via e.g. 'meson configure -Doption=value'
 
 # not finding a way to make these optional, unless we double-up with extra options or hacky workarounds with compiler.has_define() type stuff
