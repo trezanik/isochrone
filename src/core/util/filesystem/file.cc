@@ -107,41 +107,41 @@ copy(
 		return EINVAL;
 	}
 
-	int  rc = ErrIMPL;
+	int  retval = ErrIMPL;
 #if TZK_IS_WIN32
 	BOOL     fail_if_exist = FALSE;
 	wchar_t  wsrc[MAX_PATH];
 	wchar_t  wdest[MAX_PATH];
 
-	if ( (rc = utf8_to_utf16(src_path, wsrc, _countof(wsrc))) != ErrNONE )
+	if ( (retval = utf8_to_utf16(src_path, wsrc, _countof(wsrc))) != ErrNONE )
 	{
 		// error already reported
-		return rc;
+		return retval;
 	}
-	if ( (rc = utf8_to_utf16(dest_path, wdest, _countof(wdest))) != ErrNONE )
+	if ( (retval = utf8_to_utf16(dest_path, wdest, _countof(wdest))) != ErrNONE )
 	{
 		// error already reported
-		return rc;
+		return retval;
 	}
 
 	// If we see non-Windows path characters, convert them.
 	convert_wide_path_chars(wsrc);
 	convert_wide_path_chars(wdest);
 
-	rc = ::CopyFile(wsrc, wdest, fail_if_exist);
+	retval = ::CopyFile(wsrc, wdest, fail_if_exist);
 
-	if ( rc == 0 )
+	if ( retval == 0 )
 	{
 		DWORD  err = ::GetLastError();
 		TZK_LOG_FORMAT(LogLevel::Error,
 			"CopyFile() failed (source=%ws, dest=%ws); Win32 error=%u (%s)",
 			wsrc, wdest, err, error_code_as_string(err).c_str()
 		);
-		rc = ErrSYSAPI;
+		retval = ErrSYSAPI;
 	}
 	else
 	{
-		rc = ErrNONE;
+		retval = ErrNONE;
 	}
 #else
 	char  buf[4096];
@@ -150,21 +150,21 @@ copy(
 
 	if ( !fd_in )
 	{
-		rc = errno;
+		retval = errno;
 		TZK_LOG_FORMAT(LogLevel::Error,
 			"open() failed for source '%s'; errno=%d",
-			src_path, rc
+			src_path, retval
 		);
-		return rc;
+		return retval;
 	}
 	if ( !fd_out )
 	{
-		rc = errno;
+		retval = errno;
 		TZK_LOG_FORMAT(LogLevel::Error,
 			"open() failed for destination '%s'; errno=%d",
-			dest_path, rc
+			dest_path, retval
 		);
-		return rc;
+		return retval;
 	}
 
 	while ( fd_out )
@@ -174,16 +174,13 @@ copy(
 
 		if ( rc == 0 )
 		{
-			rc = ErrNONE;
+			retval = ErrNONE;
 			break;
 		}
 		if ( rc < 0 )
 		{
-			rc = errno;
-			TZK_LOG_FORMAT(LogLevel::Error,
-				"read() failed; errno=%d",
-				rc
-			);
+			retval = errno;
+			TZK_LOG_FORMAT(LogLevel::Error, "read() failed; errno=%d", retval);
 			break;
 		}
 
@@ -196,11 +193,8 @@ copy(
 			}
 			else
 			{
-				rc = errno;
-				TZK_LOG_FORMAT(LogLevel::Error,
-					"write() failed; errno=%d",
-					rc
-				);
+				retval = errno;
+				TZK_LOG_FORMAT(LogLevel::Error, "write() failed; errno=%d", retval);
 			}
 
 			break;
@@ -211,7 +205,7 @@ copy(
 	::close(fd_out);
 
 #endif // TZK_IS_WIN32
-	return rc;
+	return retval;
 }
 
 
