@@ -180,7 +180,7 @@ endif
 ################
 # Mandatory Third-Party Dependencies
 ################
-dep_freetype = dependency('freetype', required : get_option('Use-freetype'))
+dep_freetype = dependency('freetype2', required : get_option('Use-freetype'))
 dep_png = dependency('libpng', required : get_option('Use-libpng'))
 dep_pugixml = dependency('pugixml', required : get_option('Use-pugixml'))
 dep_sdl2 = dependency('SDL2', required : get_option('Use-SDL2'))
