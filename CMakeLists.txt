@@ -149,11 +149,6 @@ endif()
 
 # on/off/string options only here.. edit configure.h for real customization!
 option(ISOCHRONE_FORCE_INCLUDE_CONFIGURE "Force include configure.h; run 'generate_configure_h.sh' to make available" OFF)
-option(ISOCHRONE_INPUT_LOGS "Enable logging input events" OFF)
-option(ISOCHRONE_MOUSEMOVE_LOGS "Enable logging mouse movement events" OFF)
-option(ISOCHRONE_AUDIO_LOG_TRACING "Enable audio log tracing events" OFF)
-option(ISOCHRONE_LOGEVENT_POOL "Enable log events acquired from pre-staged pool, rather than allocating on demand" ON)
-option(ISOCHRONE_THREADED_RENDER "Enable rendering in dedicated thread" OFF)
 
 
 ###########
@@ -237,20 +232,6 @@ endif()
 if ( MSVC ) # vs windows?
 	set(CMAKE_CXX_FLAGS "/W4")
 endif()
-
-if ( ISOCHRONE_MOUSEMOVE_LOGS )
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTZK_MOUSEMOVE_LOGS=1")
-endif()
-if ( ISOCHRONE_AUDIO_LOG_TRACING )
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTZK_AUDIO_LOG_TRACING=1")
-endif()
-if ( ISOCHRONE_LOGEVENT_POOL )
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTZK_LOGEVENT_POOL=1")
-endif()
-if ( ISOCHRONE_THREADED_RENDER )
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTZK_THREADED_RENDER=1")
-endif()
-# TODO: Apply rest of options here
 
 # cmake doesn't have a forced include option (except via precompiled headers), so this ties us to 'standard' compilers if using configure
 # don't moan at me about bad practice, options available are shite
