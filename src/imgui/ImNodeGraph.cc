@@ -471,7 +471,7 @@ ImNodeGraph::SelectNextNode()
 {
 	using namespace trezanik::core;
 
-	TZK_LOG_FORMAT(LogLevel::Debug, "Selecting next node");
+	TZK_LOG(LogLevel::Debug, "Selecting next node");
 
 	if ( my_selected_nodes.empty() )
 	{

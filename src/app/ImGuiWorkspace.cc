@@ -101,14 +101,14 @@ public:
 	)
 	: wksp(wksp)
 	, wksp_data(&wksp->my_wksp_data)
+	, show_node_dialog(false)
 	, progress(0.f)
 	, progress_colour(nullptr)
+	, selected_node_target(nullptr)
+	, node_name_input_buf{'\0'}
+	, target_input_buf{'\0'}
 	, debug_edit(false)
 	, edit_current_node_name(false)
-	, show_node_dialog(false)
-	, target_input_buf{'\0'}
-	, node_name_input_buf{'\0'}
-	, selected_node_target(nullptr)
 	{
 		using namespace trezanik::core;
 
@@ -875,8 +875,8 @@ ImGuiWorkspace::ImGuiWorkspace(
 	GuiInteractions& gui_interactions
 )
 : IImGui(gui_interactions)
-, my_evtmgr(*core::ServiceLocator::EventDispatcher())
 , my_impl({ std::make_unique<Impl>(this) })
+, my_evtmgr(*core::ServiceLocator::EventDispatcher())
 {
 	using namespace trezanik::core;
 

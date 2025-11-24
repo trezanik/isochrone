@@ -170,13 +170,6 @@ ImGuiWkspSettings::Draw()
 				// old api better for this, but dislike amendment handling..
 				int  cur = static_cast<int>(loc);
 				int  index = (cur - 1);
-				int  wlocs[] = { 
-					(int)WindowLocation::Hidden, 
-					(int)WindowLocation::Top,
-					(int)WindowLocation::Left,
-					(int)WindowLocation::Bottom,
-					(int)WindowLocation::Right
-				};
 				if ( ImGui::Combo("##Location", &index, "Hidden\0Top\0Left\0Bottom\0Right\0\0") )
 				{
 					if ( index != (cur - 1) )

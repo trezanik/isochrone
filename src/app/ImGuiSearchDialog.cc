@@ -29,14 +29,13 @@ ImGuiSearchDialog::ImGuiSearchDialog(
 	GuiInteractions& gui_interactions
 )
 : IImGui(gui_interactions)
-, my_search_results(0)
+, my_wksp_data(null_data)
+, my_input_buf{'\0'}
+, my_all_workspaces(false)
 , my_search_exact(false)
 , my_search_insensitive(false)
 , my_search_ood(false)
 , my_search_in_progress(false)
-, my_all_workspaces(false)
-, my_wksp_data(null_data)
-, my_input_buf{'\0'}
 {
 	using namespace trezanik::core;
 	using namespace trezanik::engine;

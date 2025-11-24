@@ -58,10 +58,10 @@ ImGuiFileDialog::ImGuiFileDialog(
 , _combo_width(0.f)
 #endif
 , _flags(FileDialogFlags_None)
-, _force_refresh(true)
 , _setup(false)
-, _overwrite_confirmed(-1)
 , _current_path(gui_interactions.filedialog.path)
+, _force_refresh(true)
+, _overwrite_confirmed(-1)
 {
 	using namespace trezanik::core; 
 
