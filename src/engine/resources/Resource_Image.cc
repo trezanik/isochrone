@@ -131,6 +131,9 @@ Resource_Image::AssignPNG(
 #if TZK_USING_SDL
 	if ( AsSDLTexture() == nullptr )
 	{
+#if TZK_USING_STBI
+		stbi_image_free(my_png->data);
+#endif
 		return ErrEXTERN;
 	}
 #else

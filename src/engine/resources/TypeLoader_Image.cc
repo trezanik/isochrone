@@ -331,9 +331,6 @@ TypeLoader_Image::Load(
 
 	if ( resptr->AssignPNG(std::move(pngcon)) != ErrNONE )
 	{
-#if TZK_USING_STBI
-		stbi_image_free(pngcon->data);
-#endif
 		NotifyFailure(&data);
 		return ErrFAILED;
 	}
