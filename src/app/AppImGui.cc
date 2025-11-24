@@ -13,9 +13,11 @@
 #include "app/AppConfigDefs.h"
 #include "app/Application.h"
 #include "app/ImGuiAboutDialog.h"
+#include "app/ImGuiActiveTasks.h"
 #include "app/ImGuiFileDialog.h"
 #include "app/ImGuiLog.h"
 #include "app/ImGuiMenuBar.h"
+#include "app/ImGuiPingMonitor.h"
 #include "app/ImGuiPreferencesDialog.h"
 #include "app/ImGuiRSS.h"
 #include "app/ImGuiSearchDialog.h"
@@ -1435,6 +1437,24 @@ AppImGui::PostEnd()
 	{
 		virtual_keyboard.reset();
 	}
+	else if ( TZK_UNLIKELY(my_gui.show_tasks && my_gui.tasks_dialog == nullptr) )
+	{
+		tasks_window = std::make_unique<ImGuiActiveTasks>(my_gui);
+		my_gui.tasks_dialog = dynamic_cast<ImGuiActiveTasks*>(tasks_window.get());
+	}
+	else if ( TZK_UNLIKELY(!my_gui.show_tasks && tasks_window != nullptr) )
+	{
+		tasks_window.reset();
+	}
+	else if ( TZK_UNLIKELY(my_gui.show_pingmon && my_gui.ping_monitor == nullptr) )
+	{
+		pingmon_window = std::make_unique<ImGuiPingMonitor>(my_gui);
+		my_gui.ping_monitor = dynamic_cast<ImGuiPingMonitor*>(pingmon_window.get());
+	}
+	else if ( TZK_UNLIKELY(!my_gui.show_pingmon && pingmon_window != nullptr) )
+	{
+		pingmon_window.reset();
+	}
 	else if ( TZK_UNLIKELY(my_gui.show_rss && rss_window == nullptr) )
 	{
 		rss_window = std::make_shared<ImGuiRSS>(my_gui);
@@ -1751,6 +1771,14 @@ AppImGui::PreEnd()
 	if ( style_window != nullptr )
 	{
 		style_window->Draw();
+	}
+	if ( pingmon_window != nullptr )
+	{
+		pingmon_window->Draw();
+	}
+	if ( tasks_window != nullptr )
+	{
+		tasks_window->Draw();
 	}
 	if ( virtual_keyboard != nullptr )
 	{

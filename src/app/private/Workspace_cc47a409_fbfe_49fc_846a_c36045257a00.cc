@@ -94,6 +94,7 @@ const char  xmlstr_link_selected[] = "link_selected";
 const char  xmlstr_memory[] = "memory";
 const char  xmlstr_motherboard[] = "motherboard";
 const char  xmlstr_node[] = "node";
+const char  xmlstr_online_track[] = "online_track";
 const char  xmlstr_operating_system[] = "operating_system";
 const char  xmlstr_padding[] = "padding";
 const char  xmlstr_peripheral[] = "peripheral";
@@ -151,6 +152,7 @@ const char  xmlstr_attr_key[] = "key";
 const char  xmlstr_attr_l[] = "l";
 const char  xmlstr_attr_mac[] = "mac";
 const char  xmlstr_attr_model[] = "model";
+const char  xmlstr_attr_monitorid[] = "monitor_id";
 const char  xmlstr_attr_name[] = "name";
 const char  xmlstr_attr_nameserver[] = "nameserver";
 const char  xmlstr_attr_nameservers[] = "nameservers";
@@ -229,6 +231,18 @@ LoadComponent_Header(
 	// debating conflict with style
 	header.bg;
 	header.fg;
+}
+
+
+void
+LoadComponent_OnlineTracker(
+	pugi::xml_node xml_component,
+	node_component_online_tracker& tracker
+)
+{
+	pugi::xml_node  xmle = xml_component.child(xmlstr_online_track);
+	//tracker.x = xmle.text().as_string();
+	// no present settings, just presence
 }
 
 
@@ -760,15 +774,16 @@ SaveComponent_Header(
 }
 
 
-#if 0
 void
-SaveComponent_OnlineStateTracker(
+SaveComponent_OnlineTracker(
 	pugi::xml_node xml_component,
-	node_component_onlinetracker& tracker
+	node_component_online_tracker& tracker
 )
 {
+	pugi::xml_node  xmle = xml_component.append_child(xmlstr_online_track);
+	//xmle.text().set(tracker.text.c_str());
+	// no data for now
 }
-#endif
 
 
 void
@@ -1333,16 +1348,31 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadNodes(
 		node->graph.size.x = static_cast<float>(attr_w.as_int());
 		node->graph.size.y = static_cast<float>(attr_h.as_int());
 
+		pugi::xml_attribute  attr_monitor_target_id = xml_node.attribute(xmlstr_attr_monitorid);
+		if ( attr_monitor_target_id )
+		{
+			node->pingmonitor_target_uuid = attr_monitor_target_id.value();
+		}
 
 		auto  xpntgt = xml_node.select_nodes(xmlstr_target);
 		for ( auto& xp_node : xpntgt )
 		{
 			pugi::xml_attribute  attr_disabled = xp_node.node().attribute(xmlstr_attr_disabled);
+			pugi::xml_attribute  attr_monitor_id = xp_node.node().attribute(xmlstr_attr_monitorid);
 
 			bool  dupe = false;
 			workspace_node_target  tgt;
 			tgt.target = xp_node.node().child_value();
 			tgt.disabled = attr_disabled ? attr_disabled.as_bool() : false;
+			if ( attr_monitor_id )
+			{
+				tgt.uuid = attr_monitor_id.value();
+			}
+			else
+			{
+				tgt.uuid.Generate();
+			}
+
 			for ( auto& t : node->targets )
 			{
 				if ( t.target == tgt.target )
@@ -1425,9 +1455,9 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadNodes(
 				case cth_cmpt_online_track:
 					{
 						TZK_LOG(LogLevel::Trace, "Online Tracker component identified");
-						/*auto  tracker = std::make_unique<node_component_online>();
+						auto  tracker = std::make_unique<node_component_online_tracker>();
 						LoadComponent_OnlineTracker(xnode.node(), *tracker.get());
-						node->components.push_back(std::move(tracker));*/
+						node->components.push_back(std::move(tracker));
 					}
 					break;
 				case cth_cmpt_sysinfo:
@@ -2459,6 +2489,10 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::SaveNodes(
 		xmlnode.append_attribute(xmlstr_attr_id).set_value(node->id.GetCanonical());
 		xmlnode.append_attribute(xmlstr_attr_name).set_value(node->name.c_str());
 		xmlnode.append_attribute(xmlstr_attr_added).set_value(node->added);
+		if ( node->pingmonitor_target_uuid != core::blank_uuid )
+		{
+			xmlnode.append_attribute(xmlstr_attr_monitorid).set_value(node->pingmonitor_target_uuid.GetCanonical());
+		}
 
 		for ( auto& target : node->targets )
 		{
@@ -2468,6 +2502,10 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::SaveNodes(
 			if ( target.disabled )
 			{
 				xmltarget.append_attribute(xmlstr_attr_disabled).set_value("true");
+			}
+			if ( target.uuid == node->pingmonitor_target_uuid )
+			{
+				xmltarget.append_attribute(xmlstr_attr_monitorid).set_value(target.uuid.GetCanonical());
 			}
 		}
 
@@ -2505,7 +2543,15 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::SaveNodes(
 					break;
 				case cth_cmpt_online_track:
 					{
-						
+						auto cast = dynamic_cast<node_component_online_tracker*>(cmpt.get());
+						if ( cast != nullptr )
+						{
+							SaveComponent_OnlineTracker(xmlcomponent, *cast);
+						}
+						else
+						{
+							TZK_LOG_FORMAT(LogLevel::Warning, "Component has hash %u, but typecast failed", cmpt->component_id);
+						}
 					}
 					break;
 				case cth_cmpt_sysinfo:

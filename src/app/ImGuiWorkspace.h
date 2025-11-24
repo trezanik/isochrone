@@ -46,6 +46,8 @@ class ImGuiWkspDefinition;
 class ImGuiWkspForensics;
 class ImGuiWkspSettings;
 class ImGuiWkspTopology;
+class PingMonitorEx;
+class Tasker;
 
 
 extern const trezanik::core::UUID  drawclient_canvasdbg_uuid;
@@ -112,6 +114,9 @@ private:
 	std::unique_ptr<ImGuiWkspSettings>  my_settings;
 	/** The tab showing the topology */
 	std::unique_ptr<ImGuiWkspTopology>  my_topology;
+
+	/** A ping monitor for tracking nodes online state if enabled */
+	std::shared_ptr<PingMonitor>  my_pingmon;
 
 
 	/** 
@@ -410,6 +415,33 @@ private:
 		app::EventData::clear_selected_nodes cleared
 	);
 
+
+	/**
+	 * Event handler for when a node target changes its 'up' state when tracked
+	 *
+	 * @param[in] state
+	 *  The details for the targets new state
+	 */
+	void
+	HandleNodeTargetState(
+		app::EventData::node_target_state state
+	);
+
+
+	/**
+	 * Common handler for toggling node online tracking state
+	 *
+	 * Handles addition/removal based on the component presence of all nodes as
+	 * appropriate, including the start or stop of the associated task
+	 *
+	 * @param[in] enabled
+	 *  Boolean state; true if now enabled, otherwise false
+	 */
+	void
+	UpdateTrackingState(
+		bool enabled
+	);
+
 protected:
 public:
 	/**
@@ -477,7 +509,16 @@ public:
 
 
 	/**
+	 * Gets the tasker object from the private implementation
+	 * 
+	 * Don't like this here, could be application-wide in context. For now, is
+	 * one per workspace
+	 * 
+	 * @return
+	 *  Raw pointer to the Tasker class
 	 */
+	Tasker*
+	GetTasker() const;
 
 
 	/**

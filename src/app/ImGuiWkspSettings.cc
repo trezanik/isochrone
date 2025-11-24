@@ -463,7 +463,10 @@ ImGuiWkspSettings::Draw()
 
 			ImGui::TreeNodeEx("Track Online State", tree_node_flags);
 			ImGui::TableNextColumn();
-			ImGui::Checkbox("##Node.TrackOnlineState", &topology_settings.node_track_online_state);
+			if ( ImGui::Checkbox("##Node.TrackOnlineState", &topology_settings.node_track_online_state) )
+			{
+				my_wksp->ApplySetting(settingname_node_trackonlinestate, topology_settings.node_track_online_state ? "true" : "false");
+			}
 			ImGui::TableNextColumn();
 
 			

@@ -55,9 +55,11 @@ class Workspace;
 
 
 class ImGuiAboutDialog;
+class ImGuiActiveTasks;
 class ImGuiConsole;
 class ImGuiFileDialog;
 class ImGuiHostDialog;
+class ImGuiPingMonitor;
 class ImGuiPreferencesDialog;
 class ImGuiRSS;
 class ImGuiSearchDialog;
@@ -305,9 +307,11 @@ struct GuiInteractions
 
 	// self-explanatory pointer to windows/dialogs
 	ImGuiAboutDialog*        about_dialog = nullptr;
+	ImGuiActiveTasks*        tasks_dialog = nullptr;
 	ImGuiConsole*            console = nullptr;
 	ImGuiFileDialog*         file_dialog = nullptr;
 	ImGuiHostDialog*         host_dialog = nullptr;
+	ImGuiPingMonitor*        ping_monitor = nullptr;
 	ImGuiPreferencesDialog*  preferences_dialog = nullptr;
 	ImGuiRSS*                rss = nullptr;
 	ImGuiSearchDialog*       search_dialog = nullptr;
@@ -327,6 +331,8 @@ struct GuiInteractions
 	bool  show_new_workspace = false;
 	/** Flag to bring up the open workspace dialog (uses the file dialog) */// Pending removal
 	bool  show_open_workspace = false;
+	/** Flag to show the ping monitor window */
+	bool  show_pingmon = false;
 	/** Flag to overlay a basic pong implementation */
 	bool  show_pong = false;
 	/** Flag to show the preferences dialog */
@@ -343,6 +349,8 @@ struct GuiInteractions
 	bool  show_service_management = false;
 	/** Flag to show the style editor window */
 	bool  show_style_editor = false;
+	/** Flag to show the active tasks window */
+	bool  show_tasks = false;
 	/** Flag to show the update dialog (non-functional) */
 	bool  show_update = false;
 	/** Flag to show the virtual keyboard (non-functional) */
@@ -888,8 +896,10 @@ public:
 	// ---- standard windows ----
 	std::unique_ptr<IImGui>  console_window;
 	std::shared_ptr<IImGui>  log_window;
+	std::unique_ptr<IImGui>  pingmon_window;
 	std::shared_ptr<IImGui>  rss_window;
 	std::unique_ptr<IImGui>  style_window;
+	std::unique_ptr<IImGui>  tasks_window;
 	std::unique_ptr<IImGui>  virtual_keyboard;
 	// ---- modal dialogs ----
 	std::unique_ptr<IImGui>  about_dialog;

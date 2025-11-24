@@ -1,0 +1,170 @@
+#pragma once
+
+/**
+ * @file        src/app/Task.h
+ * @brief       .
+ * @license     zlib (view the LICENSE file for details)
+ * @copyright   Trezanik Developers, 2014-2025
+ */
+
+
+#include "app/definitions.h"
+
+#include "core/UUID.h"
+
+#include <functional>
+#include <memory>
+#include <mutex>
+#include <condition_variable>
+
+
+namespace trezanik {
+namespace app {
+
+
+
+/**
+ * Task type identifier
+ * 
+ * We can (and do) check against what was passed in the constructor of the task
+ * against execution, making this redundant, but it's good for explicit type
+ * expected and usable by querying externals
+ */
+enum class TaskType : uint8_t
+{
+	Invalid = 0,    //< Initializer only
+	Function,       //< A standalone function or class method inside this project
+	ScriptFunction, //< A function in an external script
+	SystemCommand   //< An operating system process with command-line
+};
+
+
+/**
+ * Calling structure for tasks - should be renamed for clarity???
+ */
+typedef std::function<int()>  async_task;
+
+
+/**
+ * Base class for tasks
+ * 
+ * No attempt is made to sandbox or otherwise interpret commands prior to their
+ * execution - ensure the source is trustworthy and don't run things blindly
+ */
+class Task
+{
+	//TZK_NO_CLASS_ASSIGNMENT(Task);
+	TZK_NO_CLASS_COPY(Task);
+	//TZK_NO_CLASS_MOVEASSIGNMENT(Task);
+	TZK_NO_CLASS_MOVECOPY(Task);
+
+private:
+
+	/** Unique identifier for this task */
+	trezanik::core::UUID   my_id;
+
+	/** Time, in milliseconds since the Unix epoch, execution started */
+	uint64_t  my_start;
+
+	/** Time, in milliseconds since the Unix epoch, execution finished */
+	uint64_t  my_end;
+
+	/** String (command) passed to posix_spawn/CreateProcess */
+	std::string  my_command;
+
+	/** Pointer to std::function for an inbuilt method */
+	async_task  my_inbuilt_task;
+
+	/** The type of task this is */
+	TaskType  my_type;
+
+protected:
+
+	/** Stop flag; valid if mid-execution, ignored if pre or post execution */
+	bool  _stop;
+
+	/** Synchronization mutex for the condvar */
+	std::mutex   _condvar_mtx;
+
+	/** Blocker for timeout or shared variable access (minimum of _stop) */
+	std::condition_variable   _condvar;
+
+public:
+	/**
+	 * Standard constructor with bound function
+	 * 
+	 * @param[in] t
+	 *  
+	 */
+	Task(
+		async_task t
+	);
+
+
+	/**
+	 * Standard constructor with plaintext command
+	 *
+	 * @param[in] command
+	 *
+	 */
+	Task(
+		std::string& command
+	);
+
+
+	/**
+	 * Standard destructor
+	 */
+	virtual ~Task();
+
+
+	/**
+	 * Invokes the task/command within this object
+	 * 
+	 * Sets the start time, and when finished, the end time.
+	 * 
+	 * @return
+	 *  returns the return value of the async_task function executed
+	 */
+	int
+	Execute();
+
+	std::string
+	GetCommand() const;
+
+	trezanik::core::UUID
+	GetID() const;
+
+	async_task
+	GetTask() const;
+
+	TaskType
+	GetType() const;
+
+	bool
+	IsRunning() const;
+
+	uint64_t
+	RunningTime() const;
+
+
+	/**
+	 * Marks the task to cease execution
+	 * 
+	 * Relies on the task implementation to cancel anything in progress, and
+	 * likely won't be immediate as many tasks will be network-based with
+	 * timeouts determining when the stop flag is re-checked.
+	 * 
+	 * Will certainly be possible to add immediate abortion with extra work,
+	 * considered for future but not now.
+	 */
+	void
+	Stop();
+
+	virtual std::string
+	TaskDetail() const = 0;
+};
+
+
+} // namespace app
+} // namespace trezanik

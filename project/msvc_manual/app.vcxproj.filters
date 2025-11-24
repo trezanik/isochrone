@@ -28,6 +28,18 @@
     <Filter Include="Source Files\private">
       <UniqueIdentifier>{74ac3909-9aff-4165-94c8-3d6f107d79c4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\tasks">
+      <UniqueIdentifier>{be99092e-1706-45c6-8c2a-ff8da723bafa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\tasks">
+      <UniqueIdentifier>{ec479231-18fb-4ee1-b493-9ba1a04986fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\imgui">
+      <UniqueIdentifier>{040f9f1c-8cda-40c0-b914-1f962ff7e88f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\imgui">
+      <UniqueIdentifier>{93bc5b03-4ff1-4c79-96fe-56b8648e20be}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\app\main.cc">
@@ -119,6 +131,21 @@
     </ClCompile>
     <ClCompile Include="..\..\src\app\private\Workspace_cc47a409_fbfe_49fc_846a_c36045257a00.cc">
       <Filter>Source Files\private</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\tasks\Task.cc">
+      <Filter>Source Files\tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\tasks\Tasker.cc">
+      <Filter>Source Files\tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\tasks\PingMonitor.cc">
+      <Filter>Source Files\tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\tasks\Ping.cc">
+      <Filter>Source Files\tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\ImGuiPingMonitor.cc">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -234,6 +261,21 @@
       <Filter>Header Files\private</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\app\IWorkspacePimpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\tasks\Ping.h">
+      <Filter>Header Files\tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\tasks\PingMonitor.h">
+      <Filter>Header Files\tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\tasks\Tasker.h">
+      <Filter>Header Files\tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\tasks\Task.h">
+      <Filter>Header Files\tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\ImGuiPingMonitor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

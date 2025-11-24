@@ -30,6 +30,7 @@
     <ClCompile Include="..\..\src\app\ImGuiHostDialog.cc" />
     <ClCompile Include="..\..\src\app\ImGuiLog.cc" />
     <ClCompile Include="..\..\src\app\ImGuiMenuBar.cc" />
+    <ClCompile Include="..\..\src\app\ImGuiPingMonitor.cc" />
     <ClCompile Include="..\..\src\app\ImGuiPreferencesDialog.cc" />
     <ClCompile Include="..\..\src\app\ImGuiRSS.cc" />
     <ClCompile Include="..\..\src\app\ImGuiSearchDialog.cc" />
@@ -46,6 +47,10 @@
     <ClCompile Include="..\..\src\app\private\Workspace_cc47a409_fbfe_49fc_846a_c36045257a00.cc" />
     <ClCompile Include="..\..\src\app\resources\Resource_Workspace.cc" />
     <ClCompile Include="..\..\src\app\resources\TypeLoader_Workspace.cc" />
+    <ClCompile Include="..\..\src\app\tasks\Ping.cc" />
+    <ClCompile Include="..\..\src\app\tasks\PingMonitor.cc" />
+    <ClCompile Include="..\..\src\app\tasks\Task.cc" />
+    <ClCompile Include="..\..\src\app\tasks\Tasker.cc" />
     <ClCompile Include="..\..\src\app\TConverter.cc" />
     <ClCompile Include="..\..\src\app\Workspace.cc" />
     <ClCompile Include="..\..\sys\win\src\app\binhelper.cc" />
@@ -66,6 +71,7 @@
     <ClInclude Include="..\..\src\app\ImGuiHostDialog.h" />
     <ClInclude Include="..\..\src\app\ImGuiLog.h" />
     <ClInclude Include="..\..\src\app\ImGuiMenuBar.h" />
+    <ClInclude Include="..\..\src\app\ImGuiPingMonitor.h" />
     <ClInclude Include="..\..\src\app\ImGuiPreferencesDialog.h" />
     <ClInclude Include="..\..\src\app\ImGuiRSS.h" />
     <ClInclude Include="..\..\src\app\ImGuiSearchDialog.h" />
@@ -87,6 +93,10 @@
     <ClInclude Include="..\..\src\app\resources\proggyclean.h" />
     <ClInclude Include="..\..\src\app\resources\Resource_Workspace.h" />
     <ClInclude Include="..\..\src\app\resources\TypeLoader_Workspace.h" />
+    <ClInclude Include="..\..\src\app\tasks\Ping.h" />
+    <ClInclude Include="..\..\src\app\tasks\PingMonitor.h" />
+    <ClInclude Include="..\..\src\app\tasks\Task.h" />
+    <ClInclude Include="..\..\src\app\tasks\Tasker.h" />
     <ClInclude Include="..\..\src\app\TConverter.h" />
     <ClInclude Include="..\..\src\app\Workspace.h" />
   </ItemGroup>

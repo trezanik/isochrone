@@ -20,6 +20,9 @@
 #include "app/AppImGui.h"  // drawclient IDs
 #include "app/TConverter.h"
 #include "app/Command.h"
+#include "app/tasks/Tasker.h"
+#include "app/tasks/Ping.h"
+#include "app/tasks/PingMonitor.h"
 #include "app/event/AppEvent.h"
 
 #include "engine/resources/ResourceCache.h"
@@ -126,6 +129,7 @@ public:
 
 		TZK_LOG(LogLevel::Trace, "Destructor starting");
 		{
+			task_runner.Stop();
 		}
 		TZK_LOG(LogLevel::Trace, "Destructor finished");
 	}
@@ -302,6 +306,11 @@ public:
 		{
 			debug_edit = !debug_edit;
 		}
+		ImGui::SameLine();
+		if ( ImGui::Button("PingMonitor (Toggle)") )
+		{
+			wksp->_gui_interactions.show_pingmon = !wksp->_gui_interactions.show_pingmon;
+		}
 
 		// needs cleaning effort
 		if ( ImGui::Combo("Sorting", &wksp_settings->settings.nodelist_sort_order, nodelist_sortstrs) )
@@ -463,7 +472,38 @@ public:
 
 		ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, nl_style->node_rounding);
 
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, is_selected_node ? nl_style->node_background_colour_selected : nl_style->node_background_colour);
+		if ( nl_style->node_bg_follows_online_status
+		  && wksp->my_pingmon != nullptr
+		  && node->has_component(cth_cmpt_online_track)
+		  && node->pingmonitor_target_uuid != blank_uuid )
+		{
+			ImVec4  col = nl_style->online_indicator_colour_mixed;
+			
+			for ( auto& t : node->targets ) // optimize
+			{
+				if ( t.uuid == node->pingmonitor_target_uuid )
+				{
+					switch ( t.up_state )
+					{
+					case UpState::Down:
+						col = nl_style->online_indicator_colour_down;
+						break;
+					case UpState::Up:
+						col = nl_style->online_indicator_colour_up;
+						break;
+					default:
+						col = nl_style->online_indicator_colour_mixed;
+					}
+				}
+			}
+			
+			/// @todo add selected 'offset' colour
+			ImGui::PushStyleColor(ImGuiCol_ChildBg, col);
+		}
+		else
+		{
+			ImGui::PushStyleColor(ImGuiCol_ChildBg, is_selected_node ? nl_style->node_background_colour_selected : nl_style->node_background_colour);
+		}
 		if ( !ImGui::BeginChild(node->id.GetCanonical(), nl_style->node_size, child_flags, window_flags) )
 		{
 			ImGui::EndChild();
@@ -646,10 +686,71 @@ public:
 			ImGui::PopStyleColor();
 		}
 
+		// testing for tasks
+		if ( ImGui::SmallButton("Ping") )
 		{
+			/// @todo no functionality; t.target_is_single_item equivalent
+			core::aux::ip_address  ipaddr;
+
+			if ( core::aux::string_to_ipaddr(node->targets.front().target.c_str(), ipaddr) > 0 )
 			{
+				auto  pinger = std::make_shared<Ping>(ipaddr);
+				task_runner.AddTask(pinger);
+				task_runner.Sync();
 			}
 		}
+		// testing for tasks
+		bool  pingmon = node->has_component(cth_cmpt_online_track);
+		ImGui::PushID(node.get());
+		if ( ImGui::Checkbox("PingMonitor", &pingmon) )
+		{
+			if ( pingmon )
+			{
+				// start
+				assert(!node->has_component(cth_cmpt_online_track));
+				{
+					// technically duplicate in UpdateTrackingState, can make consistent in one spot
+
+					auto  cmpt = std::make_unique<node_component_online_tracker>();
+					
+					if ( node->pingmonitor_target_uuid != core::blank_uuid && wksp->my_pingmon != nullptr )
+					{
+						for ( auto& t : node->targets )
+						{
+							if ( t.uuid == node->pingmonitor_target_uuid  )
+							{
+								wksp->my_pingmon->AddTarget(&t);
+							}
+						}
+					}
+
+					cmpt->pingmon_instance = wksp->my_pingmon;
+					node->components.push_back(std::move(cmpt));
+				}
+			}
+			else
+			{
+				// stop
+				if ( wksp->my_pingmon != nullptr && node->pingmonitor_target_uuid != blank_uuid )
+				{
+					if ( wksp->my_pingmon->RemoveTarget(node->pingmonitor_target_uuid) == ENOENT )
+					{
+					}
+				}
+				node->destroy_component(cth_cmpt_online_track);
+			}
+		}
+		ImGui::PopID();
+
+#if 0  // Code Disabled: Inline stats, not needed now we have the dedicated window
+		if ( wksp->my_pingmon != nullptr && node->has_component(cth_cmpt_online_track) && node->pingmonitor_target_uuid != blank_uuid )
+		{
+			const auto&  stats = wksp->my_pingmon->AccessStatistics(node->pingmonitor_target_uuid);
+			ImGui::Text("S/E: %zu-%zu | S/F: %zu:%zu\nLast Send: %zu\nLast Response: %zu", stats.start, stats.end,
+				stats.success_count, stats.failures.size(), stats.last_send, stats.last_response
+			);
+		}
+#endif
 
 		ImGui::PopStyleColor();
 		ImGui::PopID();
@@ -742,10 +843,14 @@ public:
 		}
 		if ( ImGui::Button("Add") )
 		{
+			TZK_LOG(LogLevel::Trace, "Adding target");
+
 			workspace_node_target  tgt;
 			tgt.disabled = false;
 			tgt.target = target_input_buf;
+			tgt.uuid.Generate();
 			selected_node->targets.push_back(tgt);
+			selected_node_target = &selected_node->targets.back();
 		}
 		if ( disable_add )
 		{
@@ -760,11 +865,28 @@ public:
 		}
 		if ( ImGui::Button("Delete") )
 		{
+			TZK_LOG(LogLevel::Trace, "Deleting target");
+
 			auto  iter = std::find_if(selected_node->targets.begin(), selected_node->targets.end(), [this](auto&& t){
 				return t.target == selected_node_target->target;
 			});
 			if ( iter != selected_node->targets.end() )
 			{
+				if ( wksp->my_pingmon != nullptr )
+				{
+					// if this is a live ping monitor target, remove it 
+					if ( wksp->my_pingmon->TargetExists(iter->uuid) )
+					{
+						wksp->my_pingmon->RemoveTarget(iter->uuid);
+					}
+				}
+
+				// again, if is the current, reset identifier
+				if ( iter->uuid == selected_node->pingmonitor_target_uuid )
+				{
+					selected_node->pingmonitor_target_uuid = blank_uuid;
+				}
+
 				selected_node->targets.erase(iter);
 			}
 			selected_node_target = nullptr;
@@ -774,7 +896,52 @@ public:
 			ImGui::EndDisabled();
 		}
 
+		/// @todo no target removal ability, unless we delete the target entirely
+		
+		auto  tgt_id = selected_node->pingmonitor_target_uuid;
+		bool  disable_pmon = selected_node_target == nullptr
+			|| selected_node->selected_target == -1
+			|| selected_node->pingmonitor_target_uuid == selected_node->targets[selected_node->selected_target].uuid;
+		if ( disable_pmon )
+		{
+			ImGui::BeginDisabled();
+		}
+		if ( ImGui::Button("Set PingMonitor target") )
+		{
+			TZK_LOG(LogLevel::Trace, "Assigning target");
+
+			auto  target = selected_node->targets.at(selected_node->selected_target);
+
+			if ( wksp->my_pingmon != nullptr )
+			{
+#if 0 // can't exist, these are add/delete options only in this dialog
+				if ( wksp->my_pingmon->TargetExists(selected_node->pingmonitor_target_uuid) )
+				{
+					wksp->my_pingmon->ChangeTarget(tgt_id, &target);
+				}
+#endif
+				if ( selected_node->has_component(cth_cmpt_online_track) )
+				{
+					wksp->my_pingmon->AddTarget(&target);
+				}
+			}
+
+			selected_node->pingmonitor_target_uuid = target.uuid;
+		}
+		if ( disable_pmon )
+		{
+			ImGui::EndDisabled();
+		}
+
 		ImGui::EndGroup();
+		// optimize!
+		auto  res = std::find_if(selected_node->targets.begin(), selected_node->targets.end(), [&tgt_id](auto&& i) {
+			return tgt_id == i.uuid;
+		});
+		if ( res != selected_node->targets.end() )
+		{
+			ImGui::Text("PingMonitor Target: %s (%s)", res->target.c_str(), selected_node->pingmonitor_target_uuid.GetCanonical());
+		}
 
 
 		if ( ImGui::Button("Close") )
@@ -867,6 +1034,7 @@ public:
 	bool  debug_edit;
 	bool  edit_current_node_name;
 
+	Tasker  task_runner;
 };
 
 
@@ -896,6 +1064,8 @@ ImGuiWorkspace::ImGuiWorkspace(
 		my_reg_ids.emplace(my_evtmgr.Register(std::make_shared<core::Event<app::EventData::clear_selected_nodes>>(uuid_listnode_clearselected, std::bind(&ImGuiWorkspace::HandleNodelistSelectionCleared, this, std::placeholders::_1))));
 		my_reg_ids.emplace(my_evtmgr.Register(std::make_shared<core::Event<app::EventData::selected_node>>(uuid_listnode_selected, std::bind(&ImGuiWorkspace::HandleNodelistSelected, this, std::placeholders::_1))));
 		my_reg_ids.emplace(my_evtmgr.Register(std::make_shared<core::Event<app::EventData::updated_node>>(uuid_listnode_updated, std::bind(&ImGuiWorkspace::HandleNodelistNodeUpdate, this, std::placeholders::_1))));
+
+		my_reg_ids.emplace(my_evtmgr.Register(std::make_shared<core::Event<app::EventData::node_target_state>>(uuid_nodetarget_state, std::bind(&ImGuiWorkspace::HandleNodeTargetState, this, std::placeholders::_1))));
 
 		my_reg_ids.emplace(my_evtmgr.Register(std::make_shared<core::Event<imgui::EventData::node_graph_update>>(imgui::uuid_nodegraph_update, std::bind(&ImGuiWorkspace::HandleNodegraphUpdate, this, std::placeholders::_1))));
 	}
@@ -1084,6 +1254,7 @@ ImGuiWorkspace::ApplySetting(
 	case cth_node_trackonlinestate:
 		common_update();
 		my_topology->settings.node_track_online_state = core::TConverter<bool>::FromString(setting_value);
+		UpdateTrackingState(my_topology->settings.node_track_online_state);
 		break;
 	case cth_nodelist_overrideappstyle:
 		{
@@ -1374,6 +1545,12 @@ ImGuiWorkspace::GetSelectedNode()
 	return my_impl->selected_node;
 }
 
+
+Tasker*
+ImGuiWorkspace::GetTasker() const
+{
+	return &my_impl->task_runner;
+}
 
 
 std::shared_ptr<Workspace>
@@ -1695,6 +1872,15 @@ ImGuiWorkspace::HandleNodegraphUpdate(
 			{
 				return;
 			}
+
+			if ( (*res)->has_component(cth_cmpt_online_track) )
+			{
+				if ( my_pingmon->TargetExists((*res)->pingmonitor_target_uuid) )
+				{
+					my_pingmon->RemoveTarget((*res)->pingmonitor_target_uuid);
+				}
+				(*res)->destroy_component(cth_cmpt_online_track);
+			}
 			nodes.erase(res);
 		}
 		break;
@@ -1903,6 +2089,111 @@ ImGuiWorkspace::HandleNodelistSelectionCleared(
 	// to decide if we feed in to anything else
 }
 
+
+void
+ImGuiWorkspace::HandleNodeTargetState(
+	app::EventData::node_target_state state
+)
+{
+	/*
+	 * no workspace_id check, relies on UUIDs being unique across multiple
+	 * workspaces; easy to add, but means redundant wksp id addition to a node
+	 * target (which is only held within a node beyond this 'feature')
+	 */
+	for ( auto& n : my_wksp_data.nodes )
+	{
+		for ( auto& t : n->targets )
+		{
+			if ( t.uuid == state.target_id )
+			{
+				t.up_state = state.up_state;
+				return;
+			}
+		}
+	}
+}
+
+
+void
+ImGuiWorkspace::UpdateTrackingState(
+	bool enabled
+)
+{
+	using namespace trezanik::core;
+
+	if ( enabled )
+	{
+		if ( my_pingmon == nullptr )
+		{
+			icmp_echo_monitor_config  config;
+			// apply custom config
+
+			my_pingmon = std::make_shared<PingMonitor>(config);
+
+			// add every node with online track & a valid target
+			for ( auto& n : my_wksp_data.nodes )
+			{
+				if ( !n->has_component(cth_cmpt_online_track) )
+				{
+#if 0  // Code Disabled: allows auto-addition of components to all nodes for tracking in bulk
+					auto  ncmpt = std::make_unique<node_component_online_tracker>();
+					n->components.push_back(std::move(ncmpt));
+#else
+					// if no component, user doesn't want tracking
+					continue;
+#endif
+				}
+				
+				// no ping monitor target set
+				if ( n->pingmonitor_target_uuid == core::blank_uuid )
+					continue;
+
+				/*
+				 * allow pingmonitor window to identify the pingmonitor instance;
+				 * this can be omitted if it gets obtained via an alternative
+				 * means
+				 */
+				auto  cmpt = dynamic_cast<node_component_online_tracker*>(n->get_component(cth_cmpt_online_track));
+				if ( cmpt != nullptr )
+				{
+					cmpt->pingmon_instance = my_pingmon;
+				}
+
+				for ( auto& t : n->targets )
+				{
+					if ( n->pingmonitor_target_uuid == t.uuid )
+					{
+						my_pingmon->AddTarget(&t);
+						break;
+					}
+				}
+			}
+		}
+
+		my_impl->task_runner.AddTask(my_pingmon);
+		my_impl->task_runner.Sync();
+	}
+	else
+	{
+		for ( auto& n : my_wksp_data.nodes )
+		{
+			if ( !n->has_component(cth_cmpt_online_track) )
+			{
+				continue;
+			}
+
+			auto  cmpt = dynamic_cast<node_component_online_tracker*>(n->get_component(cth_cmpt_online_track));
+			if ( cmpt != nullptr )
+			{
+				cmpt->pingmon_instance.reset();
+			}
+		}
+
+		my_impl->task_runner.StopTask(my_pingmon);
+		// drop our reference, task runner should hold remainder and auto-delete it
+		my_pingmon.reset();
+	}
+}
 
 int
 ImGuiWorkspace::SetWorkspace(

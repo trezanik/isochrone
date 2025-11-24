@@ -50,6 +50,12 @@ static trezanik::core::UUID  uuid_listnode_selected("c84fe4f6-c81e-48eb-a6d0-23d
 static trezanik::core::UUID  uuid_listnode_clearselected("da83f5c1-04cf-4690-ae5e-65ed42e0f74b");
 static trezanik::core::UUID  uuid_listnode_updated("201ff46b-a4a0-42f0-ac3e-549902bcf474");
 
+static trezanik::core::UUID  uuid_nodetarget_state("9236996c-09ad-4706-ba54-9ae059a58d62");
+
+static trezanik::core::UUID  uuid_task_update("02d649ae-db37-4c11-bad9-2fbe578bc9fd");
+
+
+enum class UpState;  // PingMonitor.h
 enum class WindowLocation;  // ImGuiSemiFixedDock.h
 
 struct link;
@@ -58,6 +64,7 @@ struct service;
 struct service_group;
 struct setting;
 struct workspace_node;
+class Task;
 
 
 /**
@@ -280,6 +287,36 @@ struct updated_node
 	 * for a rename, would love to have the original name - we CAN get it, but
 	 * only from last save, without more work
 	 */
+};
+
+
+/**
+ * A nodes target state event data
+ *
+ * @note no workspace_id, ideally should be present
+ */
+struct node_target_state
+{
+	/** The update targets UUID */
+	trezanik::core::UUID   target_id;
+	/** The new 'up' state of the target */
+	UpState  up_state;
+};
+
+
+/**
+ * A tasks update event data
+ *
+ * @note
+ *  Extremely early state, liable for modification as we bring in more complex
+ *  tasks.
+ */
+struct task_update
+{
+	/** The workspace UUID the task is executing within */
+	trezanik::core::UUID   workspace_id;
+	/** The task with an update; up to the implementation for details, if any */
+	std::shared_ptr<Task>  task;
 };
 
 

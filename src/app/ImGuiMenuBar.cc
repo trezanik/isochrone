@@ -53,6 +53,7 @@ ImGuiMenuBar::ImGuiMenuBar(
 , workspace_save  { "Save",               "Ctrl+S", &gui_interactions.save_current_workspace, true }
 , workspace_search{ "Search",             "Ctrl+F", &gui_interactions.show_search, true }
 , workspace_svcm  { "Service Management", "Ctrl+M", &gui_interactions.show_service_management, true }
+, active_tasks    { "Active Tasks",       "Ctrl+T", &gui_interactions.show_tasks, true }
 , rss             { "RSS",                "", &gui_interactions.show_rss, true } // enabled if inbuilt
 , vkbd            { "Virtual Keyboard",   "", &gui_interactions.show_virtual_keyboard, true }
 , edit_copy       { "Copy",               "Ctrl+C", &unused, false }
@@ -296,11 +297,13 @@ ImGuiMenuBar::Draw()
 		workspace_save.enabled = !disabled;
 		workspace_search.enabled = !disabled;
 		workspace_svcm.enabled = !disabled;
+		active_tasks.enabled = !disabled;
 
 		ImGui::MenuItem(workspace_save.text, workspace_save.shortcut, workspace_save.setting, workspace_save.enabled);
 		ImGui::Separator();
 		ImGui::MenuItem(workspace_search.text, workspace_search.shortcut, workspace_search.setting, workspace_search.enabled);
 		ImGui::MenuItem(workspace_svcm.text, workspace_svcm.shortcut, workspace_svcm.setting, workspace_svcm.enabled);
+		ImGui::MenuItem(active_tasks.text, active_tasks.shortcut, active_tasks.setting, active_tasks.enabled);
 
 		if ( !disabled )
 		{

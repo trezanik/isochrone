@@ -14,6 +14,8 @@
 #include "app/definitions.h"
 
 #include "app/event/AppEvent.h"
+#include "app/tasks/PingMonitor.h"  // online track component /// @todo move into workspace_components
+
 #include "engine/services/event/EngineEvent.h"
 
 #include "core/services/log/LogLevel.h"
@@ -32,6 +34,9 @@
 #include <set>
 #include <unordered_set>
 #include <typeindex>
+#if !TZK_IS_WIN32  /// @todo move out with single target dns resolution
+#	include <netdb.h>
+#endif
 
 
 namespace trezanik {
@@ -492,6 +497,15 @@ struct node_component_online_tracker : public node_component
 	{
 		return false;
 	}*/
+
+	/**
+	 * The PingMonitor this component is integrated with.
+	 *
+	 * If online state tracking is not enabled, this will be unassigned. Not
+	 * great design as we only need one refrence to it, but we have no other
+	 * method of acquisition (api or raw data) at the moment.
+	 */
+	std::shared_ptr<PingMonitor>  pingmon_instance;
 };
 
 
@@ -865,6 +879,18 @@ enum IPProto : uint8_t
 
 
 /**
+ * Provides the type a target points to
+ */
+enum class TargetType : uint8_t
+{
+	Invalid,
+	IPv4,
+	IPv6,
+	Hostname
+};
+
+
+/**
  * Holds details for a nodes target
  * 
  * The target is used as a remote/local system(s) that will be operated against
@@ -874,25 +900,121 @@ struct workspace_node_target
 {
 	/** The target - can be a subnet, hostname, raw IP. No validation checks */
 	std::string  target;
+
+	/** Intepreted target type - invalid until target_type() invoked */
+	TargetType  type = TargetType::Invalid;
+
+	/**
+	 * Buffer holding the sockaddr to string result, and if a hostname the first
+	 * resolved address
+	 */
+	char  ipaddr[INET6_ADDRSTRLEN];
+
+	/**
+	 * If target is a hostname, this will contain the resolved address. It will
+	 * not be populated otherwise
+	 */
+	core::aux::sockaddr_union  saddr;
+
 	/** Flag if this target should be disabled from processing */
 	bool  disabled;
 
+	/** The 'up' state of this node, based on online tracking - if enabled */
+	UpState  up_state;
+
 	/**
-	 * Determines if the target is a single item, not multiple
-	 * 
-	 * Can't handle situations such as multiple DNS records for a single host,
-	 * but don't consider this a fault; is supposed to be simple.
-	 * 
-	 * Checks for an IP range/subnet; if not present, is considered singular.
-	 * 
-	 * @return
-	 *  Boolean result
+	 * Unique identifer for this target, so it can be identified when performing
+	 * modifications or changing the 'live' ping monitor target for the node.
+	 * Generated dynamically at runtime unless loaded from file - this will only
+	 * be the case if it's the live monitor target.
 	 */
-	bool
-	target_is_single_item()
+	trezanik::core::UUID  uuid = trezanik::core::blank_uuid;
+
+	/**
+	 * Calculates the target type provided from the target string
+	 *
+	 * Checks for IPv6, IPv4, then hostname in that order. If hostname, performs
+	 * DNS resolution.
+	 *
+	 * @warning
+	 *  With hostnames being resolved, this method must not be invoked every
+	 *  frame! Arrange to execute at the right time, and cache as needed
+	 * @note
+	 *  This should just invoke external method, is fully integrated at present.
+	 *  Will be moved out in the nearish future
+	 *
+	 * @return
+	 *  The determined target type. If empty or fails identification for the
+	 *  inbuilt type, Invalid will be returned
+	 */
+	TargetType
+	target_type()
 	{
-		/// @todo implement
-		return true;
+		if ( target.empty() )
+		{
+			type = TargetType::Invalid;
+			return type;
+		}
+
+		unsigned char  buf[sizeof(in6_addr)];
+
+		// if plain IPv6
+		if ( inet_pton(AF_INET6, target.c_str(), buf) == 1 )
+		{
+			type = TargetType::IPv6;
+			return type;
+		}
+
+		// if plain IPv4
+		if ( inet_pton(AF_INET, target.c_str(), buf) == 1 )
+		{
+			type = TargetType::IPv4;
+			return type;
+		}
+
+		// if non-numeric -> hostname
+		if ( target[0] < 0 || target[0] > 9 )
+		{
+			addrinfo   hints;
+			addrinfo*  result;
+			addrinfo*  r;
+
+			memset(&hints, 0, sizeof(hints));
+			hints.ai_socktype = SOCK_DGRAM;
+
+			int  err = getaddrinfo(nullptr, target.c_str(), &hints, &result);
+			if ( err == 0 )
+			{
+				for ( r = result; r != nullptr; r = r->ai_next )
+				{
+					if ( inet_ntop(r->ai_family, r->ai_addr, ipaddr, sizeof(ipaddr)) != nullptr )
+					{
+#if 0//TZK_NETLL_LOGGING
+						TZK_LOG_FORMAT(LogLevel::Debug, "%s resolved to %s", target.c_str(), ipaddr);
+#endif
+						saddr.sa = *r->ai_addr;
+						freeaddrinfo(result);
+						type = TargetType::Hostname;
+						return type;
+					}
+
+					break;
+				}
+
+				freeaddrinfo(result);
+			}
+			else
+			{
+#if 0//TZK_NETLL_LOGGING
+				TZK_LOG_FORMAT(LogLevel::Warning, "getaddrinfo() failed; %s %d (%s)",
+					"WSAGetLastError", err, core::aux::error_code_as_string(err).c_str()
+				);
+#endif
+			}
+		}
+
+		type = TargetType::Invalid;
+		return type;
 	}
 };
 
@@ -926,6 +1048,17 @@ struct workspace_node
 
 	// not a fan of this here, since it's imgui-specific; but without duplicating data...
 	int  selected_target = -1;
+
+	/**
+	 * UUID of the workspace_node_target that is used when tracking the online
+	 * state of a node. If blank or the ID doesn't exist in the targets vector,
+	 * is considered unconfigured and unused regardless of other state.
+	 * 
+	 * Special case being here when component would be initially more logical.
+	 * We can retain the target selection even if removing the component, which
+	 * may be desired by the user at some point.
+	 */
+	trezanik::core::UUID  pingmonitor_target_uuid = trezanik::core::blank_uuid;
 
 	/** Topology-view (nodegraph) specific node data */
 	graph_node  graph;

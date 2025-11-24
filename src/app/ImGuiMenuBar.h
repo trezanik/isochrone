@@ -90,6 +90,8 @@ private:
 	MenuBarItem  workspace_search;
 	/** Menu item controlling the service management dialog */
 	MenuBarItem  workspace_svcm;
+	/** Menu item controlling the Active Tasks dialog */
+	MenuBarItem  active_tasks;
 	/** Menu item controlling the RSS dialog */
 	MenuBarItem  rss;
 	/** Menu item controlling the virtual keyboard */
