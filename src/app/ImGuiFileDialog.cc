@@ -1026,6 +1026,7 @@ ImGuiFileDialog_FolderSelect::DrawCustomView()
 
 			idx = tss->Specs->ColumnIndex;
 			_sort_order = tss->Specs->SortDirection;
+			tss->SpecsDirty = false;
 		}
 		else
 		{
@@ -1059,7 +1060,6 @@ ImGuiFileDialog_FolderSelect::DrawCustomView()
 
 		ResetSelection();
 		_sort_needed = false;
-		tss->SpecsDirty = false;
 	}
 
 	ImGui::TableNextRow();
