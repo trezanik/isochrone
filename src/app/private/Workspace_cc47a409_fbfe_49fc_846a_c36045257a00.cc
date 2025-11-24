@@ -1406,7 +1406,7 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadNodes(
 
 				switch ( cth )
 				{
-				case cth_credentials:
+				case cth_cmpt_credentials:
 					{
 						TZK_LOG(LogLevel::Trace, "Credentials component identified");
 						/*auto  creds = std::make_unique<node_component_credentials>();
@@ -1414,7 +1414,7 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadNodes(
 						node->components.push_back(std::move(creds));*/
 					}
 					break;
-				case cth_header:
+				case cth_cmpt_header:
 					{
 						TZK_LOG(LogLevel::Trace, "Header component identified");
 						auto  hdr = std::make_unique<node_component_header>();
@@ -1422,7 +1422,7 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadNodes(
 						node->components.push_back(std::move(hdr));
 					}
 					break;
-				case cth_online_track:
+				case cth_cmpt_online_track:
 					{
 						TZK_LOG(LogLevel::Trace, "Online Tracker component identified");
 						/*auto  tracker = std::make_unique<node_component_online>();
@@ -1430,7 +1430,7 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadNodes(
 						node->components.push_back(std::move(tracker));*/
 					}
 					break;
-				case cth_sysinfo:
+				case cth_cmpt_sysinfo:
 					{
 						TZK_LOG(LogLevel::Trace, "System Information component identified");
 						auto  sysinf = std::make_unique<node_component_systeminfo>();
@@ -2485,12 +2485,12 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::SaveNodes(
 
 				switch ( cmpt->component_id )
 				{
-				case cth_credentials:
+				case cth_cmpt_credentials:
 					{
 						
 					}
 					break;
-				case cth_header:
+				case cth_cmpt_header:
 					{
 						auto cast = dynamic_cast<node_component_header*>(cmpt.get());
 						if ( cast != nullptr )
@@ -2503,12 +2503,12 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::SaveNodes(
 						}
 					}
 					break;
-				case cth_online_track:
+				case cth_cmpt_online_track:
 					{
 						
 					}
 					break;
-				case cth_sysinfo:
+				case cth_cmpt_sysinfo:
 					{
 						auto cast = dynamic_cast<node_component_systeminfo*>(cmpt.get());
 						if ( cast != nullptr )

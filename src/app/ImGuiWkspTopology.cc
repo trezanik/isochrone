@@ -1661,7 +1661,7 @@ ImGuiWkspTopology::DrawHardwareDialog(
 		// | ImGuiTreeNodeFlags_Selected | ImGuiTreeNodeFlags_OpenOnArrow;
 
 	auto  wnode = node->GetWorkspaceNode();
-	if ( !wnode->has_component(cth_sysinfo) )
+	if ( !wnode->has_component(cth_cmpt_sysinfo) )
 	{
 		TZK_LOG_FORMAT(LogLevel::Warning, "Hardware Dialog attempted opening for node (%s) without a system info component", node->GetID().GetCanonical());
 		my_draw_hardware_popup = false;
@@ -1670,7 +1670,7 @@ ImGuiWkspTopology::DrawHardwareDialog(
 		return;
 	}
 
-	auto  nc_sysinf = dynamic_cast<node_component_systeminfo*>(wnode->get_component(cth_sysinfo));
+	auto  nc_sysinf = dynamic_cast<node_component_systeminfo*>(wnode->get_component(cth_cmpt_sysinfo));
 	if ( nc_sysinf == nullptr )
 	{
 		TZK_LOG_FORMAT(LogLevel::Warning, "Hardware Dialog attempted opening for node (%s) without a system info component", node->GetID().GetCanonical());
@@ -2712,7 +2712,7 @@ ImGuiWkspTopology::DrawPropertyView()
 
 				DrawPropertyView_Pins(row_count, gn->pins, node);
 
-				auto  gnc_sysinf = dynamic_cast<node_component_systeminfo*>(node->GetWorkspaceNode()->get_component(cth_sysinfo));
+				auto  gnc_sysinf = dynamic_cast<node_component_systeminfo*>(node->GetWorkspaceNode()->get_component(cth_cmpt_sysinfo));
 				if ( gnc_sysinf != nullptr )
 				{
 					DrawPropertyView_SystemInfo(row_count, gnc_sysinf->system_info);
@@ -2828,7 +2828,7 @@ ImGuiWkspTopology::DrawPropertyView()
 			if ( my_selected_nodes.size() == 1 )
 			{
 				auto  node = std::dynamic_pointer_cast<IsochroneNode>(my_selected_nodes[0]);
-				auto  gnc_sysinf = dynamic_cast<node_component_systeminfo*>(node->GetWorkspaceNode()->get_component(cth_sysinfo));
+				auto  gnc_sysinf = dynamic_cast<node_component_systeminfo*>(node->GetWorkspaceNode()->get_component(cth_cmpt_sysinfo));
 				
 				if ( gnc_sysinf != nullptr )
 				{

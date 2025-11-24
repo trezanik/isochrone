@@ -298,7 +298,7 @@ ImGuiSearchDialog::SearchWorkspace(
 		//n->size; ?
 		srch(n->graph.style.c_str(), "Node:Style", n.get()); ///////// not actually graph-bound
 		
-		auto  gnc_sysinf = dynamic_cast<node_component_systeminfo*>(n->get_component(cth_sysinfo));
+		auto  gnc_sysinf = dynamic_cast<node_component_systeminfo*>(n->get_component(cth_cmpt_sysinfo));
 		if ( gnc_sysinf != nullptr )
 		{ 
 			node_component_systeminfo::system&  sysinf = gnc_sysinf->system_info;

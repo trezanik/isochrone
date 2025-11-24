@@ -209,10 +209,10 @@ class IWorkspacePimpl;
  * 
  * Duplicates must be avoided, but if present, the first one checked will win.
  */
-static constexpr uint32_t  cth_credentials = trezanik::core::aux::compile_time_crc32_hash("Credentials");
-static constexpr uint32_t  cth_header = trezanik::core::aux::compile_time_crc32_hash("Header");
-static constexpr uint32_t  cth_online_track = trezanik::core::aux::compile_time_crc32_hash("OnlineStateTracker");
-static constexpr uint32_t  cth_sysinfo = trezanik::core::aux::compile_time_crc32_hash("SystemInfo");
+static constexpr uint32_t  cth_cmpt_credentials = trezanik::core::aux::compile_time_crc32_hash("Credentials");
+static constexpr uint32_t  cth_cmpt_header = trezanik::core::aux::compile_time_crc32_hash("Header");
+static constexpr uint32_t  cth_cmpt_online_track = trezanik::core::aux::compile_time_crc32_hash("OnlineStateTracker");
+static constexpr uint32_t  cth_cmpt_sysinfo = trezanik::core::aux::compile_time_crc32_hash("SystemInfo");
 
 
 /**
@@ -444,7 +444,7 @@ struct node_component_credentials : public node_component
 {
 	node_component_credentials()
 	{
-		component_id = cth_credentials;
+		component_id = cth_cmpt_credentials;
 	}
 
 	/*virtual bool
@@ -463,7 +463,7 @@ struct node_component_header : public node_component
 	: bg(0)
 	, fg(0)
 	{
-		component_id = cth_header;
+		component_id = cth_cmpt_header;
 	}
 
 	std::string  text;
@@ -482,7 +482,7 @@ struct node_component_online_tracker : public node_component
 {
 	node_component_online_tracker()
 	{
-		component_id = cth_online_track;
+		component_id = cth_cmpt_online_track;
 	}
 
 	/*virtual bool
@@ -502,7 +502,7 @@ struct node_component_systeminfo : public node_component
 {
 	node_component_systeminfo()
 	{
-		component_id = cth_sysinfo;
+		component_id = cth_cmpt_sysinfo;
 	}
 
 	/*virtual bool
@@ -937,24 +937,30 @@ struct workspace_node
 
 
 	/**
-	 * Checks if this node has a component of the supplied ID
+	 * Destroys the component of the supplied ID if present in this node
 	 * 
-	 * ID is a compile-time CRC32 hash value
+	 * ID is a compile-time CRC32 hash value.
+	 * 
+	 * The caller is responsible for performing any required cleanup activities
+	 * prior to or post invocation as appropriate for the component.
 	 * 
 	 * @param[in] id_hash
 	 *  The hash value to lookup
 	 * @return
-	 *  Boolean result, true if found
+	 *  Boolean result, true if destroyed
 	 */
 	bool
-	has_component(
+	destroy_component(
 		uint32_t id_hash
 	)
 	{
-		for ( auto& c : components )
+		auto  c = std::find_if(components.cbegin(), components.cend(), [&id_hash](auto&& cmp) {
+			return cmp->component_id == id_hash;
+		});
+		if ( c != components.cend() )
 		{
-			if ( c->component_id == id_hash )
-				return true;
+			components.erase(c);
+			return true;
 		}
 
 		return false;
@@ -984,6 +990,30 @@ struct workspace_node
 		assert(1 == 1 && "Non-existing component requested; use has_component to validate existence");
 #endif
 		return nullptr;
+	}
+
+	/**
+	 * Checks if this node has a component of the supplied ID
+	 * 
+	 * ID is a compile-time CRC32 hash value
+	 * 
+	 * @param[in] id_hash
+	 *  The hash value to lookup
+	 * @return
+	 *  Boolean result, true if found
+	 */
+	bool
+	has_component(
+		uint32_t id_hash
+	)
+	{
+		for ( auto& c : components )
+		{
+			if ( c->component_id == id_hash )
+				return true;
+		}
+
+		return false;
 	}
 
 	bool operator !=(const workspace_node& rhs) const
