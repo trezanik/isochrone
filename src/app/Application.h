@@ -716,6 +716,26 @@ private:
 
 #endif // TZK_USING_OPENALSOFT
 
+#if TZK_IS_WIN32
+
+	/**
+	 * Initializes Windows-specific functionality
+	 * 
+	 * Presently required for WinSock, available for other things if needed. Uses
+	 * WinSock 2.2 hardcoded, which is available from NT5 onwards which is our
+	 * minimum target version anyway.
+	 * 
+	 * @todo more suitable for adding to Net service, will shift there in future
+	 *
+	 * @return
+	 *  - EFAULT if WSAStartup fails; Windows Sockets will be unavailable
+	 *  - ErrNONE on success
+	 */
+	int
+	InitializeWindows();
+
+#endif  // TZK_IS_WIN32
+
 
 
 

@@ -406,6 +406,10 @@ Application::Cleanup()
 	}
 #endif // TZK_USING_SDL
 
+#if TZK_IS_WIN32
+	::WSACleanup();
+#endif
+
 
 	auto cfg = core::ServiceLocator::Config();
 
@@ -1172,6 +1176,13 @@ Application::Initialize(
 			TZK_LOG_FORMAT(LogLevel::Error, "Engine initialization failure: %s service failed creation", "Net");
 			return ErrFAILED;
 		}
+#if TZK_IS_WIN32
+		if ( InitializeWindows() != ErrNONE )
+		{
+			TZK_LOG_FORMAT(LogLevel::Error, "WinSock init failure");
+			return ErrFAILED;
+		}
+#endif
 
 		// context must be the first non-service object to be created, last to be deleted
 		my_context = std::make_unique<Context>();
@@ -1809,6 +1820,28 @@ Application::InitializeSDL()
 }
 
 #endif // TZK_USING_SDL
+
+#if TZK_IS_WIN32
+
+int
+Application::InitializeWindows()
+{
+	using namespace trezanik::core;
+
+	WSAData  wsa;
+
+	// 2.2 available from NT5, our minimum build target (5.1)
+	if ( ::WSAStartup(MAKEWORD(2, 2), &wsa) != 0 )
+	{
+		TZK_LOG_FORMAT(LogLevel::Error, "WSAStartup failed: %d", ::WSAGetLastError()); /// @todo proper error handling
+		return EFAULT;
+	}
+
+	TZK_LOG(LogLevel::Debug, "WSAStartup initialization complete");
+	return ErrNONE;
+}
+
+#endif  // TZK_IS_WIN32
 
 
 int
