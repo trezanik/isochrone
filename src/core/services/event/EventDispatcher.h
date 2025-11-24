@@ -165,7 +165,7 @@ public:
 		{
 			Lock();
 
-			for ( auto el : my_event_list )
+			for ( auto& el : my_event_list )
 			{
 				for ( auto& e : el.second )
 				{
@@ -313,7 +313,7 @@ public:
 			return;
 		}
 
-		for ( auto elem : iter->second )
+		for ( const auto& elem : iter->second )
 		{
 			if ( std::shared_ptr<DelayedEvent<T>> event = std::dynamic_pointer_cast<DelayedEvent<T>>(elem.second) )
 			{

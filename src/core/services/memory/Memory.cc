@@ -44,7 +44,7 @@ print_leaks(
 		leak_info->stats.bytes_allocated - leak_info->stats.bytes_freed
 	);
 
-	for ( auto iter : leak_info->allocations )
+	for ( const auto& iter : leak_info->allocations )
 	{
 		std::fprintf(
 			stderr,
@@ -201,7 +201,7 @@ Memory::Free(
 		if ( TZK_UNLIKELY(my_tracking_info->deny_changes) )
 			return;
 
-		for ( auto iter : my_tracking_info->allocations )
+		for ( const auto& iter : my_tracking_info->allocations )
 		{
 			// memptr address is still accurate, even if freed
 			if ( iter->block == memptr )
@@ -236,7 +236,7 @@ Memory::GetBlockInfo(
 	std::lock_guard<std::mutex>  lock(my_tracking_info->lock);
 	std::shared_ptr<mem_alloc_info>  retval = nullptr;
 
-	for ( auto iter : my_tracking_info->allocations )
+	for ( const auto& iter : my_tracking_info->allocations )
 	{
 		if ( iter->block == memptr )
 		{
@@ -330,7 +330,7 @@ Memory::Reallocate(
 		 * new one.
 		 */
 
-		for ( auto iter : my_tracking_info->allocations )
+		for ( const auto& iter : my_tracking_info->allocations )
 		{
 			if ( iter->block == memptr )
 			{

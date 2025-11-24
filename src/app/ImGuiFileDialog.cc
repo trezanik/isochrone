@@ -409,7 +409,7 @@ ImGuiFileDialog::Draw()
 #endif  // TZK_IS_WIN32
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(2.f, 0.f));
-	for ( auto entry : _current_path_dirs )
+	for ( auto& entry : _current_path_dirs )
 	{
 		ImGui::SameLine();
 		if ( ImGui::Button(entry.c_str()) )

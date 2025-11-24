@@ -1191,22 +1191,6 @@ private:
 	std::unique_ptr<IWorkspacePimpl>  my_impl;
 
 
-
-	/**
-	 * Adds a graph node to the workspace data
-	 * 
-	 * @param[in] gn
-	 *  A shared_ptr to the graph node
-	 * @return
-	 *  - ErrNONE if the node is added
-	 *  - EEXIST if the node already exists
-	 */
-	int
-	AddGraphNode(
-		std::shared_ptr<graph_node> gn
-	);
-
-
 	/**
 	 * Adds the supplied link to the set
 	 *
@@ -1227,23 +1211,6 @@ private:
 	int
 	AddLink(
 		std::shared_ptr<link> l
-	);
-
-
-	/**
-	 * Adds a workspace node to the workspace data
-	 * 
-	 * Automatically creates an associated graph node
-	 * 
-	 * @param[in] node
-	 *  A shared_ptr to the workspace node
-	 * @return
-	 *  - ErrNONE if the node is added
-	 *  - EEXIST if the node already exists
-	 */
-	int
-	AddNode(
-		std::shared_ptr<workspace_node> node
 	);
 
 
@@ -1371,7 +1338,10 @@ private:
 
 
 	/**
-	 * 
+	 * Event handler for a Link loaded notification
+	 *
+	 * @param[in] loaded
+	 *  Event data for loaded_link
 	 */
 	void
 	HandleLoadedLink(
@@ -1380,7 +1350,10 @@ private:
 
 
 	/**
-	 * 
+	 * Event handler for a Node loaded notification
+	 *
+	 * @param[in] loaded
+	 *  Event data for loaded_node
 	 */
 	void
 	HandleLoadedNode(
@@ -1389,7 +1362,10 @@ private:
 
 
 	/**
-	 * 
+	 * Event handler for a NodeStyle loaded notification
+	 *
+	 * @param[in] loaded
+	 *  Event data for loaded_nodestyle
 	 */
 	void
 	HandleLoadedNodeStyle(
@@ -1398,7 +1374,10 @@ private:
 
 
 	/**
-	 * 
+	 * Event handler for a PinStyle loaded notification
+	 *
+	 * @param[in] loaded
+	 *  Event data for loaded_pinstyle
 	 */
 	void
 	HandleLoadedPinStyle(
@@ -1407,7 +1386,10 @@ private:
 
 	
 	/**
-	 * 
+	 * Event handler for a Service loaded notification
+	 *
+	 * @param[in] loaded
+	 *  Event data for loaded_service
 	 */
 	void
 	HandleLoadedService(
@@ -1416,7 +1398,10 @@ private:
 
 
 	/**
-	 * 
+	 * Event handler for a Service Group loaded notification
+	 *
+	 * @param[in] loaded
+	 *  Event data for loaded_service_group
 	 */
 	void
 	HandleLoadedServiceGroup(
@@ -1455,11 +1440,13 @@ public:
 	CheckServiceName(
 		std::string& service_name
 	);
+
+#if 0 // Code Disabled: /// @todo placeholder for intended future addition
 	void
 	CheckWorkspaceName(
 		std::string& workspace_name
 	);
-
+#endif
 
 	/**
 	 * Gets the workspace UUID

@@ -118,7 +118,7 @@ Config::CreateDefaultFile(
 	 * Reach out to all those interested in providing configuration, and advise
 	 * of the request for default settings
 	 */
-	for ( auto cs : my_config_servers )
+	for ( const auto& cs : my_config_servers )
 	{
 		auto defmap = cs->GetDefaults();
 		

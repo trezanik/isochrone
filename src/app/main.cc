@@ -62,7 +62,7 @@ app_terminate()
 
 #elif TZK_IS_WIN32
 
-	// to add: CaptureStackBackTrace();
+	/// @todo add: CaptureStackBackTrace();
 
 #endif
 

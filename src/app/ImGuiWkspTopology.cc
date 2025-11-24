@@ -5665,7 +5665,7 @@ IsochroneNode::~IsochroneNode()
 
 	TZK_LOG(LogLevel::Trace, "Destructor starting");
 	{
-
+		// custom components needing special handling? :: GetWorkspaceNode()->has_component(...);
 	}
 	TZK_LOG(LogLevel::Trace, "Destructor finished");
 }
