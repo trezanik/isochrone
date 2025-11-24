@@ -16,7 +16,7 @@
 
 const char*
 err_as_string(
-	errno_ext err
+	int err
 )
 {
 	switch ( err )

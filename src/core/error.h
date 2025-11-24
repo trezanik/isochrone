@@ -83,5 +83,5 @@ enum errno_ext : int
 TZK_CORE_API
 const char*
 err_as_string(
-	errno_ext err
+	int err
 );
