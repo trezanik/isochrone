@@ -28,10 +28,11 @@
     <AudioLogTracing>1</AudioLogTracing>
     <MouseMoveLogs>0</MouseMoveLogs>
     <ThreadedRender>0</ThreadedRender>
+    <NetworkLowLevelLogs>1</NetworkLowLevelLogs>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <PreprocessorDefinitions>_WIN32_WINNT=$(Win32WinNT);TZK_ENABLE_XP2003_SUPPORT=$(NT5Support);_CRT_NONSTDC_NO_WARNINGS;TZK_AUDIO_LOG_TRACING=$(AudioLogTracing);TZK_MOUSEMOVE_LOGS=$(MouseMoveLogs);TZK_THREADED_RENDER=$(ThreadedRender);TZK_USING_CATCH2=$(UsingCatch2);TZK_USING_FLAC=$(UsingFLAC);TZK_USING_FREETYPE=$(UsingFreetype);TZK_USING_IMGUI=$(UsingImGui);TZK_USING_LIBPNG=$(UsingLibPNG);TZK_USING_OGGOPUS=$(UsingOggOpus);TZK_USING_OGGVORBIS=$(UsingOggVorbis);TZK_USING_OPENALSOFT=$(UsingOpenALSoft);TZK_USING_OPENSSL=$(UsingOpenSSL);TZK_USING_PUGIXML=$(UsingPugixml);TZK_USING_RCCPP=$(UsingRCCPP);TZK_USING_SDL=$(UsingSDL);SDL_MAIN_HANDLED;TZK_USING_SDLIMAGE=$(UsingSDLImage);TZK_USING_SDL_TTF=$(UsingSDLTTF);TZK_USING_SQLITE=$(UsingSqlite);TZK_USING_STBF=$(UsingSTBF);TZK_USING_STBI=$(UsingSTBI);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32_WINNT=$(Win32WinNT);TZK_ENABLE_XP2003_SUPPORT=$(NT5Support);_CRT_NONSTDC_NO_WARNINGS;TZK_AUDIO_LOG_TRACING=$(AudioLogTracing);TZK_MOUSEMOVE_LOGS=$(MouseMoveLogs);TZK_NETLL_LOGGING=$(NetworkLowLevelLogs);TZK_THREADED_RENDER=$(ThreadedRender);TZK_USING_CATCH2=$(UsingCatch2);TZK_USING_FLAC=$(UsingFLAC);TZK_USING_FREETYPE=$(UsingFreetype);TZK_USING_IMGUI=$(UsingImGui);TZK_USING_LIBPNG=$(UsingLibPNG);TZK_USING_OGGOPUS=$(UsingOggOpus);TZK_USING_OGGVORBIS=$(UsingOggVorbis);TZK_USING_OPENALSOFT=$(UsingOpenALSoft);TZK_USING_OPENSSL=$(UsingOpenSSL);TZK_USING_PUGIXML=$(UsingPugixml);TZK_USING_RCCPP=$(UsingRCCPP);TZK_USING_SDL=$(UsingSDL);SDL_MAIN_HANDLED;TZK_USING_SDLIMAGE=$(UsingSDLImage);TZK_USING_SDL_TTF=$(UsingSDLTTF);TZK_USING_SQLITE=$(UsingSqlite);TZK_USING_STBF=$(UsingSTBF);TZK_USING_STBI=$(UsingSTBI);%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_WIN32_WINNT=$(Win32WinNT);%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -112,6 +113,10 @@
     </BuildMacro>
     <BuildMacro Include="ThreadedRender">
       <Value>$(ThreadedRender)</Value>
+    </BuildMacro>
+    <BuildMacro Include="NetworkLowLevelLogs">
+      <Value>$(NetworkLowLevelLogs)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
     </BuildMacro>
   </ItemGroup>
 </Project>

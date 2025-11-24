@@ -53,6 +53,9 @@ compiler = meson.get_compiler('cpp')
 #if get_option('MouseMove-VerboseTraceLogs')
 	add_project_arguments(['-DTZK_MOUSEMOVE_LOGS=' + get_option('MouseMove-VerboseTraceLogs').to_string()], language: 'cpp')
 #endif
+#if get_option('Network-LowLevelLogs')
+    add_project_arguments(['-DTZK_NETLL_LOGGING=' + get_option('Network-LowLevelLogs').to_string()], language: 'cpp')
+#endif
 #if get_option('OpenAL-SourceCount')
 	add_project_arguments(['-DTZK_OPENAL_SOURCE_COUNT=' + get_option('OpenAL-SourceCount').to_string()], language: 'cpp')
 #endif

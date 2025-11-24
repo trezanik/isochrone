@@ -78,6 +78,11 @@
 #	define TZK_MOUSEMOVE_LOGS  0  // false
 #endif
 
+#if !defined(TZK_NETLL_LOGGING)
+	// log low-level network operations, highly verbose
+#	define TZK_NETLL_LOGGING  0  // false
+#endif
+
 #if !defined(TZK_OPENAL_SOURCE_COUNT)
 	// number of OpenAL sources that can be used for playback
 #	define TZK_OPENAL_SOURCE_COUNT  4
