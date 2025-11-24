@@ -9,7 +9,8 @@
 #include "core/error.h"
 
 #if !TZK_IS_WIN32
-#	include <string.h>
+#	include "core/util/string/STR_funcs.h"
+#	include <cstring>
 #endif
 
 
@@ -48,7 +49,13 @@ err_as_string(
 #if TZK_IS_WIN32
 			strerror_s(buf, sizeof(buf), err);
 #else
-			strerror_r(err, buf, sizeof(buf));
+			// https://www.club.cc.cmu.edu/~cmccabe/blog_strerror.html
+			char*  ptr = strerror_r(err, buf, sizeof(buf));
+			if ( ptr != nullptr )
+			{
+				return ptr;
+			}
+			STR_copy(buf, ptr, sizeof(buf));
 #endif
 			return buf;
 		}
