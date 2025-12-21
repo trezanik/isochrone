@@ -320,7 +320,11 @@ Application::Cleanup()
 		my_pong.reset();
 	}
 
-	// save the current configuration; possibly undesired, make configurable?
+	/*
+	 * save the current configuration (optional) to cover things like window
+	 * position relocation, which has no associated in-app modifiable setting
+	 */
+	if ( my_cfg.config.save_on_exit )
 	{
 		// also desired: don't save if unmodified, get a comparator
 
@@ -2382,6 +2386,7 @@ Application::MapSettingsFromMemberVars()
 	cfg->Set(TZK_CVAR_SETTING_AUDIO_ENABLED, TConverter<bool>::ToString(my_cfg.audio.enabled));
 	cfg->Set(TZK_CVAR_SETTING_AUDIO_VOLUME_EFFECTS, float_string_precision(my_cfg.audio.volume.effects, 2));
 	cfg->Set(TZK_CVAR_SETTING_AUDIO_VOLUME_MUSIC, float_string_precision(my_cfg.audio.volume.music, 2));
+	cfg->Set(TZK_CVAR_SETTING_CONFIG_SAVE_ON_EXIT, TConverter<bool>::ToString(my_cfg.config.save_on_exit));
 	cfg->Set(TZK_CVAR_SETTING_DATA_SYSINFO_ENABLED, TConverter<bool>::ToString(my_cfg.data.sysinfo.enabled));
 	cfg->Set(TZK_CVAR_SETTING_DATA_SYSINFO_MINIMAL, TConverter<bool>::ToString(my_cfg.data.sysinfo.minimal));
 	cfg->Set(TZK_CVAR_SETTING_DATA_TELEMETRY_ENABLED, TConverter<bool>::ToString(my_cfg.data.telemetry.enabled));
@@ -2460,6 +2465,7 @@ Application::MapSettingsToMemberVars()
 	my_cfg.audio.enabled = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_AUDIO_ENABLED));
 	my_cfg.audio.volume.effects = TConverter<float>::FromString(cfg->Get(TZK_CVAR_SETTING_AUDIO_VOLUME_EFFECTS));
 	my_cfg.audio.volume.music = TConverter<float>::FromString(cfg->Get(TZK_CVAR_SETTING_AUDIO_VOLUME_MUSIC));
+	my_cfg.config.save_on_exit = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_CONFIG_SAVE_ON_EXIT));
 	my_cfg.data.sysinfo.enabled = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_DATA_SYSINFO_ENABLED));
 	my_cfg.data.sysinfo.minimal = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_DATA_SYSINFO_MINIMAL));
 	my_cfg.data.telemetry.enabled = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_DATA_TELEMETRY_ENABLED));

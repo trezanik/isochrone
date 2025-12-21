@@ -74,6 +74,8 @@ private:
 	MenuBarItem  guide;
 	/** Menu item controlling the preferences dialog */
 	MenuBarItem  preferences;
+	/** Menu item controlling the save config on exit option */
+	MenuBarItem  save_cfg_exit;
 	/** Menu item controlling the imgui demo window */
 	MenuBarItem  demo;
 	/** Menu item controlling the update dialog */

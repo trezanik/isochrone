@@ -232,6 +232,13 @@ private:
 
 		} audio;
 
+		struct
+		{
+
+			bool   save_on_exit;
+
+		} config;
+
 		struct {
 
 			struct {

@@ -22,6 +22,7 @@
 #include "core/services/event/EventDispatcher.h"
 #include "core/services/ServiceLocator.h"
 #include "core/services/log/Log.h"
+#include "core/TConverter.h"
 
 #if TZK_IS_DEBUG_BUILD
 #	include "engine/Context.h"
@@ -45,6 +46,7 @@ ImGuiMenuBar::ImGuiMenuBar(
 , exit            { "Exit",               "Ctrl+Q", &unused, true }
 , guide           { "Usage Guide",        "Ctrl+G", &unused, true }
 , preferences     { "Preferences",        "Ctrl+P", &gui_interactions.show_preferences, true }
+, save_cfg_exit   { "Save Config on Exit","", &unused, true } 
 , demo            { "Show imgui demo",    "Ctrl+D", &gui_interactions.show_demo, true }
 , update          { "Update",             "Ctrl+U", &gui_interactions.show_update, true }
 , workspace_close { "Close",              "Ctrl+W", &gui_interactions.close_current_workspace, true }
@@ -195,6 +197,24 @@ ImGuiMenuBar::Draw()
 		}
 
 		ImGui::MenuItem(preferences.text, preferences.shortcut, preferences.setting, preferences.enabled);
+
+
+		/// @todo acq and conv per frame, better to receive config change events for dynamic handling
+		// this is just to get: _gui_interactions.application.my_cfg.config.save_on_exit;
+		// but we must ensure the settings text entries correlate for accuracy
+		auto  cfg = core::ServiceLocator::Config();
+		auto  str = cfg->Get(TZK_CVAR_SETTING_CONFIG_SAVE_ON_EXIT);
+		bool  save_on_exit = core::TConverter<bool>::FromString(str);
+		
+		if ( ImGui::MenuItem(save_cfg_exit.text, save_cfg_exit.shortcut, &save_on_exit, save_cfg_exit.enabled) )
+		{
+			// copied from above temporarily, until we decide how to handle similar cases
+			cfg->Set(TZK_CVAR_SETTING_CONFIG_SAVE_ON_EXIT, core::TConverter<bool>::ToString(save_on_exit));
+			auto  cc = std::make_shared<engine::EventData::config_change>();
+			cc->new_config[TZK_CVAR_SETTING_CONFIG_SAVE_ON_EXIT] = cfg->Get(TZK_CVAR_SETTING_CONFIG_SAVE_ON_EXIT);
+			core::ServiceLocator::EventDispatcher()->DelayedDispatch(uuid_configchange, cc);
+		}
+
 
 		ImGui::Separator();
 
