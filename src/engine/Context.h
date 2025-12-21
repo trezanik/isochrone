@@ -265,6 +265,9 @@ private:
 	TTF_Font*    my_default_font;
 #endif
 
+	/// Boolean state indicating SDLImage IMG_Init success (if SDL_Image in use)
+	bool  my_sdlimage_available;
+
 
 #if TZK_THREADED_RENDER
 	/**
@@ -578,6 +581,44 @@ public:
 	 */
 	std::string
 	InstallPath() const;
+
+
+	/**
+	 * Obtains the successful initialization state of SDLImage
+	 * 
+	 * This is executed externally, but made available here for dynamic imagic
+	 * loading determination.
+	 * 
+	 * We could make this return the loaded values (used in IMG_Init calls),
+	 * but for now we're only dealing with PNG.
+	 * 
+	 * @return
+	 *  Boolean state
+	 */
+	bool
+	IsSDLImageAvailable() const
+	{
+		return my_sdlimage_available;
+	}
+
+	/**
+	 * Obtains STBI availability
+	 * 
+	 * Since this is a header-only include, if it's application inbuilt then it
+	 * is automatically present
+	 * 
+	 * @return
+	 *  Boolean state
+	 */
+	bool
+	IsSTBIAvailable() const
+	{
+#if TZK_USING_STBI
+		return true;
+#else
+		return false;
+#endif
+	}
 
 
 #if TZK_TEMP_BASIC_FACTORIES
