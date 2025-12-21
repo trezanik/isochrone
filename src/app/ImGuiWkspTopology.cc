@@ -1092,7 +1092,7 @@ ImGuiWkspTopology::Draw()
 				nullptr, my_selector_service,
 				my_context_node, &my_nodegraph
 			);
-			TZK_LOG_FORMAT(LogLevel::Debug, "Created %s pin %s at (%u,%u)", "server", spin->GetID().GetCanonical(), pinpos.x, pinpos.y);
+			TZK_LOG_FORMAT(LogLevel::Debug, "Created %s pin %s at (%f,%f)", "server", spin->GetID().GetCanonical(), pinpos.x, pinpos.y);
 			// track in workspace data
 			AddWorkspacePinFromNodeGraphPin(spin);
 		}
@@ -1105,7 +1105,7 @@ ImGuiWkspTopology::Draw()
 				my_selector_service_group, nullptr,
 				my_context_node, &my_nodegraph
 			);
-			TZK_LOG_FORMAT(LogLevel::Debug, "Created %s pin %s at (%u,%u)", "server", spin->GetID().GetCanonical(), pinpos.x, pinpos.y);
+			TZK_LOG_FORMAT(LogLevel::Debug, "Created %s pin %s at (%f,%f)", "server", spin->GetID().GetCanonical(), pinpos.x, pinpos.y);
 			// track in workspace data
 			AddWorkspacePinFromNodeGraphPin(spin);
 		}
@@ -1116,6 +1116,7 @@ ImGuiWkspTopology::Draw()
 
 		my_context_node = nullptr;
 	}
+	
 	if ( my_open_hardware_popup )
 	{
 		/// @todo check for sysinfo component, otherwise ignore
@@ -1338,7 +1339,7 @@ ImGuiWkspTopology::DrawContextPopupNodeSelect(
 				GetPinStyle(reserved_style_client.c_str()),
 				my_context_node, &my_nodegraph
 			);
-			TZK_LOG_FORMAT(LogLevel::Debug, "Created %s pin %s at (%u,%u)", "client", cpin->GetID().GetCanonical(), pos.x, pos.y);
+			TZK_LOG_FORMAT(LogLevel::Debug, "Created %s pin %s at (%f,%f)", "client", cpin->GetID().GetCanonical(), pos.x, pos.y);
 			// track in workspace data
 			AddWorkspacePinFromNodeGraphPin(cpin);
 			retval = true;
@@ -1355,7 +1356,7 @@ ImGuiWkspTopology::DrawContextPopupNodeSelect(
 				GetPinStyle(reserved_style_connector.c_str()),
 				my_context_node, &my_nodegraph
 			);
-			TZK_LOG_FORMAT(LogLevel::Debug, "Created %s pin %s at (%u,%u)", "connector", cpin->GetID().GetCanonical(), pos.x, pos.y);
+			TZK_LOG_FORMAT(LogLevel::Debug, "Created %s pin %s at (%f,%f)", "connector", cpin->GetID().GetCanonical(), pos.x, pos.y);
 			// track in workspace data
 			AddWorkspacePinFromNodeGraphPin(cpin);
 			retval = true;
