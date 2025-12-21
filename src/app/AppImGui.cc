@@ -224,7 +224,7 @@ AppImGui::AppImGui(
 
 		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::DelayedEvent<std::shared_ptr<engine::EventData::config_change>>>(uuid_configchange, std::bind(&AppImGui::HandleConfigChange, this, std::placeholders::_1))));
 		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<engine::EventData::resource_state>>(uuid_resourcestate, std::bind(&AppImGui::HandleResourceState, this, std::placeholders::_1))));
-		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<app::EventData::window_location>>(uuid_windowlocation, std::bind(&AppImGui::HandleWindowLocation, this, std::placeholders::_1))));
+		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<app::EventData::drawclient_location>>(uuid_drawclient_location, std::bind(&AppImGui::HandleWindowLocation, this, std::placeholders::_1))));
 		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<>>(uuid_windowactivate, std::bind(&AppImGui::HandleWindowActivate, this))));
 		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<>>(uuid_windowdeactivate, std::bind(&AppImGui::HandleWindowDeactivate, this))));
 		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<>>(uuid_userdata_update, std::bind(&AppImGui::HandleUserdataUpdate, this))));
@@ -665,34 +665,53 @@ AppImGui::HandleWindowDeactivate()
 
 void
 AppImGui::HandleWindowLocation(
-	app::EventData::window_location wloc
+	app::EventData::drawclient_location dcl
 )
 {
 	using namespace trezanik::core;
 
-	std::lock_guard<std::mutex>  lock(my_gui.mutex);
-
-	std::shared_ptr<ImGuiWorkspace>  imguiwksp;
 	std::shared_ptr<DrawClient>  draw_client;
 	WindowLocation  old = WindowLocation::Invalid;
 
-	for ( auto& w : my_gui.workspaces )
+	if ( dcl.workspace_ptr == nullptr )
 	{
-		if ( w.second.second->ID() == wloc.workspace_id )
+		std::lock_guard<std::mutex>  lock(my_gui.mutex);
+
+		for ( auto& w : my_gui.workspaces )
 		{
-			imguiwksp = w.second.first;
-			break;
+			if ( w.second.second->ID() == dcl.workspace_id )
+			{
+				dcl.workspace_ptr = w.second.first.get();
+				break;
+			}
+		}
+		if ( dcl.workspace_ptr == nullptr )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Workspace %s not found", dcl.workspace_id.GetCanonical());
+			TZK_DEBUG_BREAK;
+			return;
 		}
 	}
-	if ( imguiwksp == nullptr )
-	{
-		TZK_LOG_FORMAT(LogLevel::Warning, "Workspace %s not found", wloc.workspace_id.GetCanonical());
-		TZK_DEBUG_BREAK;
-		return;
-	}
+
+	/*
+	 * Do not anticipate raw pointer use here to be problematic... famous last
+	 * words.
+	 * Race only really possible if scripting/automation for a location change
+	 * occurs at the same time as a workspace open/close. This cannot happen
+	 * with a standard, manual interaction in the UI. It might also trigger the
+	 * double-mutex lock and crash anyway if the timing is right!
+	 * 
+	 * ImGuiWorkspace::ApplySetting::update_window_location - if we can get a
+	 * shared_ptr to 'this', we can supply the shared_ptr from everywhere else
+	 * as-is. I don't have shared_from_this enabled, and not sure I want it
+	 * either. We can just hold the ptr lock in callers, and if the source is
+	 * ImGuiWorkspace itself - well it's already actively referenced.
+	 * 
+	 * Consider a move away from the single-lock mutex.
+	 */
 
 	// Need to advise the workspace of a draw_client location change
-	auto  rv = imguiwksp->UpdateDrawClientDockLocation(wloc.window_id, wloc.location);
+	auto  rv = dcl.workspace_ptr->UpdateDrawClientDockLocation(dcl.window_id, dcl.location);
 	draw_client = std::get<0>(rv);
 	old = std::get<1>(rv);
 
@@ -703,7 +722,7 @@ AppImGui::HandleWindowLocation(
 		return;
 	}
 
-	UpdateDrawClientLocation(draw_client, wloc.location, old);
+	UpdateDrawClientLocation(draw_client, dcl.location, old);
 }
 
 

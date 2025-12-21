@@ -597,21 +597,21 @@ private:
 
 
 	/**
-	 * Handles window location events
-	 * 
+	 * Handles DrawClient window location events
+	 *
 	 * @note
 	 *  This does NOT receive single-instance dock draw clients, as they update
 	 *  the configuration directly, and immediately; this only handles draw
 	 *  clients in workspaces.
 	 *  We can easily add them here though! Only needs an ID check and skip the
 	 *  workspace handling if we want it all consistent.
-	 * 
+	 *
 	 * @param[in] wloc
 	 *  The window location details
 	 */
 	void
 	HandleWindowLocation(
-		app::EventData::window_location wloc
+		app::EventData::drawclient_location dcl
 	);
 
 

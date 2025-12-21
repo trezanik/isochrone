@@ -47,7 +47,6 @@ static trezanik::core::UUID  uuid_mousewheel("8e6933ca-b5ad-4371-98df-67ee50d8da
 static trezanik::core::UUID  uuid_resourcestate("f014e164-9ce5-4cc2-907c-6331e0e2e0a3");
 static trezanik::core::UUID  uuid_windowactivate("5880405f-21f0-499b-83a6-734e91c05b48");
 static trezanik::core::UUID  uuid_windowdeactivate("95c643f8-f061-43ea-a61f-1d64678ae921");
-static trezanik::core::UUID  uuid_windowlocation("ea099d77-7f00-4a3f-8340-219f340ddd83");
 static trezanik::core::UUID  uuid_windowmove("abf90c86-ec6f-4363-8fc0-edab17b61953");
 static trezanik::core::UUID  uuid_windowsize("2b057560-ffea-46BB-a27a-9646162a2ab2");
 

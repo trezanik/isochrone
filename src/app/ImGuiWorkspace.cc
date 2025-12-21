@@ -1175,11 +1175,30 @@ ImGuiWorkspace::ApplySetting(
 		val = rgba;
 		return true;
 	};
+	// copy & tweaked from ImGuiMenuBar
+	auto  update_window_location = [this](const WindowLocation new_location, const trezanik::core::UUID& window_id)
+	{
+		app::EventData::drawclient_location  dcl;
+		dcl.location = new_location;
+		dcl.window_id = window_id;
+		dcl.workspace_id = my_impl->wksp_data->id;
+		// supply this pointer! If we're mid-Draw() and we don't, mutex double-lock & crash
+		dcl.workspace_ptr = my_impl->wksp;
+		core::ServiceLocator::EventDispatcher()->DispatchEvent(uuid_drawclient_location, dcl);
+	};
 
 	switch ( TZK_RUNTIME_HASH(setting_name) )
 	{
 	case cth_dock_canvasdbg:
+		common_update();
+		my_settings->settings.dock_canvasdbg = TConverter<WindowLocation>::FromString(setting_value);
+		update_window_location(my_settings->settings.dock_canvasdbg, drawclient_canvasdbg_uuid);
+		break;
 	case cth_dock_propview:
+		common_update();
+		my_settings->settings.dock_propview = TConverter<WindowLocation>::FromString(setting_value);
+		update_window_location(my_settings->settings.dock_propview, drawclient_propview_uuid);
+		break;
 	case cth_forensics_datapath:
 		break;
 	case cth_grid_colour_background:

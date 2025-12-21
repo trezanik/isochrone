@@ -54,6 +54,8 @@ static trezanik::core::UUID  uuid_nodetarget_state("9236996c-09ad-4706-ba54-9ae0
 
 static trezanik::core::UUID  uuid_task_update("02d649ae-db37-4c11-bad9-2fbe578bc9fd");
 
+static trezanik::core::UUID  uuid_drawclient_location("ea099d77-7f00-4a3f-8340-219f340ddd83");
+
 
 enum class UpState;  // PingMonitor.h
 enum class WindowLocation;  // ImGuiSemiFixedDock.h
@@ -64,6 +66,7 @@ struct service;
 struct service_group;
 struct setting;
 struct workspace_node;
+class ImGuiWorkspace;
 class Task;
 
 
@@ -167,9 +170,9 @@ struct button_press
 
 
 /**
- * Window location event data (for docks)
+ * DrawClient window location event data (for docks)
  */
-struct window_location
+struct drawclient_location
 {
 	/** the new window location */
 	WindowLocation  location;
@@ -179,6 +182,16 @@ struct window_location
 
 	/** the window UUID this applies to */
 	trezanik::core::UUID  window_id;
+
+	/** 
+	 * (optional) the workspace raw pointer this applies to. If not set, a
+	 * dynamic lookup of the workspace_id will be performed to acquire.
+	 * 
+	 * This is crucial, as workspaces are locked behind a mutex; if this event
+	 * is triggered while inside the Draw() calls, lookups will crash due to
+	 * mutex double-lock. This must therefore be supplied in those situations.
+	 */
+	ImGuiWorkspace*  workspace_ptr = nullptr;
 };
 
 

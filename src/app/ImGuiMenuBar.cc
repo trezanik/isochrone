@@ -145,13 +145,14 @@ ImGuiMenuBar::Draw()
 		core::ServiceLocator::EventDispatcher()->DelayedDispatch(uuid_configchange, cc);
 	};
 	// updater for workspace-specific dock draw clients
-	auto  update_window_location = [this](WindowLocation new_location, trezanik::core::UUID& window_id)
+	auto  update_window_location = [this](const WindowLocation new_location, const trezanik::core::UUID& window_id)
 	{
-		app::EventData::window_location  wl;
-		wl.location = new_location;
-		wl.window_id = window_id;
-		wl.workspace_id = _gui_interactions.active_workspace;
-		core::ServiceLocator::EventDispatcher()->DispatchEvent(uuid_windowlocation, wl);
+		app::EventData::drawclient_location  dcl;
+		dcl.location = new_location;
+		dcl.window_id = window_id;
+		dcl.workspace_id = _gui_interactions.active_workspace;
+		// no need to set workspace_ptr, we're not mid-Draw(), do dynamic lookup
+		core::ServiceLocator::EventDispatcher()->DispatchEvent(uuid_drawclient_location, dcl);
 	};
 
 
