@@ -4536,7 +4536,7 @@ IsochroneNode::DrawContent()
 {
 	ImGui::PushID(this);
 
-	ImGui::TextDisabled("%s", my_wksp_node->graph.datastr.c_str());
+	ImGui::TextWrapped("%s", my_wksp_node->graph.datastr.c_str());
 
 	ImGui::PopID();
 }
