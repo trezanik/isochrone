@@ -998,6 +998,9 @@ PingMonitor::SelectLoop()
 			if ( FD_ISSET(sock, &descriptors) )
 			{
 				auto  pkt_size = Receive(sock);
+#if TZK_IS_CLANG || TZK_IS_GCC
+				TZK_CC_DISABLE_WARNING(-Wsign-compare)
+#endif
 				if ( pkt_size == -1 )
 				{
 					if ( --errors_left < 0 )
@@ -1007,6 +1010,9 @@ PingMonitor::SelectLoop()
 					}
 					continue;
 				}
+#if TZK_IS_CLANG || TZK_IS_GCC
+				TZK_CC_RESTORE_WARNING
+#endif
 				if ( pkt_size == 0 )
 				{
 					continue;
