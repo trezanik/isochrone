@@ -94,6 +94,12 @@ ImGuiSearchDialog::Draw()
 {
 	using namespace trezanik::core;
 
+	ImVec2  min_size(360.f, 240.f);
+	ImVec2  start_size(_gui_interactions.app_usable_rect.Max * 0.75f);
+
+	ImGui::SetNextWindowSize(start_size, ImGuiCond_Appearing);
+	ImGui::SetNextWindowSizeConstraints(min_size, ImVec2(FLT_MAX, FLT_MAX));
+
 	if ( ImGui::Begin("Search##window") )
 	{
 		if ( ImGui::InputTextWithHint("Text", "Text to search for", my_input_buf, sizeof(my_input_buf)) )
