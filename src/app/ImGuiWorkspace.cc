@@ -1483,8 +1483,8 @@ ImGuiWorkspace::DrawLoadingDetails()
 	ImGui::PushFont(_gui_interactions.font_fixed_width, _gui_interactions.font_fixed_width_size);
 	ImGui::Text("Nodes...........:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.nodes.size());
 	ImGui::Text("Links...........:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.links.size());
-	ImGui::Text("Node Styles.....:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.node_styles.size() - num_inbuilt_nodestyles);
-	ImGui::Text("Pin Styles......:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.pin_styles.size() - num_inbuilt_pinstyles);
+	ImGui::Text("Node Styles.....:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.node_styles.size());
+	ImGui::Text("Pin Styles......:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.pin_styles.size());
 	ImGui::Text("Services........:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.services.size());
 	ImGui::Text("Service Groups..:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.service_groups.size());
 	ImGui::Text("Settings........:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.settings.size());
@@ -2295,11 +2295,14 @@ ImGuiWorkspace::SetWorkspace(
 	  // additional as needed
 	)
 	{
-		TZK_LOG(LogLevel::Error, "Data mismatch in loading vs live; missing content");
+		TZK_LOG(LogLevel::Error, "Data mismatch in loading vs live; missing or erroneous content");
 	}
 
+#if 0  // Code Disabled: not sure why I thought this was a good idea. Isn't touched again post-load, usable for comparison
 	// replace interim loading data
 	my_loading_wksp_data = my_wksp_data;
+	// ^ will integrate inbuilt node and pin styles, which does show on the loading view
+#endif
 
 	// create subclasses that interact with the data; are also extra tab navigations
 	//my_definition = std::make_unique<ImGuiWkspDefinition>(_gui_interactions, this);
