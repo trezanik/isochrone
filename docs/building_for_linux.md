@@ -42,18 +42,22 @@ Applications installed:
 - C++ compiler (e.g. clang++, g++)
 - C++ build systems (e.g. cmake, make, ninja)
 
-Dependencies installed if including all optionals (alternatively, build all these from source):
+Dependencies installed if including all optional libraries (alternatively, build all these from source):
 - openssl (libcrypto, libssl)
 - openal
 - pugixml [mandatory]
-- png [mandatory]
 - opus
 - vorbis
 - ogg
 - freetype [mandatory]
 - sqlite3
 - SDL2 [mandatory]
+- SDL2_image
 - SDL2_ttf [mandatory]
+
+Dependencies of dependencies:
+- png [mandatory, for freetype, optionally SDL2_image]
+- zlib [mandatory, for freetype and png]
 
 Testing was performed on a fresh install and update of the system, with git installed if not already inbuilt. This is as raw as you can get!
 
@@ -62,7 +66,7 @@ Open a Terminal and navigate to the desired location to store the project downlo
 Clone from the repository:
     `git clone https://github.com/trezanik/isochrone`
 
-Two environments are offered for Linux: meson using ninja, and CMake. CMake has had more attention given how annoying it is to work with, but otherwise choose your preference.
+Two environments are offered for Linux: meson using ninja, and CMake. Choose your preference.
 
 
 ### Build Environment
@@ -75,6 +79,7 @@ Tested across packages provided with the distributions:
 My regular workstation also has:
 
  - gcc 12.2.0 with glibc 2.36
+ - gcc 15.2.1 with glibc 2.42
 
 #### Distribution-Specific : Slackware
 
@@ -121,6 +126,7 @@ Install these packages:
 - libsqlite3-dev
 - libpugixml-dev
 - libsdl2-dev
+- libsdl2-image-dev
 - libsdl2-ttf-dev
 
 Network was untested, but likely:
@@ -143,6 +149,7 @@ Performed on: Manjaro Linux 25.0.0 (XFCE) amd64
 Install these packages:
 - pkg-config
 - pugixml
+- sdl2_image
 - sdl2_ttf
 
 You'll also want one or more of:
@@ -192,6 +199,7 @@ Will need to enable the Extra Packages for Enterprise Linux (EPEL):
 - `yum install opus-devel`
 - `yum install opusfile-devel`
 - `yum install SDL2-devel`
+- `yum install SDL2_image-devel`
 - `yum install SDL2_ttf-devel`
 - `yum install libogg-devel`
 - `yum install libvorbis-devel`

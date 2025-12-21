@@ -45,14 +45,14 @@ With a Workspace opened, you can move the grid around by holding the mouse-scrol
 
 ### <a id="General-Structure"></a>General Structure
 
-A Workspace represents a single NodeGraph/Flowchart, which can operate on low-level individual system nodes, or representations of groups via multi-system nodes.
+A Workspace represents a single NodeGraph/Flowchart, which operates on individual nodes that through components can expose data or functionality to represent individual systems, or entire groups from a technical or logical perspective.
 This allows the application to design a topology and general flow for minimal networks, up to medium-sized enterprises.
 
-Workspaces have one or more nodes that are linked together via Pins, with each node able to have an effectively unlimited amount.
+Workspaces have one or more nodes that are linked together via Pins, with each node able to have an effectively unlimited amount of connections. They can also operate entirely independently, covering multiple use cases.
 
 ![workspace_layout](workspace_layout.png "Workspace")
 
-Pins can be a general representation of a connection using a Generic Connector pin, or explicit via a Service/Service Group pin.
+Pins can be a general representation of a connection using a Generic Connector pin, or explicit via a Service/Service Group pin which are backed by workspace-defined services.
 
 The object hierarchy looks as follows:
 ```
@@ -75,7 +75,7 @@ Within the main menu bar, select `Workspace` and then `New`.
 
 ![workspace_menu](workspace_menu.png "Workspace Menu")
 
-A file dialog will open prompting for the filename to use (extensions are not automatically added, but these are XML files) - Workspaces are by default stored in your user profiles application data:
+A file dialog will open prompting for the filename to use (extensions are not automatically added and can be anything, but these are XML files) - Workspaces are by default stored in your user profiles application data:
 - (Windows) `%APPDATA%\trezanik\isochrone\workspaces`
 - (Linux) `/home/$username/.config/trezanik/isochrone/workspaces`
 You cannot navigate out of this directory within this dialog.
@@ -84,10 +84,6 @@ You cannot navigate out of this directory within this dialog.
 
 Populate the Name field and click Save; a minimal file will now be stored at this path, with all subsequent save operations writing to this file.
 
-> Note
-A selected file will populate its name in the field, and will result in overwriting the original file if saved! This also applies to any names that happen to match existing items.
-
-
 ### <a id="Loading-an-existing-Workspace"></a>Loading an existing Workspace
 
 Within the main menu bar, select `Workspace` and then `Open`.
@@ -95,7 +91,6 @@ Within the main menu bar, select `Workspace` and then `Open`.
 A file dialog will open, that will allow you to select an existing item within the workspaces directory; this is:
 - (Windows) `%APPDATA%\trezanik\isochrone\workspaces`
 - (Linux) `/home/$username/.config/trezanik/isochrone/workspaces`
-You cannot navigate out of this directory within this dialog.
 
 Select the desired file and click Open. The file will be loaded and the active internal window list updated based on the configuration for the application and within the workspace itself.
 
@@ -130,7 +125,7 @@ For usage instruction, we'll create an example Service Group containing a single
 4. Upon clicking Save, this will now appear in the Services list. You can continue to make edits to this Service while it is selected within the list. Any modification will block out the other operations until Save or Cancel is pressed.
 5. The service is now created and can be used for a Server Pin.
 
-![service_http](service_http.png "Service Management, HTTP service added")
+![service_mgmt-http](service_mgmt-http.png "Service Management, HTTP service added")
 
 1. Under the Service Groups section, Click Add.
 2. This will populate the Service Group section with a default name, with the other fields left empty.
@@ -138,16 +133,16 @@ For usage instruction, we'll create an example Service Group containing a single
 4. Within the Services section, select the HTTP service you created prior, and then click **Include**, which became available when selecting the service - you'll see the service disappear from the Services list, and appear in the Service Group service list.
 5. Click Save in the Service Group section, and you've completed the operation; this service group is now available for use by a Server Pin.
 
-![service_webgroup](service_webgroup.png "Service Management, Common Web service group added")
+![service_mgmt-common_web](service_mgmt-common_web.png "Service Management, Common Web service group added")
 
 You can edit a service at any time, regardless of its presence in a group or not. Simply select it and make the desired changes.
 
 While doing so, all other fields are disabled until the changes are committed or cancelled:
 
-![service_editing](service_editing.png "Service Management, editing HTTP")
+![service_mgmt-editing](service_mgmt-editing.png "Service Management, editing HTTP")
 
 Additional information:
-- Bulk inclusion and exclusion of services is not yet possible.
+- Bulk inclusion and exclusion of services is not yet possible, but you can edit the XML directly if comfortable with doing so.
 - You can edit a Service whether or not it is in a Service Group; the code handles updating all necessary objects even if it's in use in other Service Groups.
 - The 'To Port' field allows entering a port range, sequential in nature, starting from the 'Port' field. If left at `0`, it is effectively non-existent.
 - Saving here does not save the workspace itself! You'll still need to manually save the workspace via the menu.
@@ -156,12 +151,12 @@ Additional information:
 
 ### <a id="Adding-a-Node"></a>Adding a Node
 
-Within the nodegraph, right-click on any blank area and select **New `$(Type)` Node**; `System` for a singular system, `Multi-System` for multiple systems, and `Boundary` for a logical boundary.
+Within the nodegraph, right-click on any blank area and select **New Node**
 
 ![graph_context_menu](graph_context_menu.png "NodeGraph context menu")
 
-- To resize the node, with the node selected open the Node Properties in the Property View, and edit the **Size** fields; first is x (width), second is y (height). There will be a future ability to drag from the node edges, but is not yet implemented.
-- To reposition the node, click and drag on the node header to have it follow the cursor position. If not configured for header-only dragging, anywhere in the node can be dragged in order to relocate (Boundary nodes are enforced header-only). It can also be done via the Property View, at the **Position** field pair.
+- To resize the node, with the node selected open the Node Properties in the Property View, and edit the **Size** fields; first is x (width), second is y (height). There will be a future ability to drag from the node edges for dynamic resize, but it is not yet implemented.
+- To reposition the node, click and drag on it to have it follow the cursor position. If configured for header-only dragging, you'll have to click and drag exclusively from the nodes header. It can also be repositioned via the Property View, at the **Position** field pair.
 
 
 
@@ -200,6 +195,7 @@ An attempt to connect to an incompatible Pin will generate an error.
 All deletion/removal operations are handled via context menu selections. On the item of interest, right-click to open the context menu.
 
 Each different type of node, pin, and link have different menu options, including variations depending on state.
+
 ![server_pin_connected_context_menu](server_pin_connected_context_menu.png "Server Pin Context Menu")
 ![client_pin_connected_context_menu](client_pin_connected_context_menu.png "Client Pin Context Menu")
 ![pin_context_menu](pin_context_menu.png "Pin Context Menu")

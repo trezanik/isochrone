@@ -5,7 +5,7 @@ Please see the regular Windows Build Guide for initial setup and reference, then
 
 
 ### Client Environment:
-- Client systems will need the Visual C++ Redistributables no later than version 14.27.29016.0 installed (the last version that works on Windows XP, shipped in Visual Studio 2019 v16.7).
+- Client systems will need the Visual C++ Redistributables no later than version 14.27.29016.0 installed (the last version that works on Windows XP, shipped in Visual Studio 2019 v16.7). I'm happy to provide a copy of this if desired.
 - Release mode binaries used for execution only
 
 
@@ -61,6 +61,10 @@ Build fix:
 	_This resolves two linker missing imports without needing to touch the source code_
 - Linker additional dependencies => remove `m.lib`, add `ole32.lib;strmiids.lib;winmm.lib;`
 
+Build fix - x64-only:
+- Source modification required (unsure why not for x86?). This is because they used inline within a source that's needed in another translation unit..
+1) Cut lines 55-93 from `ALu.c`, and paste to overwrite lines 17+18 in `alu.h` _(replace inline declaration with implementation)_
+2) Copy lines 94-95 from `alMain.h`, and paste at line 12 in `alu.h` _(duplicate missing definitions)_
 
 #### Editing Project Files
 
@@ -132,7 +136,7 @@ As you can see, there was actually minimal adjustments required and was sorted i
 
 ### Addendum
 
-In case you're wondering, given NT5 only supports SMB1 - a security risk and disabled on modern systems. There's a couple of options to get the application files onto the clients. You might be using these already if you have XP live in your environment!
+In case you're wondering, given NT5 only supports SMB1 - a security risk and disabled on modern systems - there's a couple of options to get the application files onto the clients. You might be using these already if you have XP live in your environment!
 
 > Generate an ISO image with all the files inside (redist, binaries, assets)
 > - Beware of tools like genisoimage that will alter filenames
