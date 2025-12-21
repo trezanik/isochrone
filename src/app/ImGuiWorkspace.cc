@@ -872,7 +872,8 @@ public:
 		}
 		ImGui::Separator();
 
-		bool  disable_delete = selected_node_target == nullptr;
+		bool  disable_delete = selected_node_target == nullptr
+			|| selected_node->selected_target == -1;
 		if ( disable_delete )
 		{
 			ImGui::BeginDisabled();
