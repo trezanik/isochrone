@@ -1901,6 +1901,22 @@ Application::InitializeWindows()
 {
 	using namespace trezanik::core;
 
+	Module_ntdll     ntdll;
+	Module_user32    user32;
+	OSVERSIONINFOEX  osvi = { 0 };
+	osvi.dwOSVersionInfoSize = sizeof(osvi);
+
+	ntdll.RtlGetVersion(&osvi);
+	if ( osvi.dwMajorVersion >= 6 )
+	{
+#if TZK_USING_SDL && !TZK_ENABLE_XP2003_SUPPORT  // we make SDL handle DPI
+		if ( !user32.SetProcessDPIAware() )
+		{
+			TZK_LOG(LogLevel::Warning, "SetProcessDPIAware failed");
+		}
+#endif
+	}
+
 	WSAData  wsa;
 
 	// 2.2 available from NT5, our minimum build target (5.1)

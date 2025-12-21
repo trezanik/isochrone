@@ -34,6 +34,10 @@
 #include "core/error.h"
 #include "core/TConverter.h"
 
+#if TZK_IS_WIN32 && TZK_ENABLE_XP2003_SUPPORT && UINTPTR_MAX == UINT64_MAX
+#	include "core/util/DllWrapper.h"
+#endif
+
 // these are only needed here for filetype detection, and could be split out into aux
 #if TZK_USING_FLAC
 #	include <FLAC/all.h>
@@ -233,6 +237,25 @@ ALAudio::~ALAudio()
 		my_sounds.clear();
 
 
+#if TZK_IS_WIN32 && TZK_ENABLE_XP2003_SUPPORT && UINTPTR_MAX == UINT64_MAX
+		/*
+		 * Fix XPx64-only crash on exit (only msvc checked).
+		 * Only set current context to a nullptr if one has already been set
+		 * previously by this class.
+		 * We could just apply to all, but I want to call out how peculiar this
+		 * was/is!
+		 */
+		bool  skip_make_current = false;
+		Module_ntdll  ntdll;
+		OSVERSIONINFOEX  osvi = { 0 };
+		osvi.dwOSVersionInfoSize = sizeof(osvi);
+		ntdll.RtlGetVersion(&osvi);
+		if ( osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 2 && osvi.wProductType == VER_NT_WORKSTATION )
+		{
+			skip_make_current = my_al_context == nullptr;
+		}
+		if ( !skip_make_current )
+#endif
 		alcMakeContextCurrent(nullptr);
 
 		if ( my_al_context != nullptr )
