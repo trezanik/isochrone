@@ -1650,7 +1650,7 @@ Application::InitializeSDL()
 	SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
 
 	// mandatory flags
-	flags |= SDL_WINDOW_ALLOW_HIGHDPI;
+	flags |= SDL_WINDOW_ALLOW_HIGHDPI;  // NT5 not DPI-aware, remove from there?
 
 	// note - we have not tested fullscreen (or borderless fullscreen) in the slightest
 	if ( my_cfg.ui.window.attributes.fullscreen )

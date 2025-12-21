@@ -27,19 +27,31 @@ namespace imgui {
 
 /**
  * SDL2 platform data for imgui interfacing
+ * 
+ * Effective copy of ImGui_ImplSDL2_Data
  */
 struct ImGui_SDL2Platform_Data
 {
 	SDL_Window*    Window;
+	Uint32         WindowID;
 	SDL_Renderer*  Renderer;
-	Uint64       Time;
+	Uint64         Time;
+	char*          ClipboardTextData;
+	char           BackendPlatformName[48];
+
 	Uint32       MouseWindowID;
 	int          MouseButtonsDown;
 	SDL_Cursor*  MouseCursors[ImGuiMouseCursor_COUNT];
-	SDL_Cursor*  LastMouseCursor;
-	int    PendingMouseLeaveFrame;
-	char*  ClipboardTextData;
-	bool   MouseCanUseGlobalState;
+	SDL_Cursor*  MouseLastCursor;
+	int          MouseLastLeaveFrame;
+	bool         MouseCanUseGlobalState;
+	bool         MouseCanUseCapture;
+
+#if 0  // Code Disabled: No intention to have gamepad support at present - but not a total write-off
+	ImVector<SDL_GameController*> Gamepads;
+	ImGui_ImplSDL2_GamepadMode    GamepadMode;
+	bool                          WantUpdateGamepadsList;
+#endif
 
 	ImGui_SDL2Platform_Data()
 	{
@@ -50,16 +62,29 @@ struct ImGui_SDL2Platform_Data
 
 /**
  * SDL2 renderer data for imgui interfacing
+ * 
+ * Effective copy of ImGui_ImplSDLRenderer2_Data
  */
 struct ImGui_SDL2Renderer_Data
 {
-	SDL_Renderer* SDLRenderer;
-	SDL_Texture* FontTexture;
+	SDL_Renderer*  SDLRenderer;
 
 	ImGui_SDL2Renderer_Data()
 	{
 		memset((void*)this, 0, sizeof(*this));
 	}
+};
+
+
+/**
+ * Dear imgui beta struct
+ * 
+ * Effective copy of ImGui_ImplSDLRenderer2_RenderState
+ * Expect this to change, such as renaming variables to match with other structs
+ */
+struct ImGui_SDLRenderer2_RenderState
+{
+	SDL_Renderer*  Renderer;
 };
 
 
@@ -112,17 +137,23 @@ public:
 
 
 	/**
-	 * Implementation of IImGuiImpl::CreateFontTexture // ImGui_ImplSDLRenderer2_CreateFontsTexture
-	 */
-	virtual bool
-	CreateFontsTexture() override;
-	
-
-	/**
-	 * Implementation of IImGuiImpl::CreateDeviceObjects // ImGui_ImplSDLRenderer2_CreateDeviceObjects
+	 * Implementation of IImGuiImpl::CreateDeviceObjects
+	 * 
+	 * No actions required for SDL; does nothing. Always returns true
+	 * 
+	 * Effective copy of ImGui_ImplSDLRenderer2_CreateDeviceObjects
 	 */
 	virtual bool
 	CreateDeviceObjects() override;
+
+
+	/**
+	 * Implementation of IImGuiImpl::DestroyDeviceObjects
+	 * 
+	 * Effective copy of ImGui_ImplSDLRenderer2_DestroyDeviceObjects
+	 */
+	virtual void
+	DestroyDeviceObjects() override;
 
 
 	/**
@@ -133,27 +164,59 @@ public:
 
 
 	/**
-	 * Implementation of IImGuiImpl::Init // ImGui_ImplSDLRenderer2_Init
+	 * 
+	 * 
+	 * Effective copy of ImGui_ImplSDL2_GetViewportForWindowID
+	 * 
+	 * 
+	 */
+	ImGuiViewport*
+	GetViewportForWindowID(
+		Uint32 window_id
+	);
+
+
+	/**
+	 * 
+	 * 
+	 * Effective copy of ImGui_ImplSDL2_GetWindowSizeAndFramebufferScale
+	 * 
+	 * 
+	 */
+	void
+	GetWindowSizeAndFramebufferScale(
+		SDL_Window* window,
+		SDL_Renderer* renderer,
+		ImVec2* out_size,
+		ImVec2* out_framebuffer_scale
+	);
+
+
+	/**
+	 * Implementation of IImGuiImpl::Init
+	 * 
+	 * Effective copy of ImGui_ImplSDLRenderer2_Init
 	 */
 	virtual bool
 	Init() override;
 
 
 	/**
-	 * Implementation of IImGuiImpl::InvalidateDeviceObjects
+	 *
+	 *
+	 * Effective copy of ImGui_ImplSDL2_KeyEventToImGuiKey
 	 */
-	virtual void
-	InvalidateDeviceObjects() override;
-
-
 	ImGuiKey
 	KeycodeToImGuiKey(
-		int keycode
+		SDL_Keycode keycode,
+		SDL_Scancode scancode
 	);
 
 
 	/**
 	 * Implementation of IImGuiImpl::NewFrame
+	 * 
+	 * Effective copy of ImGui_ImplSDLRenderer2_NewFrame && ImGui_ImplSDL2_NewFrame
 	 */
 	virtual void
 	NewFrame() override;
@@ -165,6 +228,8 @@ public:
 	 * This is called directly by the Application loop, which is responsible
 	 * for acquiring the SDL events. They are expected to be routed through
 	 * here first for generic processing, and then onwards for custom handling
+	 * 
+	 * Effective copy of ImGui_ImplSDL2_ProcessEvent
 	 */
 	virtual bool
 	ProcessSDLEvent(
@@ -174,13 +239,17 @@ public:
 
 	/**
 	 * Implementation of IImGuiImpl::ReleaseResources
+	 * 
+	 * No actions required for SDL; does nothing
 	 */
 	virtual void
 	ReleaseResources() override;
 
 
 	/**
-	 * Implementation of IImGuiImpl::RenderDrawData // ImGui_ImplSDLRenderer2_RenderDrawData
+	 * Implementation of IImGuiImpl::RenderDrawData
+	 *
+	 * Effective copy of ImGui_ImplSDLRenderer2_RenderDrawData
 	 */
 	virtual void
 	RenderDrawData(
@@ -190,6 +259,8 @@ public:
 
 	/**
 	 * Implementation of IImGuiImpl::ResetDevice
+	 * 
+	 * No actions required for SDL; does nothing
 	 */
 	virtual void
 	ResetDevice() override;
@@ -197,6 +268,8 @@ public:
 
 	/**
 	 * Implementation of IImGuiImpl::Resize
+	 * 
+	 * No actions required for SDL; does nothing
 	 */
 	virtual void
 	Resize(
@@ -207,6 +280,8 @@ public:
 
 	/**
 	 * Implementation of IImGuiImpl::RestoreResources
+	 * 
+	 * No actions required for SDL; does nothing
 	 */
 	virtual void
 	RestoreResources() override;
@@ -214,6 +289,8 @@ public:
 
 	/**
 	 * Sets the SDL viewport and clip rect
+	 * 
+	 * Effective copy of ImGui_ImplSDLRenderer2_SetupRenderState
 	 */
 	void
 	SetupRenderState();
@@ -221,6 +298,8 @@ public:
 
 	/**
 	 * Implementation of IImGuiImpl::Shutdown
+	 * 
+	 * Effective copy of ImGui_ImplSDLRenderer2_Shutdown and ImGui_ImplSDL2_Shutdown
 	 */
 	virtual void
 	Shutdown() override;
@@ -228,6 +307,8 @@ public:
 
 	/**
 	 * Adds key modifiers (e.g. Ctrl,Shift) to the imgui IO structure
+	 * 
+	 * Effective copy of ImGui_ImplSDL2_UpdateKeyModifiers
 	 * 
 	 * @param[in] sdl_key_mods
 	 *  Key mods enabled
@@ -240,6 +321,8 @@ public:
 
 	/**
 	 * Implementation of IImGuiImpl::UpdateMouseCursor
+	 * 
+	 * Effective copy of ImGui_ImplSDL2_UpdateMouseCursor
 	 */
 	virtual void
 	UpdateMouseCursor() override;
@@ -249,16 +332,20 @@ public:
 	 * SDL-specific implementation for updating mouse data
 	 * 
 	 * Primarily used for mouse capture
+	 * 
+	 * Effective copy of ImGui_ImplSDL2_UpdateMouseData
 	 */
 	void
 	UpdateMouseData();
 
 
 	/**
-	 * Implementation of IImGuiImpl::UpdateMousePosAndButtons
+	 * Implementation of IImGuiImpl::UpdateTexture
+	 * 
+	 * Effectively copy of ImGui_ImplSDLRenderer2_UpdateTexture
 	 */
-	virtual void
-	UpdateMousePosAndButtons() override;
+	void
+	UpdateTexture(ImTextureData* tex);
 };
 
 

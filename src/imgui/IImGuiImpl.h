@@ -41,16 +41,6 @@ public:
 	// ensure a virtual destructor for correct derived destruction
 	virtual ~IImGuiImpl () = default;
 
-
-	/**
-	 * Creates the font texture
-	 * 
-	 * @return
-	 *  Boolean state; false on failure
-	 */
-	virtual bool
-	CreateFontsTexture() = 0;
-
 	
 	/**
 	 * Creates objects from the graphics device
@@ -62,6 +52,13 @@ public:
 	 */
 	virtual bool
 	CreateDeviceObjects() = 0;
+
+
+	/**
+	 * Resets the device objects, if any, forcing recreation to be required
+	 */
+	virtual void
+	DestroyDeviceObjects() = 0;
 
 
 	/**
@@ -108,13 +105,6 @@ public:
 	 */
 	virtual void
 	NewFrame() = 0;
-
-
-	/**
-	 * Resets the device objects, if any, forcing recreation to be required
-	 */
-	virtual void
-	InvalidateDeviceObjects() = 0;
 
 
 #if TZK_USING_SDL
@@ -203,13 +193,6 @@ public:
 	 */
 	virtual void
 	UpdateMouseCursor() = 0;
-
-
-	/**
-	 * Modifies the ImGui IO mouse data for current state
-	 */
-	virtual void
-	UpdateMousePosAndButtons() = 0;
 
 
 	/**

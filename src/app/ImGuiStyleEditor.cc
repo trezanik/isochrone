@@ -344,10 +344,10 @@ ImGuiStyleEditor::DrawAppStyleEdit()
 
 		ImGui::SeparatorText("Widgets");
 		retval |= ImGui::SliderFloat2("WindowTitleAlign", (float*)&style.WindowTitleAlign, 0.0f, 1.0f, "%.2f");
-		int  window_menu_button_position = style.WindowMenuButtonPosition + 1;
+		ImGuiDir  window_menu_button_position = static_cast<ImGuiDir>(style.WindowMenuButtonPosition + 1);
 		if ( ImGui::Combo("WindowMenuButtonPosition", (int*)&window_menu_button_position, "None\0Left\0Right\0") )
 		{
-			style.WindowMenuButtonPosition = window_menu_button_position - 1;
+			style.WindowMenuButtonPosition = static_cast<ImGuiDir>(window_menu_button_position - 1);
 			retval = true;
 		}
 		retval |= ImGui::Combo("ColorButtonPosition", (int*)&style.ColorButtonPosition, "Left\0Right\0");
@@ -377,7 +377,7 @@ ImGuiStyleEditor::DrawAppStyleEdit()
 			ImGui::BeginDisabled();
 		}
 
-		ImGui::BeginChild("##colors", ImVec2(0, 0), ImGuiChildFlags_Border, ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_AlwaysHorizontalScrollbar | ImGuiWindowFlags_NavFlattened);
+		ImGui::BeginChild("##colors", ImVec2(0, 0), ImGuiChildFlags_Borders, ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_AlwaysHorizontalScrollbar | ImGuiChildFlags_NavFlattened);
 		
 		ImGui::PushItemWidth(ImGui::GetFontSize() * -12); // arbitrary value?
 		for ( int i = 0; i < ImGuiCol_COUNT; i++ )

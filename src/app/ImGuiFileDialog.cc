@@ -233,7 +233,7 @@ ImGuiFileDialog::Draw()
 		 * the window is 75% of the available height and width, or the min/max size
 		 * depending on space available
 		 */
-		ImVec2  starting_size = ImGui::GetContentRegionMax();
+		ImVec2  starting_size = ImGui::GetContentRegionAvail();
 
 		starting_size *= 0.75f;
 

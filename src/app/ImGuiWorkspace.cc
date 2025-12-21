@@ -467,7 +467,7 @@ public:
 		 * See about using the same nodegraph-style handling with draw lists,
 		 * but this is fine for the interim with low node counts.
 		 */
-		ImGuiChildFlags   child_flags = ImGuiChildFlags_Border;
+		ImGuiChildFlags   child_flags = ImGuiChildFlags_Borders;
 		ImGuiWindowFlags  window_flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
 
 		ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, nl_style->node_rounding);
@@ -1429,7 +1429,7 @@ ImGuiWorkspace::Draw()
 	}
 
 	_gui_interactions.tabchild_pos = ImGui::GetCursorPos();
-	_gui_interactions.tabchild_size = ImGui::GetWindowContentRegionMax();
+	_gui_interactions.tabchild_size = ImGui::GetContentRegionAvail();
 	_gui_interactions.tabchild_rect = { _gui_interactions.tabchild_pos, _gui_interactions.tabchild_size };
 
 
@@ -1477,7 +1477,7 @@ ImGuiWorkspace::DrawLoadingDetails()
 	// tabular
 
 	ImGui::BeginGroup();
-	ImGui::PushFont(_gui_interactions.font_fixed_width);
+	ImGui::PushFont(_gui_interactions.font_fixed_width, _gui_interactions.font_fixed_width_size);
 	ImGui::Text("Nodes...........:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.nodes.size());
 	ImGui::Text("Links...........:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.links.size());
 	ImGui::Text("Node Styles.....:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.node_styles.size() - num_inbuilt_nodestyles);
@@ -1513,7 +1513,7 @@ ImGuiWorkspace::DrawLoadingDetails()
 	}
 
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1));
-	ImGui::PushFont(_gui_interactions.font_fixed_width);
+	ImGui::PushFont(_gui_interactions.font_fixed_width, _gui_interactions.font_fixed_width_size);
 
 	{
 		std::lock_guard<std::mutex>  lock(my_loading_entries_mutex);

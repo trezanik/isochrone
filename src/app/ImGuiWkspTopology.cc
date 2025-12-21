@@ -2550,7 +2550,7 @@ ImGuiWkspTopology::DrawPropertyView()
 				ImGui::TableNextColumn();
 				ImGui::Text("ID");
 				ImGui::TableNextColumn();
-				ImGui::PushFont(_gui_interactions.font_fixed_width);
+				ImGui::PushFont(_gui_interactions.font_fixed_width, _gui_interactions.font_fixed_width_size);
 				ImGui::Text("%s", l->GetID().GetCanonical());
 				ImGui::PopFont();
 				ImGui::PopStyleColor();

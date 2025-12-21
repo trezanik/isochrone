@@ -123,7 +123,7 @@ ImGuiAboutDialog::Draw()
 				w /= 2;
 			}
 			ImGui::Text("Image: %d x %d", w, h);
-			ImGui::Image((void*)my_img->AsSDLTexture(), ImVec2(static_cast<float>(w), static_cast<float>(h)));
+			ImGui::Image((ImTextureID)(uintptr_t)my_img->AsSDLTexture(), ImVec2(static_cast<float>(w), static_cast<float>(h)));
 		}
 		ImGui::SameLine();
 		ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);

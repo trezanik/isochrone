@@ -376,8 +376,14 @@ struct GuiInteractions
 
 	/** Pointer to the default font used for all font rendering in all dialogs */
 	ImFont*  font_default = nullptr;
+	/** (imgui 1.92+) Track default font size used, dynamic amendments */
+	float    font_default_size = 0.f;
+
 	/** Pointer to the font used for fixed-width font rendering in all dialogs */
 	ImFont*  font_fixed_width = nullptr;
+	/** (imgui 1.92+) Track fixed-width font size used, dynamic amendments */
+	float    font_fixed_width_size = 0.f;
+
 
 	/**
 	 * All loaded workspaces, their ID used as the primary key

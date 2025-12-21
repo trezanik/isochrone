@@ -165,7 +165,7 @@ ImGuiRSS::Draw()
 	ImGuiWindowFlags  wnd_flags = 
 		ImGuiWindowFlags_HorizontalScrollbar |
 		ImGuiWindowFlags_AlwaysVerticalScrollbar;
-	ImVec2  subwnd_size(ImGui::GetContentRegionMax().x, ImGui::GetContentRegionAvail().y);
+	ImVec2  subwnd_size(ImGui::GetContentRegionAvail());
 
 	ImGui::SetNextWindowSize(subwnd_size, ImGuiCond_Always);
 

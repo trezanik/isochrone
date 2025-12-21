@@ -205,7 +205,7 @@ ImGuiLog::Draw()
 	ImGuiWindowFlags  wnd_flags =
 		ImGuiWindowFlags_HorizontalScrollbar |
 		ImGuiWindowFlags_AlwaysVerticalScrollbar;
-	ImVec2  subwnd_size(ImGui::GetContentRegionMax().x, ImGui::GetContentRegionAvail().y);
+	ImVec2  subwnd_size(ImGui::GetContentRegionAvail());
 
 	ImGui::SetNextWindowSize(subwnd_size, ImGuiCond_Always);
 
@@ -216,7 +216,7 @@ ImGuiLog::Draw()
 	}
 	
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1));
-	ImGui::PushFont(_gui_interactions.font_fixed_width);
+	ImGui::PushFont(_gui_interactions.font_fixed_width, _gui_interactions.font_fixed_width_size);
 
 	{
 		/*

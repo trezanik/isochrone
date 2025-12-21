@@ -338,8 +338,6 @@ AppImGui::BuildFonts(
 
 	// no harm on init, these are already empty
 	io.Fonts->Clear();
-	// releases font texture. next frame will recreate with the new data
-	imimpl->ReleaseResources();
 
 	ImFont*  font_default = nullptr;
 	ImFont*  font_fixedw  = nullptr;
@@ -373,6 +371,7 @@ AppImGui::BuildFonts(
 	if ( font_default != nullptr )
 	{
 		my_gui.font_default = font_default;
+		my_gui.font_default_size = default_font_size;
 	}
 	else
 	{
@@ -386,6 +385,7 @@ AppImGui::BuildFonts(
 	if ( font_fixedw != nullptr )
 	{
 		my_gui.font_fixed_width = font_fixedw;
+		my_gui.font_fixed_width_size = fixedwidth_font_size;
 	}
 	else
 	{
@@ -511,10 +511,16 @@ AppImGui::HandleConfigChange(
 			lw->SetLogLevelColour(LogLevel::Trace, trace_colour);
 		}
 	}
+	if ( cc->new_config.count(TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE) > 0 )
+	{
+		my_gui.font_default_size = core::TConverter<float>::FromString(cc->new_config[TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE]);
+	}
+	if ( cc->new_config.count(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_SIZE) > 0 )
+	{
+		my_gui.font_fixed_width_size = core::TConverter<float>::FromString(cc->new_config[TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_SIZE]);
+	}
 	if ( cc->new_config.count(TZK_CVAR_SETTING_UI_DEFAULT_FONT_FILE) > 0 
-	  || cc->new_config.count(TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE) > 0
-	  || cc->new_config.count(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_FILE) > 0
-	  || cc->new_config.count(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_SIZE) > 0 )
+	  || cc->new_config.count(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_FILE) > 0 )
 	{
 		font_change = true;
 	}
@@ -524,8 +530,6 @@ AppImGui::HandleConfigChange(
 		// assign current values
 		std::string  def_font_file = core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_DEFAULT_FONT_FILE);
 		std::string  fix_font_file = core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_FILE);
-		float  font_size_def = core::TConverter<float>::FromString(core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE));
-		float  font_size_fix = core::TConverter<float>::FromString(core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_SIZE));
 
 		// overwrite with new values
 		if ( cc->new_config.count(TZK_CVAR_SETTING_UI_DEFAULT_FONT_FILE) > 0 )
@@ -536,20 +540,12 @@ AppImGui::HandleConfigChange(
 		{
 			fix_font_file = cc->new_config[TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_FILE];
 		}
-		if ( cc->new_config.count(TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE) > 0 )
-		{
-			font_size_def = core::TConverter<float>::FromString(cc->new_config[TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE]);
-		}
-		if ( cc->new_config.count(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_SIZE) > 0 )
-		{
-			font_size_fix = core::TConverter<float>::FromString(cc->new_config[TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_SIZE]);
-		}
 
 		BuildFonts(
 			def_font_file.empty() ? nullptr : core::aux::BuildPath(std::string(my_gui.context.AssetPath() + assetdir_fonts), def_font_file).c_str(),
-			font_size_def,
+			my_gui.font_default_size,
 			fix_font_file.empty() ? nullptr : core::aux::BuildPath(std::string(my_gui.context.AssetPath() + assetdir_fonts), fix_font_file).c_str(),
-			font_size_fix
+			my_gui.font_fixed_width_size
 		);
 	}
 }
@@ -1103,7 +1099,7 @@ AppImGui::LoadStyleSizes(
 
 	auto  load_dir_node = [&xmlnode_sizes](const char* child_name) {
 		pugi::xml_attribute  attr_val;
-		ImGuiDir_  default_ret = ImGuiDir_Right;
+		ImGuiDir  default_ret = ImGuiDir_Right;
 		auto   node = xmlnode_sizes.child(child_name);
 		if ( node )
 		{
@@ -1714,6 +1710,14 @@ AppImGui::PreBegin()
 void
 AppImGui::PreEnd()
 {
+	/*
+	 * imgui 1.92+
+	 * Fonts can now be dynamically resized to any value without needing to
+	 * reload. To support settings changes, we apply the current value every
+	 * frame - no effect, but no fault, if it's already the created value
+	 */
+	ImGui::PushFont(my_gui.font_default, my_gui.font_default_size);
+
 	// menu bar, if present, is always displayed
 	if ( main_menu_bar != nullptr )
 	{
@@ -1802,6 +1806,8 @@ AppImGui::PreEnd()
 	{
 		ImGui::ShowDemoWindow(&my_gui.show_demo);
 	}
+
+	ImGui::PopFont();
 }
 
 

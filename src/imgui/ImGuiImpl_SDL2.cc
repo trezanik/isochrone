@@ -14,12 +14,12 @@
 
 #include <SDL.h>
 #include <SDL_syswm.h>
+#define SDL_HAS_VULKAN       SDL_VERSION_ATLEAST(2,0,6)
+#if SDL_HAS_VULKAN
+#	include <SDL_vulkan.h>
+#endif
 
 #include <functional>
-
-
-namespace trezanik {
-namespace imgui {
 
 
 #if SDL_VERSION_ATLEAST(2,0,4) && !defined(__EMSCRIPTEN__) && !defined(__ANDROID__) && !(defined(__APPLE__) && TARGET_OS_IOS) && !defined(__amigaos4__)
@@ -27,7 +27,13 @@ namespace imgui {
 #else
 #	define SDL_HAS_CAPTURE_AND_GLOBAL_MOUSE    0
 #endif
-#define SDL_HAS_VULKAN       SDL_VERSION_ATLEAST(2,0,6)
+
+#if defined(Status)  // Xlib.h defines this and breaks ImTextureData 'Status' member usage
+#	undef Status
+#endif
+
+namespace trezanik {
+namespace imgui {
 
 
 /*
@@ -35,16 +41,22 @@ namespace imgui {
  * for non-class methods
  */
 
-static ImGui_SDL2Renderer_Data*
-GetBackendRendererData()
-{
-	return ImGui::GetCurrentContext() ? static_cast<ImGui_SDL2Renderer_Data*>(ImGui::GetIO().BackendRendererUserData) : nullptr;
-}
-
+ /**
+  * Effective copy of ImGui_ImplSDL2_GetBackendData
+  */
 static ImGui_SDL2Platform_Data*
 GetBackendPlatformData()
 {
 	return ImGui::GetCurrentContext() ? static_cast<ImGui_SDL2Platform_Data*>(ImGui::GetIO().BackendPlatformUserData) : nullptr;
+}
+
+/**
+ * Effective copy of ImGui_ImplSDLRenderer2_GetBackendData
+ */
+static ImGui_SDL2Renderer_Data*
+GetBackendRendererData()
+{
+	return ImGui::GetCurrentContext() ? static_cast<ImGui_SDL2Renderer_Data*>(ImGui::GetIO().BackendRendererUserData) : nullptr;
 }
 
 
@@ -55,8 +67,13 @@ GetBackendPlatformData()
  * Can be made as static methods with minor work if desired though
  */
 
+/**
+ * Effective copy of ImGui_ImplSDL2_GetClipboardText 
+ */
 const char*
-GetClipboardText(void*)
+GetClipboardText(
+	ImGuiContext* TZK_UNUSED(imcontext)
+)
 {
 	auto* pd = GetBackendPlatformData();
 	if ( pd == nullptr )
@@ -68,18 +85,25 @@ GetClipboardText(void*)
 	return pd->ClipboardTextData;
 }
 
+/**
+ * Effective copy of ImGui_ImplSDL2_SetClipboardText
+ */
 void
 SetClipboardText(
-	void* TZK_UNUSED(unused),
+	ImGuiContext* TZK_UNUSED(imcontext),
 	const char* text
 )
 {
 	SDL_SetClipboardText(text);
 }
 
-void
-SetPlatformImeData(
-	ImGuiViewport*,
+/**
+ * Effective copy of ImGui_ImplSDL2_PlatformSetImeData
+ */
+static void
+PlatformSetImeData(
+	ImGuiContext* TZK_UNUSED(imcontext),
+	ImGuiViewport* TZK_UNUSED(viewport),
 	ImGuiPlatformImeData* data
 )
 {
@@ -93,6 +117,7 @@ SetPlatformImeData(
 		SDL_SetTextInputRect(&r);
 	}
 }
+
 
 
 
@@ -137,49 +162,22 @@ ImGuiImpl_SDL2::~ImGuiImpl_SDL2()
 bool
 ImGuiImpl_SDL2::CreateDeviceObjects()
 {
-	return CreateFontsTexture();
+	return true;
 }
 
 
-bool
-ImGuiImpl_SDL2::CreateFontsTexture()
+void
+ImGuiImpl_SDL2::DestroyDeviceObjects()
 {
-	using namespace trezanik::core;
-
-	ImGuiIO&  io = ImGui::GetIO();
-
-	unsigned char* pixels;
-	int width, height;
-	/*
-	 * Load as RGBA 32-bit (75% of the memory is wasted, but default font is so
-	 * small) because it is more likely to be compatible with user's existing
-	 * shaders. If your ImTextureId represent a higher-level concept than just a
-	 * GL texture id, consider calling GetTexDataAsAlpha8() instead to save on
-	 * GPU memory.
-	 */
-	io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-
-	/*
-	 * Upload texture to graphics system; bilinear sampling is required by default.
-	 * Set 'io.Fonts->Flags |= ImFontAtlasFlags_NoBakedLines' or
-	 * 'style.AntiAliasedLinesUseTex = false' to allow point/nearest sampling
-	 */
-	my_rd.FontTexture = SDL_CreateTexture(my_renderer,
-		SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STATIC, width, height
-	);
-	if ( my_rd.FontTexture == nullptr )
+	// Destroy all textures
+	for ( ImTextureData* tex : ImGui::GetPlatformIO().Textures )
 	{
-		TZK_LOG_FORMAT(LogLevel::Error, "[SDL] SDL_CreateTexture failed: %s", SDL_GetError());
-		return false;
+		if ( tex->RefCount == 1 )
+		{
+			tex->SetStatus(ImTextureStatus_WantDestroy);
+			UpdateTexture(tex);
+		}
 	}
-	SDL_UpdateTexture(my_rd.FontTexture, nullptr, pixels, 4 * width);
-	SDL_SetTextureBlendMode(my_rd.FontTexture, SDL_BLENDMODE_BLEND);
-	SDL_SetTextureScaleMode(my_rd.FontTexture, SDL_ScaleModeLinear);
-
-	// Store our identifier
-	io.Fonts->SetTexID((ImTextureID)(intptr_t)my_rd.FontTexture);
-
-	return true;
 }
 
 
@@ -187,6 +185,58 @@ void
 ImGuiImpl_SDL2::EndFrame()
 {
 	RenderDrawData(ImGui::GetDrawData());
+}
+
+
+ImGuiViewport*
+ImGuiImpl_SDL2::GetViewportForWindowID(
+	Uint32 window_id
+)
+{
+	return (window_id == my_pd.WindowID) ? ImGui::GetMainViewport() : nullptr;
+}
+
+
+void
+ImGuiImpl_SDL2::GetWindowSizeAndFramebufferScale(
+	SDL_Window* window,
+	SDL_Renderer* renderer,
+	ImVec2* out_size,
+	ImVec2* out_framebuffer_scale
+)
+{
+	int  w, h;
+	int  display_w, display_h;
+
+	SDL_GetWindowSize(window, &w, &h);
+
+	if ( SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED )
+	{
+		w = h = 0;
+	}
+	if ( renderer != nullptr )
+	{
+		SDL_GetRendererOutputSize(renderer, &display_w, &display_h);
+	}
+#if SDL_HAS_VULKAN
+	else if ( SDL_GetWindowFlags(window) & SDL_WINDOW_VULKAN )
+	{
+		SDL_Vulkan_GetDrawableSize(window, &display_w, &display_h);
+	}
+#endif
+	else
+	{
+		SDL_GL_GetDrawableSize(window, &display_w, &display_h);
+	}
+
+	if ( out_size != nullptr )
+	{
+		*out_size = ImVec2((float)w, (float)h);
+	}
+	if ( out_framebuffer_scale != nullptr )
+	{
+		*out_framebuffer_scale = (w > 0 && h > 0) ? ImVec2((float)display_w / w, (float)display_h / h) : ImVec2(1.0f, 1.0f);
+	}
 }
 
 
@@ -200,9 +250,17 @@ ImGuiImpl_SDL2::Init()
 	// SDL2 Renderer
 
 	io.BackendRendererName = "SDL2";
-	io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
+	io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;  // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
+	io.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;   // We can honor ImGuiPlatformIO::Textures[] requests during render.
 
 	// SDL2 Platform
+
+	// Setup backend capabilities flags
+	io.BackendPlatformName = SDL_GetCurrentVideoDriver();
+	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;  // We can honour GetMouseCursor() values (optional)
+	io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;   // We can honour io.WantSetMousePos requests (optional, rarely used)
+
+	my_pd.WindowID = SDL_GetWindowID(my_pd.Window);
 
 	/*
 	 * Check and store if we're on a SDL backend that supports global mouse position
@@ -210,27 +268,36 @@ ImGuiImpl_SDL2::Init()
 	 * of a blacklist
 	 */
 	my_pd.MouseCanUseGlobalState = false;
+	my_pd.MouseCanUseCapture = false;
 #if SDL_HAS_CAPTURE_AND_GLOBAL_MOUSE
 	const char*  sdl_backend = SDL_GetCurrentVideoDriver();
-	const char*  global_mouse_whitelist[] = { "windows", "cocoa", "x11", "DIVE", "VMAN" };
-	for ( int n = 0; n < IM_ARRAYSIZE(global_mouse_whitelist); n++ )
+	const char*  capture_and_global_state_whitelist[] = { "windows", "cocoa", "x11", "DIVE", "VMAN" };
+	for ( const char* item : capture_and_global_state_whitelist )
 	{
-		if ( strncmp(sdl_backend, global_mouse_whitelist[n], strlen(global_mouse_whitelist[n])) == 0 )
+		if ( strncmp(sdl_backend, item, strlen(item)) == 0 )
 		{
-			my_pd.MouseCanUseGlobalState = true;
+			my_pd.MouseCanUseGlobalState = my_pd.MouseCanUseCapture = true;
 		}
 	}
 #endif
 
-	// Setup backend capabilities flags
-	io.BackendPlatformName = SDL_GetCurrentVideoDriver();
-	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;  // We can honour GetMouseCursor() values (optional)
-	io.BackendFlags |= ImGuiBackendFlags_HasSetMousePos;   // We can honour io.WantSetMousePos requests (optional, rarely used)
+	ImGuiPlatformIO&  pio = ImGui::GetPlatformIO();
 
-	io.SetClipboardTextFn   = SetClipboardText;
-	io.GetClipboardTextFn   = GetClipboardText;
-	io.ClipboardUserData    = nullptr;
-	io.SetPlatformImeDataFn = SetPlatformImeData;
+	pio.Platform_SetClipboardTextFn = SetClipboardText;
+	pio.Platform_GetClipboardTextFn = GetClipboardText;
+	pio.Platform_ClipboardUserData = nullptr;
+	pio.Platform_SetImeDataFn = PlatformSetImeData;
+#ifdef __EMSCRIPTEN__
+	pio.Platform_OpenInShellFn = [](ImGuiContext*, const char* url) { ImGui_ImplSDL2_EmscriptenOpenURL(url); return true; };
+#elif SDL_HAS_OPEN_URL
+	pio.Platform_OpenInShellFn = [](ImGuiContext*, const char* url) { return SDL_OpenURL(url) == 0; };
+#endif
+
+#if 0
+	// Gamepad handling
+	my_pd.GamepadMode = ImGui_ImplSDL2_GamepadMode_AutoFirst;
+	my_pd.WantUpdateGamepadsList = true;
+#endif
 
 	// Load mouse cursors
 	my_pd.MouseCursors[ImGuiMouseCursor_Arrow]      = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
@@ -248,6 +315,7 @@ ImGuiImpl_SDL2::Init()
 	 * expects PlatformHandle to be filled for the main viewport
 	 */
 	ImGuiViewport*  main_viewport = ImGui::GetMainViewport();
+	main_viewport->PlatformHandle = (void*)(intptr_t)my_pd.WindowID;
 	main_viewport->PlatformHandleRaw = nullptr;
 
 	SDL_SysWMinfo  info;
@@ -302,16 +370,10 @@ ImGuiImpl_SDL2::Init()
 }
 
 
-void
-ImGuiImpl_SDL2::InvalidateDeviceObjects()
-{
-	// no objects - SDL_Renderer stays alive beyond us, nothing else
-}
-
-
 ImGuiKey
 ImGuiImpl_SDL2::KeycodeToImGuiKey(
-	int keycode
+	SDL_Keycode keycode,
+	SDL_Scancode scancode
 )
 {
 	switch ( keycode )
@@ -331,17 +393,9 @@ ImGuiImpl_SDL2::KeycodeToImGuiKey(
 	case SDLK_SPACE: return ImGuiKey_Space;
 	case SDLK_RETURN: return ImGuiKey_Enter;
 	case SDLK_ESCAPE: return ImGuiKey_Escape;
-	case SDLK_QUOTE: return ImGuiKey_Apostrophe;
 	case SDLK_COMMA: return ImGuiKey_Comma;
-	case SDLK_MINUS: return ImGuiKey_Minus;
 	case SDLK_PERIOD: return ImGuiKey_Period;
-	case SDLK_SLASH: return ImGuiKey_Slash;
 	case SDLK_SEMICOLON: return ImGuiKey_Semicolon;
-	case SDLK_EQUALS: return ImGuiKey_Equal;
-	case SDLK_LEFTBRACKET: return ImGuiKey_LeftBracket;
-	case SDLK_BACKSLASH: return ImGuiKey_Backslash;
-	case SDLK_RIGHTBRACKET: return ImGuiKey_RightBracket;
-	case SDLK_BACKQUOTE: return ImGuiKey_GraveAccent;
 	case SDLK_CAPSLOCK: return ImGuiKey_CapsLock;
 	case SDLK_SCROLLLOCK: return ImGuiKey_ScrollLock;
 	case SDLK_NUMLOCKCLEAR: return ImGuiKey_NumLock;
@@ -435,7 +489,27 @@ ImGuiImpl_SDL2::KeycodeToImGuiKey(
 	case SDLK_F24: return ImGuiKey_F24;
 	case SDLK_AC_BACK: return ImGuiKey_AppBack;
 	case SDLK_AC_FORWARD: return ImGuiKey_AppForward;
+	default: break;
 	}
+
+	// Fallback to scancode
+	switch ( scancode )
+	{
+	case SDL_SCANCODE_GRAVE: return ImGuiKey_GraveAccent;
+	case SDL_SCANCODE_MINUS: return ImGuiKey_Minus;
+	case SDL_SCANCODE_EQUALS: return ImGuiKey_Equal;
+	case SDL_SCANCODE_LEFTBRACKET: return ImGuiKey_LeftBracket;
+	case SDL_SCANCODE_RIGHTBRACKET: return ImGuiKey_RightBracket;
+	case SDL_SCANCODE_NONUSBACKSLASH: return ImGuiKey_Oem102;
+	case SDL_SCANCODE_BACKSLASH: return ImGuiKey_Backslash;
+	case SDL_SCANCODE_SEMICOLON: return ImGuiKey_Semicolon;
+	case SDL_SCANCODE_APOSTROPHE: return ImGuiKey_Apostrophe;
+	case SDL_SCANCODE_COMMA: return ImGuiKey_Comma;
+	case SDL_SCANCODE_PERIOD: return ImGuiKey_Period;
+	case SDL_SCANCODE_SLASH: return ImGuiKey_Slash;
+	default: break;
+	}
+
 	return ImGuiKey_None;
 }
 
@@ -443,31 +517,16 @@ ImGuiImpl_SDL2::KeycodeToImGuiKey(
 void
 ImGuiImpl_SDL2::NewFrame()
 {
-	// SDL2Renderer::NewFrame
+	// --== SDL2 Renderer ==--
 	
-	if ( my_rd.FontTexture == nullptr )
-	{
-		CreateFontsTexture();
-	}
+	// no-op
 
-	// SDL2::NewFrame
+	// --== SDL2 Platform ==--
 	
 	ImGuiIO&  io = ImGui::GetIO();
 
 	// Setup display size (every frame to accommodate for window resizing)
-	int  w, h;
-	int  display_w, display_h;
-	SDL_GetWindowSize(my_pd.Window, &w, &h);
-
-	if ( SDL_GetWindowFlags(my_pd.Window) & SDL_WINDOW_MINIMIZED )
-		w = h = 0;
-	if ( my_pd.Renderer != nullptr )
-		SDL_GetRendererOutputSize(my_pd.Renderer, &display_w, &display_h);
-	else
-		SDL_GL_GetDrawableSize(my_pd.Window, &display_w, &display_h);
-	io.DisplaySize = ImVec2((float)w, (float)h);
-	if ( w > 0 && h > 0 )
-		io.DisplayFramebufferScale = ImVec2((float)display_w / w, (float)display_h / h);
+	GetWindowSizeAndFramebufferScale(my_pd.Window, my_pd.Renderer, &io.DisplaySize, &io.DisplayFramebufferScale);
 
 	/*
 	 * Setup time step (we don't use SDL_GetTicks() because it is using
@@ -475,29 +534,29 @@ ImGuiImpl_SDL2::NewFrame()
 	 * Accept SDL_GetPerformanceCounter() not returning a monotonically
 	 * increasing value. Happens in VMs and Emscripten, see #6189, #6114, #3644
 	 */
-	static Uint64  frequency = SDL_GetPerformanceFrequency();
-	Uint64  current_time = SDL_GetPerformanceCounter();
+	static Uint64 frequency = SDL_GetPerformanceFrequency();
+	Uint64 current_time = SDL_GetPerformanceCounter();
 	if ( current_time <= my_pd.Time )
-	{
 		current_time = my_pd.Time + 1;
-	}
-	io.DeltaTime = my_pd.Time > 0 ? (float)((double)(current_time - my_pd.Time) / frequency) : (1.0f / 60.0f);
+	io.DeltaTime = my_pd.Time > 0 ? (float)((double)(current_time - my_pd.Time) / frequency) : (float)(1.0f / 60.0f);
 	my_pd.Time = current_time;
 
-	if ( my_pd.PendingMouseLeaveFrame 
-	  && my_pd.PendingMouseLeaveFrame >= ImGui::GetFrameCount() 
-	  && my_pd.MouseButtonsDown == 0 )
+	if ( my_pd.MouseLastLeaveFrame && my_pd.MouseLastLeaveFrame >= ImGui::GetFrameCount() && my_pd.MouseButtonsDown == 0 )
 	{
 		my_pd.MouseWindowID = 0;
-		my_pd.PendingMouseLeaveFrame = 0;
+		my_pd.MouseLastLeaveFrame = 0;
 		io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
 	}
 
 	UpdateMouseData();
 	UpdateMouseCursor();
 
+#if 0
 	// Update game controllers (if enabled and available)
-	//UpdateGamepads();
+	UpdateGamepads();
+#endif
+
+	// --== Custom ==--
 
 	// all SDL prep complete
 	ImGui::NewFrame();
@@ -514,86 +573,111 @@ ImGuiImpl_SDL2::ProcessSDLEvent(
 	switch ( event->type )
 	{
 	case SDL_MOUSEMOTION:
-		{
-			ImVec2 mouse_pos((float)event->motion.x, (float)event->motion.y);
-			io.AddMouseSourceEvent(event->motion.which == SDL_TOUCH_MOUSEID ? ImGuiMouseSource_TouchScreen : ImGuiMouseSource_Mouse);
-			io.AddMousePosEvent(mouse_pos.x, mouse_pos.y);
-		}
-		return true;
 	case SDL_MOUSEWHEEL:
-		{
-			//IMGUI_DEBUG_LOG("wheel %.2f %.2f, precise %.2f %.2f\n", (float)event->wheel.x, (float)event->wheel.y, event->wheel.preciseX, event->wheel.preciseY);
-#if SDL_VERSION_ATLEAST(2,0,18) // If this fails to compile on Emscripten: update to latest Emscripten!
-			float wheel_x = -event->wheel.preciseX;
-			float wheel_y = event->wheel.preciseY;
-#else
-			float wheel_x = -(float)event->wheel.x;
-			float wheel_y = (float)event->wheel.y;
-#endif
-#ifdef __EMSCRIPTEN__
-			wheel_x /= 100.0f;
-#endif
-			io.AddMouseSourceEvent(event->wheel.which == SDL_TOUCH_MOUSEID ? ImGuiMouseSource_TouchScreen : ImGuiMouseSource_Mouse);
-			io.AddMouseWheelEvent(wheel_x, wheel_y);
-		}
-		return true;
 	case SDL_MOUSEBUTTONDOWN:
 	case SDL_MOUSEBUTTONUP:
 		{
-			int mouse_button = -1;
-			if ( event->button.button == SDL_BUTTON_LEFT ) { mouse_button = 0; }
-			if ( event->button.button == SDL_BUTTON_RIGHT ) { mouse_button = 1; }
-			if ( event->button.button == SDL_BUTTON_MIDDLE ) { mouse_button = 2; }
-			if ( event->button.button == SDL_BUTTON_X1 ) { mouse_button = 3; }
-			if ( event->button.button == SDL_BUTTON_X2 ) { mouse_button = 4; }
-			if ( mouse_button == -1 )
-				break;
-			io.AddMouseSourceEvent(event->button.which == SDL_TOUCH_MOUSEID ? ImGuiMouseSource_TouchScreen : ImGuiMouseSource_Mouse);
-			io.AddMouseButtonEvent(mouse_button, (event->type == SDL_MOUSEBUTTONDOWN));
-			my_pd.MouseButtonsDown = (event->type == SDL_MOUSEBUTTONDOWN) 
-				? (my_pd.MouseButtonsDown | (1 << mouse_button)) 
-				: (my_pd.MouseButtonsDown & ~(1 << mouse_button));
+			if ( GetViewportForWindowID(event->motion.windowID) == nullptr )
+				return false;
+
+			switch ( event->type )
+			{
+			case SDL_MOUSEMOTION:
+				{
+					ImVec2  mouse_pos((float)event->motion.x, (float)event->motion.y);
+					io.AddMouseSourceEvent(event->motion.which == SDL_TOUCH_MOUSEID ? ImGuiMouseSource_TouchScreen : ImGuiMouseSource_Mouse);
+					io.AddMousePosEvent(mouse_pos.x, mouse_pos.y);
+				}
+				return true;
+			case SDL_MOUSEWHEEL:
+				{
+					//IMGUI_DEBUG_LOG("wheel %.2f %.2f, precise %.2f %.2f\n", (float)event->wheel.x, (float)event->wheel.y, event->wheel.preciseX, event->wheel.preciseY);
+#if SDL_VERSION_ATLEAST(2,0,18) // If this fails to compile on Emscripten: update to latest Emscripten!
+					float wheel_x = -event->wheel.preciseX;
+					float wheel_y = event->wheel.preciseY;
+#else
+					float wheel_x = -(float)event->wheel.x;
+					float wheel_y = (float)event->wheel.y;
+#endif
+#ifdef __EMSCRIPTEN__
+					wheel_x /= 100.0f;
+#endif
+					io.AddMouseSourceEvent(event->wheel.which == SDL_TOUCH_MOUSEID ? ImGuiMouseSource_TouchScreen : ImGuiMouseSource_Mouse);
+					io.AddMouseWheelEvent(wheel_x, wheel_y);
+				}
+				return true;
+			case SDL_MOUSEBUTTONDOWN:
+			case SDL_MOUSEBUTTONUP:
+				{
+					int  mouse_button = -1;
+					if ( event->button.button == SDL_BUTTON_LEFT ) { mouse_button = 0; }
+					if ( event->button.button == SDL_BUTTON_RIGHT ) { mouse_button = 1; }
+					if ( event->button.button == SDL_BUTTON_MIDDLE ) { mouse_button = 2; }
+					if ( event->button.button == SDL_BUTTON_X1 ) { mouse_button = 3; }
+					if ( event->button.button == SDL_BUTTON_X2 ) { mouse_button = 4; }
+					if ( mouse_button == -1 )
+						break;
+					io.AddMouseSourceEvent(event->button.which == SDL_TOUCH_MOUSEID ? ImGuiMouseSource_TouchScreen : ImGuiMouseSource_Mouse);
+					io.AddMouseButtonEvent(mouse_button, (event->type == SDL_MOUSEBUTTONDOWN));
+					my_pd.MouseButtonsDown = (event->type == SDL_MOUSEBUTTONDOWN)
+						? (my_pd.MouseButtonsDown | (1 << mouse_button))
+						: (my_pd.MouseButtonsDown & ~(1 << mouse_button));
+				}
+				return true;
+			default:
+				return false;
+			}
 		}
-		return true;
 	case SDL_TEXTINPUT:
-		io.AddInputCharactersUTF8(event->text.text);
+		{
+			if ( GetViewportForWindowID(event->text.windowID) == nullptr )
+				return false;
+
+			io.AddInputCharactersUTF8(event->text.text);
+		}
 		return true;
 	case SDL_KEYDOWN:
 	case SDL_KEYUP:
 		{
+			if ( GetViewportForWindowID(event->key.windowID) == nullptr )
+				return false;
+
 			UpdateKeyModifiers((SDL_Keymod)event->key.keysym.mod);
-			ImGuiKey key = KeycodeToImGuiKey(event->key.keysym.sym);
+			ImGuiKey key = KeycodeToImGuiKey(event->key.keysym.sym, event->key.keysym.scancode);
 			io.AddKeyEvent(key, (event->type == SDL_KEYDOWN));
 			io.SetKeyEventNativeData(key, event->key.keysym.sym, event->key.keysym.scancode, event->key.keysym.scancode); // To support legacy indexing (<1.87 user code). Legacy backend uses SDLK_*** as indices to IsKeyXXX() functions.
 		}
 		return true;
 	case SDL_WINDOWEVENT:
-		/*
-		 * When capturing mouse, SDL will send a bunch of conflicting LEAVE/ENTER
-		 * event on every mouse move, but the final ENTER tends to be right.
-		 * 
-		 * We won't get a correct LEAVE event for a captured window, however.
-		 * 
-		 * In some cases, when detaching a window from main viewport SDL may send
-		 * SDL_WINDOWEVENT_ENTER one frame too late, causing SDL_WINDOWEVENT_LEAVE
-		 * on the previous frame to interrupt a drag operation by clearing mouse
-		 * position.
-		 * This is why we delay process the SDL_WINDOWEVENT_LEAVE events by one
-		 * frame. See issue #5012 for details.
-		 */
 		{
+			if ( GetViewportForWindowID(event->window.windowID) == nullptr )
+				return false;
+
+			/*
+			 * When capturing mouse, SDL will send a bunch of conflicting LEAVE/ENTER
+			 * event on every mouse move, but the final ENTER tends to be right.
+			 *
+			 * We won't get a correct LEAVE event for a captured window, however.
+			 *
+			 * In some cases, when detaching a window from main viewport SDL may send
+			 * SDL_WINDOWEVENT_ENTER one frame too late, causing SDL_WINDOWEVENT_LEAVE
+			 * on the previous frame to interrupt a drag operation by clearing mouse
+			 * position.
+			 * This is why we delay process the SDL_WINDOWEVENT_LEAVE events by one
+			 * frame. See issue #5012 for details.
+			 */
 			uint8_t  window_event = event->window.event;
 			if ( window_event == SDL_WINDOWEVENT_ENTER )
 			{
 				my_pd.MouseWindowID = event->window.windowID;
-				my_pd.PendingMouseLeaveFrame = 0;
+				my_pd.MouseLastLeaveFrame = 0;
 			}
-		
+
 			if ( window_event == SDL_WINDOWEVENT_LEAVE )
 			{
-				my_pd.PendingMouseLeaveFrame = ImGui::GetFrameCount() + 1;
+				my_pd.MouseLastLeaveFrame = ImGui::GetFrameCount() + 1;
 			}
-			
+
 			if ( window_event == SDL_WINDOWEVENT_FOCUS_GAINED )
 			{
 				io.AddFocusEvent(true);
@@ -602,22 +686,13 @@ ImGuiImpl_SDL2::ProcessSDLEvent(
 			{
 				io.AddFocusEvent(false);
 			}
-
-#if 0 // FindViewportByPlatformHandle requires docking (viewport) branch
-			if ( window_event == SDL_WINDOWEVENT_CLOSE || window_event == SDL_WINDOWEVENT_MOVED || window_event == SDL_WINDOWEVENT_RESIZED )
-			{
-				if ( ImGuiViewport* viewport = ImGui::FindViewportByPlatformHandle((void*)SDL_GetWindowFromID(event->window.windowID)) )
-				{
-					ImGuiViewportFlags_IsPlatformWindow;
-					if ( window_event == SDL_WINDOWEVENT_CLOSE )
-						viewport->PlatformRequestClose = true;
-					if ( window_event == SDL_WINDOWEVENT_MOVED )
-						viewport->PlatformRequestMove = true;
-					if ( window_event == SDL_WINDOWEVENT_RESIZED )
-						viewport->PlatformRequestResize = true;
-					return true;
-				}
-			}
+		}
+		return true;
+	case SDL_CONTROLLERDEVICEADDED:
+	case SDL_CONTROLLERDEVICEREMOVED:
+		{
+#if 0
+			my_pd.WantUpdateGamepadsList = true;
 #endif
 		}
 		return true;
@@ -632,14 +707,7 @@ ImGuiImpl_SDL2::ProcessSDLEvent(
 void
 ImGuiImpl_SDL2::ReleaseResources()
 {
-	ImGuiIO&  io = ImGui::GetIO();
-
-	if ( my_rd.FontTexture != nullptr )
-	{
-		io.Fonts->SetTexID(0);
-		SDL_DestroyTexture(my_rd.FontTexture);
-		my_rd.FontTexture = nullptr;
-	}
+	// no-op
 }
 
 
@@ -679,6 +747,23 @@ ImGuiImpl_SDL2::RenderDrawData(
 	if ( fb_width == 0 || fb_height == 0 )
 		return;
 
+	/*
+	 * Catch up with texture updates. Most of the time, the list will have 1
+	 * element with an OK status, aka nothing to do.
+	 * This almost always points to ImGui::GetPlatformIO().Textures[] but is
+	 * part of ImDrawData to allow overriding or disabling texture updates.
+	 */
+	if ( draw_data->Textures != nullptr )
+	{
+		for ( ImTextureData* tex : *draw_data->Textures )
+		{
+			if ( tex->Status != ImTextureStatus_OK )
+			{
+				UpdateTexture(tex);
+			}
+		}
+	}
+
 	// Backup SDL_Renderer state that will be modified to restore it afterwards
 	struct BackupSDLRendererState
 	{
@@ -691,22 +776,26 @@ ImGuiImpl_SDL2::RenderDrawData(
 	SDL_RenderGetViewport(my_renderer, &old.Viewport);
 	SDL_RenderGetClipRect(my_renderer, &old.ClipRect);
 
-	// Will project scissor/clipping rectangles into framebuffer space
-	ImVec2  clip_off = draw_data->DisplayPos;  // (0,0) unless using multi-viewports
-	ImVec2  clip_scale = render_scale;
-
-	// Render command lists
+	// Setup desired state
 	SetupRenderState();
 
-	for ( int n = 0; n < draw_data->CmdListsCount; n++ )
-	{
-		const ImDrawList* cmd_list = draw_data->CmdLists[n];
-		const ImDrawVert* vtx_buffer = cmd_list->VtxBuffer.Data;
-		const ImDrawIdx*  idx_buffer = cmd_list->IdxBuffer.Data;
+	// Setup render state structure (for callbacks and custom texture bindings)
+	ImGuiPlatformIO&  pio = ImGui::GetPlatformIO();
+	ImGui_SDLRenderer2_RenderState  render_state { my_pd.Renderer };
+	pio.Renderer_RenderState = &render_state;
 
-		for ( int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++ )
+	// Will project scissor/clipping rectangles into framebuffer space
+	ImVec2 clip_off = draw_data->DisplayPos;  // (0,0) unless using multi-viewports
+	ImVec2 clip_scale = render_scale;
+
+	for ( const ImDrawList* draw_list : draw_data->CmdLists )
+	{
+		const ImDrawVert* vtx_buffer = draw_list->VtxBuffer.Data;
+		const ImDrawIdx*  idx_buffer = draw_list->IdxBuffer.Data;
+
+		for ( int cmd_i = 0; cmd_i < draw_list->CmdBuffer.Size; cmd_i++ )
 		{
-			const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
+			const ImDrawCmd* pcmd = &draw_list->CmdBuffer[cmd_i];
 
 			if ( pcmd->UserCallback )
 			{
@@ -721,7 +810,7 @@ ImGuiImpl_SDL2::RenderDrawData(
 				}
 				else
 				{
-					pcmd->UserCallback(cmd_list, pcmd);
+					pcmd->UserCallback(draw_list, pcmd);
 				}
 			}
 			else
@@ -789,12 +878,13 @@ ImGuiImpl_SDL2::RenderDrawData(
 					xy, (int)sizeof(ImDrawVert),
 					color, (int)sizeof(ImDrawVert),
 					uv, (int)sizeof(ImDrawVert),
-					cmd_list->VtxBuffer.Size - pcmd->VtxOffset,
+					draw_list->VtxBuffer.Size - pcmd->VtxOffset,
 					idx_buffer + pcmd->IdxOffset, pcmd->ElemCount, sizeof(ImDrawIdx)
 				);
 			}
 		}
 	}
+	pio.Renderer_RenderState = nullptr;
 
 	// Restore modified SDL_Renderer state
 	SDL_RenderSetViewport(my_renderer, &old.Viewport);
@@ -839,21 +929,20 @@ ImGuiImpl_SDL2::SetupRenderState()
 void
 ImGuiImpl_SDL2::Shutdown()
 {
-	ImGuiIO& io = ImGui::GetIO();
+	ImGuiIO&  io = ImGui::GetIO();
+	ImGuiPlatformIO&  pio = ImGui::GetPlatformIO();
 	
-	// SDL2 Renderer
-	if ( my_rd.FontTexture != nullptr )
-	{
-		io.Fonts->SetTexID(0);
-		SDL_DestroyTexture(my_rd.FontTexture);
-		my_rd.FontTexture = nullptr;
-	}
+	// --== SDL2 Renderer ==--
+
+	DestroyDeviceObjects();
 
 	io.BackendRendererName = nullptr;
 	io.BackendRendererUserData = nullptr;
-	io.BackendFlags &= ~ImGuiBackendFlags_RendererHasVtxOffset;
+	io.BackendFlags &= ~(ImGuiBackendFlags_RendererHasVtxOffset | ImGuiBackendFlags_RendererHasTextures);
+	pio.ClearRendererHandlers();
 
-	// SDL2 Platform
+	// --== SDL2 Platform ==--
+
 	if ( my_pd.ClipboardTextData )
 	{
 		SDL_free(my_pd.ClipboardTextData);
@@ -863,11 +952,14 @@ ImGuiImpl_SDL2::Shutdown()
 	{
 		SDL_FreeCursor(my_pd.MouseCursors[cursor_n]);
 	}
-	my_pd.LastMouseCursor = nullptr;
+#if 0
+	ImGui_ImplSDL2_CloseGamepads();
+#endif
 
 	io.BackendPlatformName = nullptr;
 	io.BackendPlatformUserData = nullptr;
-	io.BackendFlags &= ~(ImGuiBackendFlags_HasMouseCursors | ImGuiBackendFlags_HasSetMousePos | ImGuiBackendFlags_HasGamepad);
+	io.BackendFlags &= ~(ImGuiBackendFlags_HasMouseCursors | ImGuiBackendFlags_HasSetMousePos);
+	pio.ClearPlatformHandlers();
 }
 
 
@@ -879,7 +971,7 @@ ImGuiImpl_SDL2::UpdateKeyModifiers(
 	SDL_Keymod sdl_key_mods
 )
 {
-	ImGuiIO& io = ImGui::GetIO();
+	ImGuiIO&  io = ImGui::GetIO();
 
 	io.AddKeyEvent(ImGuiMod_Ctrl,  (sdl_key_mods & KMOD_CTRL) != 0);
 	io.AddKeyEvent(ImGuiMod_Shift, (sdl_key_mods & KMOD_SHIFT) != 0);
@@ -891,12 +983,12 @@ ImGuiImpl_SDL2::UpdateKeyModifiers(
 void
 ImGuiImpl_SDL2::UpdateMouseCursor()
 {
-	ImGuiIO& io = ImGui::GetIO();
+	ImGuiIO&  io = ImGui::GetIO();
 
 	if ( io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange )
 		return;
 
-	ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
+	ImGuiMouseCursor  imgui_cursor = ImGui::GetMouseCursor();
 	if ( io.MouseDrawCursor || imgui_cursor == ImGuiMouseCursor_None )
 	{
 		// hide OS mouse cursor if imgui is drawing it, or if it wants no cursor
@@ -905,11 +997,11 @@ ImGuiImpl_SDL2::UpdateMouseCursor()
 	else
 	{
 		// show OS mouse cursor
-		SDL_Cursor* expected_cursor = my_pd.MouseCursors[imgui_cursor] ? my_pd.MouseCursors[imgui_cursor] : my_pd.MouseCursors[ImGuiMouseCursor_Arrow];
-		if ( my_pd.LastMouseCursor != expected_cursor )
+		SDL_Cursor*  expected_cursor = my_pd.MouseCursors[imgui_cursor] ? my_pd.MouseCursors[imgui_cursor] : my_pd.MouseCursors[ImGuiMouseCursor_Arrow];
+		if ( my_pd.MouseLastCursor != expected_cursor )
 		{
 			SDL_SetCursor(expected_cursor); // SDL function doesn't have an early out (see #6113)
-			my_pd.LastMouseCursor = expected_cursor;
+			my_pd.MouseLastCursor = expected_cursor;
 		}
 		SDL_ShowCursor(SDL_TRUE);
 	}
@@ -919,104 +1011,107 @@ ImGuiImpl_SDL2::UpdateMouseCursor()
 void
 ImGuiImpl_SDL2::UpdateMouseData()
 {
-	ImGuiIO& io = ImGui::GetIO();
+	ImGuiIO&  io = ImGui::GetIO();
 
 	// We forward mouse input when hovered or captured (via SDL_MOUSEMOTION) or when focused (below)
 #if SDL_HAS_CAPTURE_AND_GLOBAL_MOUSE
-	/*
-	 * SDL_CaptureMouse lets the OS know that our imgui drag outside the SDL
-	 * window boundaries shouldn't trigger other operations outside
-	 */
-	SDL_CaptureMouse((my_pd.MouseButtonsDown != 0) ? SDL_TRUE : SDL_FALSE);
-	SDL_Window* focused_window = SDL_GetKeyboardFocus();
-	const bool is_app_focused = (my_pd.Window == focused_window);
-#else // SDL 2.0.3 and non-windowed systems: single-viewport only
-	const bool is_app_focused = (SDL_GetWindowFlags(my_pd.Window) & SDL_WINDOW_INPUT_FOCUS) != 0;
+	// - SDL_CaptureMouse() let the OS know e.g. that our drags can extend outside of parent boundaries (we want updated position) and shouldn't trigger other operations outside.
+	// - Debuggers under Linux tends to leave captured mouse on break, which may be very inconvenient, so to mitigate the issue we wait until mouse has moved to begin capture.
+	if ( my_pd.MouseCanUseCapture )
+	{
+		bool  want_capture = false;
+		for ( int button_n = 0; button_n < ImGuiMouseButton_COUNT && !want_capture; button_n++ )
+		{
+			if ( ImGui::IsMouseDragging(button_n, 1.0f) )
+			{
+				want_capture = true;
+			}
+		}
+		SDL_CaptureMouse(want_capture ? SDL_TRUE : SDL_FALSE);
+	}
+
+	SDL_Window*  focused_window = SDL_GetKeyboardFocus();
+	const bool   is_app_focused = (my_pd.Window == focused_window);
+#else
+	SDL_Window*  focused_window = my_pd.->Window;
+	const bool   is_app_focused = (SDL_GetWindowFlags(my_pd.Window) & SDL_WINDOW_INPUT_FOCUS) != 0; // SDL 2.0.3 and non-windowed systems: single-viewport only
 #endif
 	if ( is_app_focused )
 	{
-		/*
-		 * set OS mouse position if requested; rarely used, only when
-		 * ImGuiConfigFlags_NavEnableSetMousePos is enabled by user
-		 */
+		// (Optional) Set OS mouse position from Dear ImGui if requested (rarely used, only when io.ConfigNavMoveSetMousePos is enabled by user)
 		if ( io.WantSetMousePos )
 		{
-			SDL_WarpMouseInWindow(my_pd.Window, static_cast<int>(io.MousePos.x), static_cast<int>(io.MousePos.y));
+			SDL_WarpMouseInWindow(my_pd.Window, (int)io.MousePos.x, (int)io.MousePos.y);
 		}
 
-		/*
-		 * Fallback to provide mouse position when focused (SDL_MOUSEMOTION
-		 * already provides this when hovered or captured)
-		 */
-		if ( my_pd.MouseCanUseGlobalState && my_pd.MouseButtonsDown == 0 )
+		// (Optional) Fallback to provide unclamped mouse position when focused but not hovered (SDL_MOUSEMOTION already provides this when hovered or captured)
+		// Note that SDL_GetGlobalMouseState() is in theory slow on X11, but this only runs on rather specific cases. If a problem we may provide a way to opt-out this feature.
+		SDL_Window*  hovered_window = SDL_GetMouseFocus();
+		const bool   is_relative_mouse_mode = SDL_GetRelativeMouseMode() != 0;
+
+		if ( hovered_window == NULL && my_pd.MouseCanUseGlobalState && my_pd.MouseButtonsDown == 0 && !is_relative_mouse_mode )
 		{
-			int window_x, window_y, mouse_x_global, mouse_y_global;
-			SDL_GetGlobalMouseState(&mouse_x_global, &mouse_y_global);
-			SDL_GetWindowPosition(my_pd.Window, &window_x, &window_y);
-			io.AddMousePosEvent(
-				static_cast<float>(mouse_x_global - window_x),
-				static_cast<float>(mouse_y_global - window_y)
-			);
+			// Single-viewport mode: mouse position in client window coordinates (io.MousePos is (0,0) when the mouse is on the upper-left corner of the app window)
+			int  mouse_x, mouse_y;
+			int  window_x, window_y;
+
+			SDL_GetGlobalMouseState(&mouse_x, &mouse_y);
+			SDL_GetWindowPosition(focused_window, &window_x, &window_y);
+			mouse_x -= window_x;
+			mouse_y -= window_y;
+			io.AddMousePosEvent((float)mouse_x, (float)mouse_y);
 		}
 	}
 }
 
 
 void
-ImGuiImpl_SDL2::UpdateMousePosAndButtons()
+ImGuiImpl_SDL2::UpdateTexture(
+	ImTextureData* tex
+)
 {
-	ImGuiIO& io = ImGui::GetIO();
-
-	/*
-	 * set OS mouse position if requested; rarely used, only when
-	 * ImGuiConfigFlags_NavEnableSetMousePos is enabled by user
-	 */
-	if ( io.WantSetMousePos )
+	if ( tex->Status == ImTextureStatus_WantCreate )
 	{
-		SDL_WarpMouseInWindow(my_window, static_cast<int>(io.MousePos.x), static_cast<int>(io.MousePos.y));
+		// Create and upload new texture to graphics system
+		//IMGUI_DEBUG_LOG("UpdateTexture #%03d: WantCreate %dx%d\n", tex->UniqueID, tex->Width, tex->Height);
+		IM_ASSERT(tex->TexID == ImTextureID_Invalid && tex->BackendUserData == nullptr);
+		IM_ASSERT(tex->Format == ImTextureFormat_RGBA32);
+
+		// Create texture
+		// (Bilinear sampling is required by default. Set 'io.Fonts->Flags |= ImFontAtlasFlags_NoBakedLines' or 'style.AntiAliasedLinesUseTex = false' to allow point/nearest sampling)
+		SDL_Texture*  sdl_texture = SDL_CreateTexture(my_rd.SDLRenderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, tex->Width, tex->Height);
+		IM_ASSERT(sdl_texture != nullptr && "Backend failed to create texture!");
+		SDL_UpdateTexture(sdl_texture, nullptr, tex->GetPixels(), tex->GetPitch());
+		SDL_SetTextureBlendMode(sdl_texture, SDL_BLENDMODE_BLEND);
+		SDL_SetTextureScaleMode(sdl_texture, SDL_ScaleModeLinear);
+
+		// Store identifiers
+		tex->SetTexID((ImTextureID)(intptr_t)sdl_texture);
+		tex->SetStatus(ImTextureStatus_OK);
 	}
-	else
+	else if ( tex->Status == ImTextureStatus_WantUpdates )
 	{
-		io.MousePos = ImVec2(-FLT_MAX, -FLT_MAX);
+		// Update selected blocks. We only ever write to textures regions which have never been used before!
+		// This backend choose to use tex->Updates[] but you can use tex->UpdateRect to upload a single region.
+		SDL_Texture*  sdl_texture = (SDL_Texture*)(intptr_t)tex->TexID;
+		for ( ImTextureRect& r : tex->Updates )
+		{
+			SDL_Rect sdl_r = { r.x, r.y, r.w, r.h };
+			SDL_UpdateTexture(sdl_texture, &sdl_r, tex->GetPixelsAt(r.x, r.y), tex->GetPitch());
+		}
+		tex->SetStatus(ImTextureStatus_OK);
 	}
-
-	int       mx, my;
-	uint32_t  mouse_buttons = SDL_GetMouseState(&mx, &my);
-	/*
-	 * If a mouse press event came, always pass it as "mouse held this
-	 * frame", so we don't miss click-release events that are shorter than
-	 * 1 frame
-	 */
-#if 0
-	io.MouseDown[0] = my_imgui.mouse_pressed[0] || (mouse_buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
-	io.MouseDown[1] = my_imgui.mouse_pressed[1] || (mouse_buttons & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
-	io.MouseDown[2] = my_imgui.mouse_pressed[2] || (mouse_buttons & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0;
-	my_imgui.mouse_pressed[0] = my_imgui.mouse_pressed[1] = my_imgui.mouse_pressed[2] = false;
-#else
-	io.MouseDown[0] = (mouse_buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
-	io.MouseDown[1] = (mouse_buttons & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
-	io.MouseDown[2] = (mouse_buttons & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0;
-#endif
-	SDL_Window* focused_window = SDL_GetKeyboardFocus();
-	if ( my_window == focused_window )
+	else if ( tex->Status == ImTextureStatus_WantDestroy )
 	{
-		/*
-		 * SDL_GetMouseState() gives mouse position seemingly based on the last
-		 * window entered/focused(?)
-		 * The creation of new windows at runtime and SDL_CaptureMouse seems to
-		 * severely mess that up, so we retrieve that position globally.
-		 */
-		int wx, wy;
-		SDL_GetWindowPosition(focused_window, &wx, &wy);
-		SDL_GetGlobalMouseState(&mx, &my);
-		mx -= wx;
-		my -= wy;
-		io.MousePos = ImVec2((float)mx, (float)my);
+		if ( SDL_Texture* sdl_texture = (SDL_Texture*)(intptr_t)tex->TexID )
+		{
+			SDL_DestroyTexture(sdl_texture);
+		}
+
+		// Clear identifiers and mark as destroyed (in order to allow e.g. calling InvalidateDeviceObjects while running)
+		tex->SetTexID(ImTextureID_Invalid);
+		tex->SetStatus(ImTextureStatus_Destroyed);
 	}
-
-	bool  any_mouse_button_down = ImGui::IsAnyMouseDown();
-
-	SDL_CaptureMouse(any_mouse_button_down ? SDL_TRUE : SDL_FALSE);
 }
 
 

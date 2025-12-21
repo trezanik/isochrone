@@ -486,7 +486,7 @@ ImGuiPreferencesDialog::Draw_AudioItem(
 			// can/do we want to enforce size here?
 			float  w = (float)icon->Width();
 			float  h = (float)icon->Height();
-			if ( ImGui::ImageButton(label, icon->AsSDLTexture(), ImVec2(w, h)) )
+			if ( ImGui::ImageButton(label, (ImTextureID)(uintptr_t)icon->AsSDLTexture(), ImVec2(w, h)) )
 				selected = true;
 		}
 		else if ( ImGui::Button(label, ImVec2(16, 16)) )
