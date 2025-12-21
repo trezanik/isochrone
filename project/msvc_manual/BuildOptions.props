@@ -12,7 +12,7 @@
     <UsingFLAC>0</UsingFLAC>
     <UsingFreetype>1</UsingFreetype>
     <UsingImGui>1</UsingImGui>
-    <UsingLibPNG>1</UsingLibPNG>
+    <UsingLibPNG>0</UsingLibPNG>
     <UsingOggOpus>1</UsingOggOpus>
     <UsingOggVorbis>1</UsingOggVorbis>
     <UsingOpenALSoft>1</UsingOpenALSoft>
@@ -20,7 +20,7 @@
     <UsingPugixml>1</UsingPugixml>
     <UsingRCCPP>0</UsingRCCPP>
     <UsingSDL>1</UsingSDL>
-    <UsingSDLImage>0</UsingSDLImage>
+    <UsingSDLImage>1</UsingSDLImage>
     <UsingSDLTTF>1</UsingSDLTTF>
     <UsingSqlite>1</UsingSqlite>
     <UsingSTBF>0</UsingSTBF>
@@ -116,7 +116,6 @@
     </BuildMacro>
     <BuildMacro Include="NetworkLowLevelLogs">
       <Value>$(NetworkLowLevelLogs)</Value>
-      <EnvironmentVariable>true</EnvironmentVariable>
     </BuildMacro>
   </ItemGroup>
 </Project>

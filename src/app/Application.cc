@@ -70,10 +70,6 @@
 #include "imgui/dear_imgui/imgui_impl_sdlrenderer2.h"
 #include "imgui/ImGuiImpl_SDL2.h"
 
-#if TZK_USING_SDLIMAGE
-#   include <SDL_image.h>
-#endif
-
 #if TZK_USING_PUGIXML
 #	include <pugixml.hpp>
 #endif

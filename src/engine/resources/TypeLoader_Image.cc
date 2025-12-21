@@ -11,6 +11,7 @@
 #include "engine/resources/IResource.h"
 #include "engine/resources/Resource_Image.h"
 #include "engine/services/event/EngineEvent.h"
+#include "engine/Context.h"
 
 #include "core/util/filesystem/file.h"
 #include "core/services/event/EventDispatcher.h"
@@ -25,8 +26,12 @@
 	TZK_VC_RESTORE_WARNINGS(4244)
 #	undef STB_IMAGE_IMPLEMENTATION
 #endif
-
-#include <png.h>
+#if TZK_USING_SDLIMAGE
+#	include <SDL_image.h>
+#endif
+#if TZK_USING_LIBPNG
+#	include <png.h>
+#endif
 
 #include <functional>
 
@@ -86,61 +91,6 @@ TypeLoader_Image::GetLoadFunction(
 	return std::bind(&TypeLoader_Image::Load, this, resource);
 }
 
-
-#if 0
-/*void
-ReadPNG(
-	png_structp png_ptr,
-	png_bytep out,
-	png_size_t to_read
-)
-{
-	png_voidp  io_ptr = png_get_io_ptr(png_ptr);
-	if ( io_ptr == nullptr )
-	{
-		return;
-	}
-
-}*/
-
-void
-ParseRGBA(
-	Image& outImage,
-	const png_structp& png_ptr,
-	const png_infop& info_ptr
-)
-{
-   const u32 width = outImage.GetWidth();
-   const u32 height = outImage.GetHeight();
-
-   const png_uint_32 bytesPerRow = png_get_rowbytes(png_ptr, info_ptr);
-   byte* rowData = new byte[bytesPerRow];
-
-   // read single row at a time
-   for(u32 rowIdx = 0; rowIdx < height; ++rowIdx)
-   {
-	  png_read_row(png_ptr, (png_bytep)rowData, NULL);
-
-	  const u32 rowOffset = rowIdx * width;
-
-	  u32 byteIndex = 0;
-	  for(u32 colIdx = 0; colIdx < width; ++colIdx)
-	  {
-		 const u8 red   = rowData[byteIndex++];
-		 const u8 green = rowData[byteIndex++];
-		 const u8 blue  = rowData[byteIndex++];
-		 const u8 alpha = rowData[byteIndex++];
-
-		 const u32 targetPixelIndex = rowOffset + colIdx;
-		 outImage.SetPixel(targetPixelIndex, Color32(red, green, blue, alpha));
-	  }
-	  //PULSAR_ASSERT(byteIndex == bytesPerRow);
-   }
-
-   delete [] rowData;
-
-}  // end ParseRGBA()
-#endif
 
 int
 TypeLoader_Image::Load(
@@ -202,7 +152,7 @@ TypeLoader_Image::Load(
 		NotifyFailure(&data);
 		return ErrFAILED;
 	}
-	
+
 
 	// we're reading this in for direct usage in stbi. some dup/conflict with libpng!
 	unsigned char*  mem = static_cast<unsigned char*>(TZK_MEM_ALLOC(fsize));
@@ -229,116 +179,76 @@ TypeLoader_Image::Load(
 		return ErrFAILED;
 	}
 
-	// does have its own png_check_sig()
-	png_structp  png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
-	if ( png_ptr == nullptr )
-	{
-		NotifyFailure(&data);
-		return ErrFAILED;
-	}
-	png_infop  info_ptr = png_create_info_struct(png_ptr);
-	if ( info_ptr == nullptr )
-	{
-		png_destroy_read_struct(&png_ptr, nullptr, nullptr);
-		NotifyFailure(&data);
-		return ErrFAILED;
-	}
+	int  retval = ErrIMPL;
+	const auto&  ctx = Context::GetSingleton();
 
-	png_init_io(png_ptr, fp);// || png_set_read_fn
-	// we've seeked back to 0; not needed, could then call this to skip recheck
-	//png_set_sig_bytes(png_ptr, png_header_size);
-
-	// info
 	/*
-	 * This will probably help someone in future - Windows/VS:
-	 * https://stackoverflow.com/questions/22774265/libpng-crashes-on-png-read-info
+	 * Everything else here is multi-library capable loading of the image, with
+	 * a single exit point for return values
 	 */
-	png_read_info(png_ptr, info_ptr);
-	png_uint_32  width = 0;
-	png_uint_32  height = 0;
-	int  bits_per_channel = 0;
-	int  colour_type = -1;
-	png_uint_32  rc = png_get_IHDR(png_ptr, info_ptr, &width, &height, &bits_per_channel, &colour_type, nullptr, nullptr, nullptr);
 
-	if ( rc != 1 )
+	if ( ctx.IsSDLImageAvailable() )
 	{
-		png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
-		NotifyFailure(&data);
-		return ErrFAILED;
-	}
+#if TZK_USING_SDLIMAGE
+		retval = ErrEXTERN;
 
-#if TZK_USING_STBI
-	int  comp;
+		SDL_RWops*  rw = SDL_RWFromMem(mem, static_cast<int>(fsize));
+		if ( rw == nullptr )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "SDL_RWFromMem() failed; %s", SDL_GetError());
+		}
+		else
+		{
+			SDL_Surface*  sfc;
+			int  free_rwsrc = 1; // cleanup SDL_RWFromMem immediately
+			// we can get texture direct if not needing to modify *or get dimensions* (presently we do)
+			//IMG_LoadTexture_RW();
+			if ( (sfc = IMG_Load_RW(rw, free_rwsrc)) == nullptr )
+			{
+				TZK_LOG(LogLevel::Warning, "IMG_Load_RW() failed");
+			}
+			else
+			{
+				pngcon->surface = sfc;
 
-	/**
-	 * @bug 9
-	 * Depending on the editor used, some images with an alpha channel are still
-	 * flagged as RGB only. We'll include trace logging here so if any reports
-	 * come through there will be linked information we can use to determine if
-	 * the issue is simply down to this.
-	 * e.g. mspaint created image, opened in IrfanView to apply an alpha channel
-	 * and saved, is an RGBA image but png_get_IHDR (and file) report it as RGB.
-	 * Save in GIMP (remove all exif, xmp, background colour, *every* field) and
-	 * set pixel format to 8bpc RGBA. Results in a smaller file too!
-	 */
-	switch ( colour_type )
-	{
-	case PNG_COLOR_TYPE_RGB:
-		// set_read_fn = xxx
-		comp = STBI_rgb;
-		TZK_LOG_FORMAT(LogLevel::Trace, "png_get_IHDR (%s): PNG_COLOR_TYPE_RGB", PNG_LIBPNG_VER_STRING);
-		break;
-	case PNG_COLOR_TYPE_RGB_ALPHA:
-		comp = STBI_rgb_alpha;
-		TZK_LOG_FORMAT(LogLevel::Trace, "png_get_IHDR (%s): PNG_COLOR_TYPE_RGBA", PNG_LIBPNG_VER_STRING);
-		break;
-	default:
-		png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
-		NotifyFailure(&data);
-		return ErrFAILED;
-	}
-
-	png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
-
-	/// @todo all libpng stuff can be omitted if we can determine alpha presence
-	pngcon->data = stbi_load_from_memory(
-		mem, static_cast<int>(fsize),
-		&pngcon->width, &pngcon->height, &pngcon->channels, comp
-	);
-#else
-	/// @todo raw png implementation
-
-	png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
-	NotifyFailure(&data);
-	return ErrIMPL;
+				// surface is freed in this call
+				retval = resptr->AssignPNG(std::move(pngcon));
+			}
+		}
 #endif
+	}
 
-	// no need to keep file open, all data has been read into memory
+	if ( retval != ErrNONE && ctx.IsSTBIAvailable() )
+	{
+#if TZK_USING_STBI
+		retval = ErrEXTERN;
+
+		pngcon->data = stbi_load_from_memory(
+			mem, static_cast<int>(fsize),
+			&pngcon->width, &pngcon->height, &pngcon->channels, 0
+		);
+		if ( pngcon->data != nullptr )
+		{
+			retval = resptr->AssignPNG(std::move(pngcon));
+		}
+#endif
+	}
+	
+	/// @todo if I'm feeling like self-harm - raw png implementation
+
 	aux::file::close(fp);
-	// if not using stb, this should be stored elsewhere by now
 	TZK_MEM_FREE(mem);
 
-	if ( pngcon->data == nullptr )
+	if ( retval != ErrNONE )
 	{
 		NotifyFailure(&data);
-		return ErrFAILED;
+		return retval;
 	}
 
-	TZK_LOG_FORMAT(LogLevel::Debug,
-		"PNG image loaded: %ux%u:%u",
-		pngcon->width, pngcon->height, pngcon->channels
-	);
-
-	if ( resptr->AssignPNG(std::move(pngcon)) != ErrNONE )
-	{
-		NotifyFailure(&data);
-		return ErrFAILED;
-	}
-
-	// pngcon->data must be freed - see Resource_Image.cc destructor
+	// Resource_Image.cc AssignPNG handles all data/surface freeing
 
 	NotifySuccess(&data);
-	return ErrNONE;
+	return retval;
 }
 
 

@@ -37,6 +37,10 @@
 #include "imgui/dear_imgui/imgui_impl_sdlrenderer2.h"
 #endif
 
+#if TZK_USING_SDLIMAGE
+#   include <SDL_image.h>
+#endif
+
 #include <algorithm>
 #include <csignal>
 #include <sstream>
@@ -61,6 +65,14 @@ Context::Context()
 #endif
 , my_render_lock(false)
 , my_fps_cap(TZK_DEFAULT_FPS_CAP)
+#if TZK_USING_SDL
+, my_sdl_window(nullptr)
+, my_sdl_renderer(nullptr)
+#endif
+#if TZK_USING_SDL_TTF
+, my_default_font(nullptr)
+#endif
+, my_sdlimage_available(false)
 {
 	using namespace trezanik::core;
 
@@ -118,6 +130,10 @@ Context::~Context()
 		{
 			my_resource_cache.Dump();
 		}
+
+#if TZK_USING_SDLIMAGE
+		IMG_Quit();
+#endif
 
 
 		// no scripting to cleanup at present
@@ -404,6 +420,12 @@ Context::Initialize()
 	my_thread = std::thread(&Context::UpdateThread, this, this);
 #endif
 
+#if TZK_USING_SDLIMAGE
+	if ( IMG_Init(IMG_INIT_PNG) == IMG_INIT_PNG )
+	{
+		my_sdlimage_available = true;
+	}
+#endif
 
 	return ErrNONE;
 }
