@@ -129,8 +129,8 @@
 #	if _WIN32_WINNT < _WIN32_WINNT_WIN2K
 #		error Windows 2000 is the minimum recognized version
 #	endif
-#	if !TZK_ENABLE_XP2003_SUPPORT && TZK_IS_VISUAL_STUDIO && TZK_MSVC_LATER_THAN_VS12 && (_WIN32_WINNT < _WIN32_WINNT_WIN7)
-#		error This compiler can only be used with a Windows target of kernel 6.1 or newer
+#	if _WIN32_WINNT < _WIN32_WINNT_WINXP
+#		error Windows XP (SP3) is the minimum supported version
 #	endif
 #
 #	// WC_ERR_INVALID_CHARS only exists from Vista onwards
