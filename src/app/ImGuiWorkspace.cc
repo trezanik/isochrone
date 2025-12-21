@@ -1167,7 +1167,10 @@ ImGuiWorkspace::ApplySetting(
 		break;
 	case cth_grid_colour_background:
 		if ( update_rgba_for(my_topology->my_nodegraph.settings.grid_style.colours.background) )
+		{
 			common_update();
+			my_topology->my_nodegraph.GetCanvas().configuration.colour = my_topology->my_nodegraph.settings.grid_style.colours.background;
+		}
 		break;
 	case cth_grid_colour_link:
 		if ( update_rgba_for(my_topology->my_nodegraph.settings.grid_style.colours.link) )
