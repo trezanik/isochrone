@@ -501,6 +501,42 @@ Application::CloseWorkspace(
 
 
 void
+Application::CreateLogFileTarget()
+{
+	using namespace trezanik::core;
+
+	auto  log = core::ServiceLocator::Log();
+	char  fname[256];
+
+	aux::get_current_time_format(fname, sizeof(fname), my_cfg.log.file.name_format.c_str());
+
+	auto  lt = std::make_shared<LogTarget_File>(
+		my_cfg.log.file.folder_path.c_str(), fname
+	);
+
+	log->AddTarget(lt);
+	lt->SetLogLevel(my_cfg.log.file.level);
+	lt->Initialize();
+
+	my_logfile_target = lt;
+}
+
+
+void
+Application::CreateLogTerminalTarget()
+{
+	auto  log = core::ServiceLocator::Log();
+	auto  lt = std::make_shared<core::LogTarget_Terminal>();
+
+	log->AddTarget(lt);
+	lt->SetLogLevel(my_cfg.log.terminal.level);
+	lt->Initialize();
+
+	my_logterminal_target = lt;
+}
+
+
+void
 Application::ErrorCallback(
 	const trezanik::core::LogEvent* evt
 )
@@ -889,6 +925,8 @@ Application::HandleConfigChange(
 	std::shared_ptr<trezanik::engine::EventData::config_change> cfg
 )
 {
+	using namespace trezanik::core;
+
 	// we don't need to do anything with cfg, as we already have our own structs
 	MapSettingsToMemberVars();
 
@@ -916,6 +954,72 @@ Application::HandleConfigChange(
 	if ( load_audio )
 	{
 		LoadAudio();
+	}
+
+	if ( cfg->new_config.count(TZK_CVAR_SETTING_LOG_ENABLED) > 0 )
+	{
+		auto log = core::ServiceLocator::Log();
+
+		if ( !my_cfg.log.enabled )
+		{
+			log->RemoveAllTargets();
+			log->DiscardStoredEvents();
+			my_logfile_target.reset();
+			my_logterminal_target.reset();
+		}
+		else
+		{
+			if ( my_cfg.log.terminal.enabled && my_logterminal_target == nullptr )
+			{
+				CreateLogTerminalTarget();
+			}
+			if ( !my_cfg.log.file.enabled && my_logfile_target == nullptr )
+			{
+				CreateLogFileTarget();
+			}
+		}
+	}
+	
+	if ( cfg->new_config.count(TZK_CVAR_SETTING_LOG_FILE_ENABLED) > 0 )
+	{
+		if ( my_cfg.log.file.enabled )
+		{
+			CreateLogFileTarget();
+		}
+		else if ( my_logfile_target != nullptr )
+		{
+			auto log = core::ServiceLocator::Log();
+			log->RemoveTarget(my_logfile_target);
+			my_logfile_target.reset();
+		}
+	}
+	else if ( cfg->new_config.count(TZK_CVAR_SETTING_LOG_FILE_LEVEL) > 0 )
+	{
+		if ( my_logfile_target != nullptr )
+		{
+			my_logfile_target->SetLogLevel(my_cfg.log.file.level);
+		}
+	}
+
+	if ( cfg->new_config.count(TZK_CVAR_SETTING_LOG_TERMINAL_ENABLED) > 0 )
+	{
+		if ( my_cfg.log.terminal.enabled )
+		{
+			CreateLogTerminalTarget();
+		}
+		else if ( my_logterminal_target != nullptr )
+		{
+			auto log = core::ServiceLocator::Log();
+			log->RemoveTarget(my_logterminal_target);
+			my_logterminal_target.reset();
+		}
+	}
+	else if ( cfg->new_config.count(TZK_CVAR_SETTING_LOG_TERMINAL_LEVEL) > 0 )
+	{
+		if ( my_logterminal_target != nullptr )
+		{
+			my_logterminal_target->SetLogLevel(my_cfg.log.terminal.level);
+		}
 	}
 }
 
@@ -1230,32 +1334,16 @@ Application::Initialize(
 		log->SetFatalCallback(std::bind(&Application::FatalCallback, this, std::placeholders::_1));
 		log->RemoveAllTargets();
 
-		// terminal logger
 		if ( my_cfg.log.terminal.enabled )
 		{
-			auto  lt = std::make_shared<LogTarget_Terminal>();
-
-			log->AddTarget(lt);
-			lt->SetLogLevel(my_cfg.log.terminal.level);
-			lt->Initialize();
+			CreateLogTerminalTarget();
 		}
-		// file logger
 		if ( my_cfg.log.file.enabled )
 		{
-			char  fname[256];
+			CreateLogFileTarget();
 
-			aux::get_current_time_format(fname, sizeof(fname), my_cfg.log.file.name_format.c_str());
-
-			auto  lt = std::make_shared<LogTarget_File>(
-				my_cfg.log.file.folder_path.c_str(), fname
-			);
-
-			log->AddTarget(lt);
-			lt->SetLogLevel(my_cfg.log.file.level);
-			lt->Initialize();
-
-			my_logfile_target = lt;
-			config_dump_stream = lt->GetFileStream();
+			// if both terminal and file enabled, file takes precedence
+			config_dump_stream = my_logfile_target->GetFileStream();
 		}
 
 		// we now have log targets setup; stop storing events, push out

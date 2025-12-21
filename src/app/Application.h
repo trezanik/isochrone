@@ -42,6 +42,7 @@ namespace core {
 	enum class LogLevel : uint8_t;
 	class LogEvent;
 	class LogTarget_File;
+	class LogTarget_Terminal;
 } // namespace core
 namespace engine {
 	class ALSound;
@@ -129,9 +130,15 @@ private:
 
 
 	/**
-	 * Tracking of the log file target for anything that may need it
+	 * Tracking of the log file target for runtime modifications
 	 */
 	std::shared_ptr<core::LogTarget_File>  my_logfile_target;
+
+
+	/**
+	 * Tracking of the log terminal target for runtime modifications
+	 */
+	std::shared_ptr<core::LogTarget_Terminal>  my_logterminal_target;
 
 
 	/**
@@ -438,6 +445,19 @@ private:
 	core::aux::Path  my_assets_scripts_path;
 	core::aux::Path  my_assets_sprites_path;
 
+
+	/**
+	 * Creates a log terminal target and adds it to the Log service
+	 */
+	void
+	CreateLogFileTarget();
+
+
+	/**
+	 * Creates a log terminal target and adds it to the Log service
+	 */
+	void
+	CreateLogTerminalTarget();
 
 
 	/**
