@@ -11,6 +11,7 @@
 #include "core/definitions.h"
 
 #include "core/services/event/Event.h"
+#include "core/services/log/LogEvent.h"
 #include "core/util/SingularInstance.h"
 
 #include <atomic>
@@ -83,7 +84,7 @@ private:
 	 *  however can't guarantee for how long this remains true, so getting it
 	 *  in now to cover all future developments
 	 */
-	mutable std::atomic<bool>  my_listeners_inuse;
+	mutable std::atomic<bool>  my_listeners_inuse = false;
 
 	/**
 	 * Mutex for event dispatching/queue processing
@@ -117,7 +118,7 @@ private:
 			waiting_for += wait_duration;
 			if ( waiting_for.count() > 1000000000 && !reported )
 			{
-				TZK_LOG(LogLevel::Warning, "Waiting for more than 1 second");
+				TZK_LOG_HINT(LogLevel::Warning, LogHints_StdoutNow, "Waiting for more than 1 second");
 				reported = true;
 			}
 #if !TZK_IS_DEBUG_BUILD
