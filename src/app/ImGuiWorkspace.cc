@@ -786,7 +786,7 @@ public:
 		ImGui::SetNextWindowSizeConstraints(min, max);
 
 		// ensure OpenPopup is performed at the same ID stack level
-		if ( !ImGui::BeginPopupModal("Workspace Node Editor", &show_node_dialog, ImGuiWindowFlags_AlwaysAutoResize) || node == nullptr )
+		if ( node == nullptr || !ImGui::BeginPopupModal("Workspace Node Editor", &show_node_dialog, ImGuiWindowFlags_AlwaysAutoResize) )
 		{
 			// titlebar closure will not send the update event!
 			return;
