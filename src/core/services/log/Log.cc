@@ -95,29 +95,28 @@ class LogEventPool : private trezanik::core::SingularInstance<LogEventPool>
 
 private:
 
-	/// thread safety mutex, locked when modifying log_events/next_pair
+	/// thread safety mutex, locked when modifying log_events/live_pair
 	std::mutex  mutex;
 	/// Collection of log event pairs
 	std::vector<LogEventPair>  log_events;
-	/// Iterator to the next log event pair to use
-	std::vector<LogEventPair>::iterator  next_pair;
+	/// Iterator to the current live log event pair in use
+	std::vector<LogEventPair>::iterator  live_pair;
 
 	/**
 	 * Expands the pool size dynamically
 	 * 
 	 * Only invoked when the capacity is reached and new events are being
-	 * pumped.
+	 * pumped. If log_events is relocated in memory, the live_pair is
+	 * invalidated (LogEvent pointers remain valid). Assign the LogEvent pointer
+	 * to provide back to a caller *after* pool expansion.
 	 * 
 	 * Note that we have no current implementation to shrink; expansion here
 	 * can never be reverted for the duration of application execution
 	 * 
 	 * @param[in] by
 	 *  The number of elements to increase the pool by
-	 * @return
-	 *  An iterator to the next available pair, which will be the first of the
-	 *  newly allocated elements
 	 */
-	std::vector<LogEventPair>::iterator
+	void
 	ExpandPool(
 		size_t by
 	)
@@ -126,20 +125,12 @@ private:
 
 		assert(by != 0);
 
-		std::vector<LogEventPair>::iterator  retval = log_events.end();
 		size_t  prior = log_events.size();
 		log_events.reserve(prior + by);
 		for ( size_t i = by; i > 0; i-- )
 		{
 			log_events.emplace_back(LogEventPair());
-			// assign next entry to the first allocation performed
-			if ( i == by )
-			{
-				retval = std::prev(log_events.end());
-			}
 		}
-
-		return retval;
 	}
 
 
@@ -150,16 +141,24 @@ private:
 	 * option amount
 	 * 
 	 * @return
-	 *  The iterator to the next free element
+	 *  Raw pointer to the next available event, or a nullptr if none found and
+	 *  with no pool expansion ability, or it failed
 	 */
-	std::vector<LogEventPair>::iterator
-	FindNextFree()
+	LogEvent*
+	GetNextFree()
 	{
-		// already locked by callers
+		std::lock_guard<std::mutex>  lock(mutex);
 
-		if ( ++next_pair == log_events.end() )
+		// cover first invocation or current element reuse
+		if ( !live_pair->used )
 		{
-			next_pair = log_events.begin();
+			live_pair->used = true;
+			return &live_pair->evt;
+		}
+
+		if ( ++live_pair == log_events.end() )
+		{
+			live_pair = log_events.begin();
 		}
 		/*
 		 * Given the queue flow operating stack-like, unless we get so many
@@ -168,7 +167,7 @@ private:
 		 * We'll fall back just-in-case to searching for a free item, but if
 		 * still no joy, expand the pool and acquire from there.
 		 */
-		if ( next_pair->used )
+		if ( live_pair->used )
 		{
 			auto iter = std::find_if(log_events.begin(), log_events.end(), [](LogEventPair& p)
 			{
@@ -177,21 +176,26 @@ private:
 
 			if ( iter == log_events.end() )
 			{
-				next_pair = ExpandPool(TZK_LOG_POOL_EXPANSION_COUNT);
+				ExpandPool(TZK_LOG_POOL_EXPANSION_COUNT);
+				iter = std::find_if(log_events.begin(), log_events.end(), [](LogEventPair& p)
+				{
+					return p.used == false;
+				});
+				
 			}
-			else
+			if ( iter != log_events.end() )
 			{
-				next_pair = iter;
+				live_pair = iter;
 			}
 		}
 
-		if ( next_pair->used )
+		if ( live_pair->used )
 		{
-			TZK_DEBUG_BREAK;
-			return log_events.end();
+			return nullptr;
 		}
 
-		return next_pair;
+		live_pair->used = true;
+		return &live_pair->evt;
 	}
 
 protected:
@@ -214,7 +218,7 @@ public:
 			log_events.emplace_back(LogEventPair());
 		}
 
-		next_pair = log_events.begin();
+		live_pair = log_events.begin();
 	}
 
 
@@ -272,23 +276,17 @@ public:
 	/**
 	 * Acquires the next available element
 	 *
-	 * Since this calls FindNextFree, the pool will be expanded if ther are no
+	 * Since this calls GetNextFree, the pool will be expanded if there are no
 	 * available elements
 	 * 
 	 * @return
-	 *  The LogEvent of the next available element, marked as used
+	 *  The LogEvent pointer of the next available element, or a nullptr if none
+	 *  could be acquired/created
 	 */
 	LogEvent*
 	GetNextPoolItem()
 	{
-		std::lock_guard<std::mutex>  lock(mutex);
-
-		LogEvent* retval = &next_pair->evt;
-		next_pair->used = true;
-		
-		next_pair = FindNextFree();
-
-		return retval;
+		return GetNextFree();
 	}
 
 
@@ -298,7 +296,7 @@ public:
 	 * Has no effect if the input is not a pooled element
 	 * 
 	 * @param[in] pool_item
-	 *  The LogEvent pointer previouslt acquired from GetNextPoolItem()
+	 *  The LogEvent pointer previously acquired from GetNextPoolItem()
 	 */
 	void
 	Release(
@@ -461,7 +459,6 @@ public:
 		}
 
 		my_log_events.clear();
-		my_log_events.resize(1);
 	}
 
 
@@ -774,8 +771,11 @@ Log::Event(
 
 #if TZK_LOGEVENT_POOL
 	auto  evt = my_log_event_pool->GetNextPoolItem();
-	evt->Update(level, function, file, line, data);
-	my_impl->Push(evt);
+	if ( evt != nullptr )
+	{
+		evt->Update(level, function, file, line, data);
+		my_impl->Push(evt);
+	}
 #else
 	my_impl->Push(std::make_unique<LogEvent>(level, function, file, line, data));
 #endif
@@ -802,8 +802,11 @@ Log::Event(
 
 #if TZK_LOGEVENT_POOL
 	auto  evt = my_log_event_pool->GetNextPoolItem();
-	evt->Update(level, function, file, line, data, hints);
-	my_impl->Push(evt);
+	if ( evt != nullptr )
+	{
+		evt->Update(level, function, file, line, data, hints);
+		my_impl->Push(evt);
+	}
 #else
 	my_impl->Push(std::make_unique<LogEvent>(level, function, file, line, data, hints));
 #endif
@@ -834,8 +837,11 @@ Log::Event(
 
 #if TZK_LOGEVENT_POOL
 	auto  evt = my_log_event_pool->GetNextPoolItem();
-	evt->Update(level, function, file, line, data_format, LogHints_None, vargs);
-	my_impl->Push(evt);
+	if ( evt != nullptr )
+	{
+		evt->Update(level, function, file, line, data_format, LogHints_None, vargs);
+		my_impl->Push(evt);
+	}
 #else
 	my_impl->Push(std::make_unique<LogEvent>(level, function, file, line, data_format, LogHints_None, vargs));
 #endif
@@ -869,8 +875,11 @@ Log::Event(
 
 #if TZK_LOGEVENT_POOL
 	auto  evt = my_log_event_pool->GetNextPoolItem();
-	evt->Update(level, function, file, line, data_format, hints, vargs);
-	my_impl->Push(evt);
+	if ( evt != nullptr )
+	{
+		evt->Update(level, function, file, line, data_format, hints, vargs);
+		my_impl->Push(evt);
+	}
 #else
 	my_impl->Push(std::make_unique<LogEvent>(level, function, file, line, data_format, hints, vargs));
 #endif

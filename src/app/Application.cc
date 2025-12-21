@@ -1346,6 +1346,19 @@ Application::Initialize(
 		log->SetEventStorage(false);
 		log->PushStoredEvents();
 	}
+	else
+	{
+		/*
+		 * With no event storage and no targets, calls to log will still execute
+		 * and acquire/release events, but do nothing else.
+		 * Errors will still be reported to the GUI, and normal handlers invoked
+		 */
+		auto log = core::ServiceLocator::Log();
+		log->RemoveAllTargets();
+		log->SetEventStorage(false);
+		log->DiscardStoredEvents();
+	}
+
 	
 	/*
 	 * Additional interactions with loaded configuration.
