@@ -17,7 +17,14 @@
 #include "app/Workspace.h"
 #include "app/event/AppEvent.h"
 #include "app/resources/contf.h"
+#include "app/resources/error_wav.h"
+#include "app/resources/firacode.h"
+#include "app/resources/isochrone_banner.h"
+#include "app/resources/opensans.h"
 #include "app/resources/proggyclean.h"
+#include "app/resources/icon_pause.h"
+#include "app/resources/icon_play.h"
+#include "app/resources/icon_stop.h"
 #include "app/resources/Resource_Workspace.h"
 #include "app/resources/TypeLoader_Workspace.h"
 
@@ -666,6 +673,133 @@ Application::ErrorCallback(
 
 
 void
+Application::ExtractEmbeddedAssets()
+{
+	using namespace trezanik::core;
+
+	/*
+	 * We extract everything at once, rather than on demand. It was initially
+	 * the latter, but every unique type needed special handling at whatever
+	 * point the 'need' was at, and this just ended up duplicating code and
+	 * hides what we do embed and extract.
+	 * 
+	 * From here on, this is the sole method that will extract all embedded
+	 * resources.
+	 */
+
+	auto  effects_list = aux::folder::scan_directory(my_assets_audio_effects_path, true);
+	//auto  tracks_list = aux::folder::scan_directory(my_assets_audio_tracks_path, true);
+	auto  font_list = aux::folder::scan_directory(my_assets_fonts_path, true);
+	auto  image_list = aux::folder::scan_directory(my_assets_images_path, true);
+	//auto  scripts_list = aux::folder::scan_directory(my_assets_scripts_path, true);
+	//auto  sprites_list = aux::folder::scan_directory(my_assets_sprites_path, true);
+
+	struct embedded_resource
+	{
+		std::string  dir;
+		std::string  name;
+		unsigned char*  data;
+		size_t  data_size;
+	};
+
+	auto  extract_file = [](const embedded_resource& res)
+	{
+		assert(!res.dir.empty());
+		assert(!res.name.empty());
+		assert(res.data != nullptr);
+		assert(res.data != 0);
+
+		std::string  fpath = core::aux::BuildPath(res.dir, res.name);
+		int    flags = aux::file::OpenFlag_CreateUserR | aux::file::OpenFlag_CreateUserW | aux::file::OpenFlag_WriteOnly | aux::file::OpenFlag_Binary;
+		FILE*  fp = aux::file::open(fpath.c_str(), flags);
+
+		if ( fp != nullptr )
+		{
+			size_t  rc = aux::file::write(fp, res.data, res.data_size);
+			assert(res.data_size == rc);
+			aux::file::close(fp);
+			return true;
+		}
+		return false;
+	};
+
+	std::vector<embedded_resource>  resources;
+
+//#if TZK_EMBED_CONTF
+	auto  contf_res = std::find(font_list.begin(), font_list.end(), contf_name);
+	if ( contf_res == font_list.end() )
+	{
+		resources.push_back({ my_assets_fonts_path, contf_name, contf, contf_size });
+		resources.push_back({ my_assets_fonts_path, contf_license_name, contf_license, contf_license_size });
+	}
+//#endif
+//#if TZK_EMBED_FIRACODE
+	auto  firacode_res = std::find(font_list.begin(), font_list.end(), firacode_name);
+	if ( firacode_res == font_list.end() )
+	{
+		resources.push_back({ my_assets_fonts_path, firacode_name, firacode, firacode_size });
+		resources.push_back({ my_assets_fonts_path, firacode_license_name, firacode_license, firacode_license_size });
+	}
+//#endif
+//#if TZK_EMBED_OPENSANS
+    auto  opensans_res = std::find(font_list.begin(), font_list.end(), opensans_name);
+    if ( opensans_res == font_list.end() )
+    {
+        resources.push_back({ my_assets_fonts_path, opensans_name, opensans, opensans_size });
+        resources.push_back({ my_assets_fonts_path, opensans_license_name, opensans_license, opensans_license_size });
+    }
+//#endif
+//#if TZK_EMBED_PROGGYCLEAN
+	auto  progclean_res = std::find(font_list.begin(), font_list.end(), proggyclean_name);
+	if ( progclean_res == font_list.end() )
+	{
+		resources.push_back({ my_assets_fonts_path, proggyclean_name, proggyclean, proggyclean_size });
+		resources.push_back({ my_assets_fonts_path, proggyclean_license_name, proggyclean_license, proggyclean_license_size });
+	}
+//#endif
+//#if TZK_EMBED_ERRORWAV
+	auto  errorwav_res = std::find(effects_list.begin(), effects_list.end(), error_wav_name);
+	if ( errorwav_res == effects_list.end() )
+	{
+		resources.push_back({ my_assets_audio_effects_path, error_wav_name, error_wav, error_wav_size });
+		resources.push_back({ my_assets_audio_effects_path, error_wav_license_name, error_wav_license, error_wav_license_size });
+	}
+//#endif
+	
+	auto  isochrone_banner_res = std::find(image_list.begin(), image_list.end(), isochrone_banner_name);
+	auto  icon_pause_res = std::find(image_list.begin(), image_list.end(), icon_pause_name);
+	auto  icon_play_res = std::find(image_list.begin(), image_list.end(), icon_play_name);
+	auto  icon_stop_res = std::find(image_list.begin(), image_list.end(), icon_stop_name);
+
+	if ( isochrone_banner_res == image_list.end() )
+	{
+		resources.push_back({ my_assets_images_path, isochrone_banner_name, isochrone_banner, isochrone_banner_size });
+		resources.push_back({ my_assets_images_path, isochrone_banner_license_name, isochrone_banner_license, isochrone_banner_license_size });
+	}
+	if ( icon_pause_res == image_list.end() )
+	{
+		resources.push_back({ my_assets_images_path, icon_pause_name, icon_pause, icon_pause_size });
+		resources.push_back({ my_assets_images_path, icon_pause_license_name, icon_pause_license, icon_pause_license_size });
+	}
+	if ( icon_play_res == image_list.end() )
+	{
+		resources.push_back({ my_assets_images_path, icon_play_name, icon_play, icon_play_size });
+		resources.push_back({ my_assets_images_path, icon_play_license_name, icon_play_license, icon_play_license_size });
+	}
+	if ( icon_stop_res == image_list.end() )
+	{
+		resources.push_back({ my_assets_images_path, icon_stop_name, icon_stop, icon_stop_size });
+		resources.push_back({ my_assets_images_path, icon_stop_license_name, icon_stop_license, icon_stop_license_size });
+	}
+
+	for ( const auto& res : resources )
+	{
+		extract_file(res);
+	}
+}
+
+
+void
 Application::FatalCallback(
 	const trezanik::core::LogEvent* evt
 )
@@ -1200,17 +1334,14 @@ Application::Initialize(
 	 * and get accurate loading details
 	 */
 	//core::aux::Path  assets(my_context->AssetPath());  root path; could be a symlink, plain folder, or user specified
-	core::aux::Path  assets_effects(my_context->AssetPath() + assetdir_effects);
-	core::aux::Path  assets_images(my_context->AssetPath() + assetdir_images);
-	core::aux::Path  assets_fonts(my_context->AssetPath() + assetdir_fonts);
-	core::aux::Path  assets_music(my_context->AssetPath() + assetdir_music);
-	core::aux::Path  assets_scripts(my_context->AssetPath() + assetdir_scripts);
-	core::aux::Path  assets_sprites(my_context->AssetPath() + assetdir_sprites);
+	my_assets_audio_effects_path = (my_context->AssetPath() + assetdir_effects);
+	my_assets_images_path        = (my_context->AssetPath() + assetdir_images);
+	my_assets_fonts_path         = (my_context->AssetPath() + assetdir_fonts);
+	my_assets_audio_tracks_path  = (my_context->AssetPath() + assetdir_music);
+	my_assets_scripts_path       = (my_context->AssetPath() + assetdir_scripts);
+	my_assets_sprites_path       = (my_context->AssetPath() + assetdir_sprites);
 
-	auto CreatePath = [](
-		core::aux::Path& path
-	)
-	{
+	auto CreatePath = [](core::aux::Path& path) {
 		if ( core::aux::folder::exists(path()) == ENOENT )
 		{
 			TZK_LOG_FORMAT(LogLevel::Info, "Creating Directory '%s'", path());
@@ -1222,76 +1353,14 @@ Application::Initialize(
 		}
 	};
 
-	CreatePath(assets_effects);
-	CreatePath(assets_fonts);
-	CreatePath(assets_images);
-	CreatePath(assets_music);
-	CreatePath(assets_scripts);
-	CreatePath(assets_sprites);
+	CreatePath(my_assets_audio_effects_path);
+	CreatePath(my_assets_fonts_path);
+	CreatePath(my_assets_images_path);
+	CreatePath(my_assets_audio_tracks_path);
+	CreatePath(my_assets_scripts_path);
+	CreatePath(my_assets_sprites_path);
 
-
-	/*
-	 * Ensure default fonts are available as fallbacks
-	 * 
-	 * Will work as long as the file names are not already present; if you truly
-	 * want to break the ability for default fonts, there's numerous ways and
-	 * I'm not going to try and stop you!
-	 * Be aware that if you intentionally prevent an embedded file write and a
-	 * configured font isn't available, the app will fail init and be useless
-	 */
-	{
-		auto  font_list = aux::folder::scan_directory(assets_fonts, true);
-		auto  contf_res = std::find(font_list.begin(), font_list.end(), contf_name);
-		auto  progclean_res = std::find(font_list.begin(), font_list.end(), proggyclean_name);
-		std::string  fpath;
-		FILE*  fp;
-		int    flags = aux::file::OpenFlag_CreateUserR | aux::file::OpenFlag_CreateUserW | aux::file::OpenFlag_WriteOnly | aux::file::OpenFlag_Binary;
-
-		// convert to lambdas if we deploy any more
-
-		if ( contf_res == font_list.end() )
-		{
-			TZK_LOG_FORMAT(LogLevel::Info, "Creating default font file '%s'", contf_name);
-
-			fpath = core::aux::BuildPath(assets_fonts, contf_name);
-			fp = aux::file::open(fpath.c_str(), flags);
-			if ( fp != nullptr )
-			{
-				size_t  rc = aux::file::write(fp, contf, contf_size);
-				assert(contf_size == rc);
-				aux::file::close(fp);
-			}
-			fpath = core::aux::BuildPath(assets_fonts, contf_license_name);
-			fp = aux::file::open(fpath.c_str(), flags);
-			if ( fp != nullptr )
-			{
-				size_t  rc = aux::file::write(fp, contf_license, contf_license_size);
-				assert(contf_license_size == rc);
-				aux::file::close(fp);
-			}
-		}
-		if ( progclean_res == font_list.end() )
-		{
-			TZK_LOG_FORMAT(LogLevel::Info, "Creating default fixed-width font file '%s'", proggyclean_name);
-
-			fpath = core::aux::BuildPath(assets_fonts, proggyclean_name);
-			fp = aux::file::open(fpath.c_str(), flags);
-			if ( fp != nullptr )
-			{
-				size_t  rc = aux::file::write(fp, proggyclean, proggyclean_size);
-				assert(proggyclean_size == rc);
-				aux::file::close(fp);
-			}
-			fpath = core::aux::BuildPath(assets_fonts, proggyclean_license_name);
-			fp = aux::file::open(fpath.c_str(), flags);
-			if ( fp != nullptr )
-			{
-				size_t  rc = aux::file::write(fp, proggyclean_license, proggyclean_license_size);
-				assert(proggyclean_license_size == rc);
-				aux::file::close(fp);
-			}
-		}
-	}
+	ExtractEmbeddedAssets();
 
 	// with essential resources defined/available, enter loading state
 	my_context->SetEngineState(trezanik::engine::State::Loading);

@@ -14,6 +14,7 @@
 
 #include "app/definitions.h"
 
+ //#if TZK_EMBED_CONTF
 
 namespace trezanik {
 namespace app {
@@ -2526,3 +2527,5 @@ TZK_CC_RESTORE_WARNING
 
 } // namespace app
 } // namespace trezanik
+
+//#endif  // TZK_EMBED_CONTF

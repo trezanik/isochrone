@@ -87,9 +87,12 @@
     <ClInclude Include="..\..\src\app\Pong.h" />
     <ClInclude Include="..\..\src\app\private\Workspace_cc47a409_fbfe_49fc_846a_c36045257a00.h" />
     <ClInclude Include="..\..\src\app\resources\contf.h" />
+    <ClInclude Include="..\..\src\app\resources\error_wav.h" />
+    <ClInclude Include="..\..\src\app\resources\FiraCode-Regular.h" />
     <ClInclude Include="..\..\src\app\resources\icon_pause.h" />
     <ClInclude Include="..\..\src\app\resources\icon_play.h" />
     <ClInclude Include="..\..\src\app\resources\icon_stop.h" />
+    <ClInclude Include="..\..\src\app\resources\isochrone_banner.h" />
     <ClInclude Include="..\..\src\app\resources\proggyclean.h" />
     <ClInclude Include="..\..\src\app\resources\Resource_Workspace.h" />
     <ClInclude Include="..\..\src\app\resources\TypeLoader_Workspace.h" />

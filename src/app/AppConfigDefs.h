@@ -10,8 +10,16 @@
 
 #include "app/definitions.h"
 
-#include "app/resources/contf.h"  // default font
-#include "app/resources/proggyclean.h"  // default fixed-width font
+//#if TZK_EMBED_OPENSANS
+#include "app/resources/opensans.h"  // default font
+//#endif
+//#if TZK_EMBED_FIRACODE
+#include "app/resources/firacode.h"  // default fixed-width font
+//#endif
+
+//#include "app/resources/contf.h"  // fallback font
+//#include "app/resources/proggyclean.h"  // fallback fixed-width font
+
 #include "core/util/hash/compile_time_hash.h"
 
 
@@ -207,10 +215,10 @@ constexpr char  assetdir_sprites[]      = "sprites";
 #define TZK_CVAR_DEFAULT_RSS_DATABASE_PATH               ":memory:"
 #define TZK_CVAR_DEFAULT_RSS_ENABLED                     "true"
 #define TZK_CVAR_DEFAULT_RSS_FEEDS                       ""
-#define TZK_CVAR_DEFAULT_UI_DEFAULT_FONT_FILE            trezanik::app::contf_name
-#define TZK_CVAR_DEFAULT_UI_DEFAULT_FONT_SIZE            "12"
-#define TZK_CVAR_DEFAULT_UI_FIXED_WIDTH_FONT_FILE        trezanik::app::proggyclean_name
-#define TZK_CVAR_DEFAULT_UI_FIXED_WIDTH_FONT_SIZE        "10"
+#define TZK_CVAR_DEFAULT_UI_DEFAULT_FONT_FILE            trezanik::app::opensans_name
+#define TZK_CVAR_DEFAULT_UI_DEFAULT_FONT_SIZE            "16"
+#define TZK_CVAR_DEFAULT_UI_FIXED_WIDTH_FONT_FILE        trezanik::app::firacode_name
+#define TZK_CVAR_DEFAULT_UI_FIXED_WIDTH_FONT_SIZE        "14"
 #define TZK_CVAR_DEFAULT_UI_LAYOUT_BOTTOM_EXTEND         "false"
 #define TZK_CVAR_DEFAULT_UI_LAYOUT_BOTTOM_RATIO          "0.75"
 //#define TZK_CVAR_DEFAULT_UI_LAYOUT_CONSOLE_LOCATION      "Right"

@@ -423,6 +423,33 @@ private:
 
 	/** The emitter for application sounds, 1:1 with the listener */
 	std::shared_ptr<trezanik::engine::AudioComponent>  my_audio_component;
+	
+	core::aux::Path  my_assets_audio_effects_path;
+	core::aux::Path  my_assets_audio_tracks_path;
+	core::aux::Path  my_assets_fonts_path;
+	core::aux::Path  my_assets_images_path;
+	core::aux::Path  my_assets_scripts_path;
+	core::aux::Path  my_assets_sprites_path;
+
+
+
+	/**
+	 * Extracts from the binary all embedded assets, writing them to disk
+	 * 
+	 * Embedded resources can (will) be marked for inclusion via compile-time
+	 * defines. Each resource will increase the binary size, so they should be
+	 * kept minimal.
+	 * 
+	 * All files are written to the asset path for each file type. If a file of
+	 * that name already exists, extraction will be skipped; we make no attempt
+	 * to detect 'blocking' files, as it's up to the user.
+	 * Names are pre-determined in the associated header file under resources.
+	 * 
+	 * May be linked in future with a custom command-line option to skip this
+	 * extraction.
+	 */
+	void
+	ExtractEmbeddedAssets();
 
 
 	/**

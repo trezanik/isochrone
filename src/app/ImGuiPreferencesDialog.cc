@@ -81,9 +81,6 @@ ImGuiPreferencesDialog::ImGuiPreferencesDialog(
 		my_absolute_music_path   = (my_context.AssetPath() + assetdir_music);
 		my_absolute_workspaces_path  = aux::Path(core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_WORKSPACES_PATH));
 
-
-
-
 		std::string  fpath_pause = aux::BuildPath(my_context.AssetPath() + assetdir_images, icon_pause_name);
 		std::string  fpath_play  = aux::BuildPath(my_context.AssetPath() + assetdir_images, icon_play_name);
 		std::string  fpath_stop  = aux::BuildPath(my_context.AssetPath() + assetdir_images, icon_stop_name);
@@ -92,9 +89,7 @@ ImGuiPreferencesDialog::ImGuiPreferencesDialog(
 		auto ResourceLoad = [&ldr, this](
 			trezanik::core::UUID& id,
 			std::shared_ptr<trezanik::engine::Resource_Image>& icon,
-			std::string& fpath,
-			const unsigned char* raw,
-			size_t raw_size
+			std::string& fpath
 		)
 		{
 			if ( icon != nullptr )
@@ -104,31 +99,6 @@ ImGuiPreferencesDialog::ImGuiPreferencesDialog(
 
 			if ( id == null_id )
 			{
-				if ( aux::file::exists(fpath.c_str()) == ENOENT )
-				{
-					TZK_LOG_FORMAT(LogLevel::Info, "Extracting resource from self: %s", fpath.c_str());
-
-					int    flags = aux::file::OpenFlag_CreateUserR | aux::file::OpenFlag_CreateUserW | aux::file::OpenFlag_WriteOnly | aux::file::OpenFlag_Binary;
-					FILE*  fp = aux::file::open(fpath.c_str(), flags);
-
-					if ( fp != nullptr )
-					{
-						size_t  rc = aux::file::write(fp, raw, raw_size);
-						assert(raw_size == rc);
-						aux::file::close(fp);
-					}
-#if 0  // for license, these are currently ones I made quickly so public domain, no license file, nor way to handle
-					fpath = core::aux::BuildPath(assets_images, xxx_license_name);
-					fp = aux::file::open(fpath.c_str(), flags);
-					if ( fp != nullptr )
-					{
-						size_t  rc = aux::file::write(fp, xxx_license, xxx_license_size);
-						assert(xxx_license_size == rc);
-						aux::file::close(fp);
-					}
-#endif
-				}
-
 				auto res = std::make_shared<Resource_Image>(fpath);
 				if ( ldr.AddResource(std::dynamic_pointer_cast<Resource>(res)) == ErrNONE )
 				{
@@ -142,9 +112,9 @@ ImGuiPreferencesDialog::ImGuiPreferencesDialog(
 			}
 		};
 		
-		ResourceLoad(my_icon_pause_rid, my_icon_pause, fpath_pause, icon_pause, icon_pause_size);
-		ResourceLoad(my_icon_play_rid, my_icon_play, fpath_play, icon_play, icon_play_size);
-		ResourceLoad(my_icon_stop_rid, my_icon_stop, fpath_stop, icon_stop, icon_stop_size);
+		ResourceLoad(my_icon_pause_rid, my_icon_pause, fpath_pause);
+		ResourceLoad(my_icon_play_rid, my_icon_play, fpath_play);
+		ResourceLoad(my_icon_stop_rid, my_icon_stop, fpath_stop);
 
 		ldr.Sync();
 
