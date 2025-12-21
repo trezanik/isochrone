@@ -1711,6 +1711,27 @@ Application::InitializeSDL()
 		const char* drv = SDL_GetVideoDriver(i);
 		TZK_LOG_FORMAT(LogLevel::Debug, "[SDL] SDL_GetVideoDriver(%d): %s", i, drv == nullptr ? "n/a" : drv);
 	}
+	for ( int i = 0; i < SDL_GetNumRenderDrivers(); i++ )
+	{
+		SDL_RendererInfo  info;
+		SDL_GetRenderDriverInfo(i, &info);
+		TZK_LOG_FORMAT(LogLevel::Debug, "[SDL] SDL_GetRenderDriverInfo(%d): %s", i, info.name == nullptr ? "n/a" : info.name);
+	}
+	
+	// Windows: opengl & opengles2 have no effect, still defaults to direct3d. Others are fine
+	// Linux: vulkan works but crashed my system when opening prefs after about was ok (not wanting to retest!)
+	const char*  render_override = nullptr;
+	if ( render_override != nullptr )
+	{
+		if ( SDL_SetHintWithPriority(SDL_HINT_RENDER_DRIVER, render_override, SDL_HINT_OVERRIDE) )
+		{
+			TZK_LOG_FORMAT(LogLevel::Info, "[SDL] Render Driver Hint (OVERRIDE) set: %s", render_override);
+		}
+		else
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "[SDL] Render Driver Hint (OVERRIDE) to '%s' failed: %s", render_override, SDL_GetError());
+		}
+	}
 
 	int  rc = SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO);
 
