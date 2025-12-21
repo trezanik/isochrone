@@ -213,7 +213,7 @@ std::map<std::string, std::string>  typemap {
 	{settingname_link_defaultmethod, strtype_uint},
 	{settingname_node_dragfromheadersonly, strtype_bool},
 	{settingname_node_drawheaders, strtype_bool},
-	{settingname_node_trackonlinestate, strtype_uint},
+	{settingname_node_trackonlinestate, strtype_bool},
 	{settingname_nodelist_overrideappstyle, strtype_bool},
 	{settingname_nodelist_sortorder, strtype_string}
 };
