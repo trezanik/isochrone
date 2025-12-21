@@ -107,10 +107,9 @@ ImGuiWkspSettings::Draw()
 		TZK_LOG(LogLevel::Debug, "Collapsing all treenodes");
 	}
 
-	//auto&  forensics_settings = my_wksp->GetForensics()->settings;
-	auto&  ng_settings = topology->my_nodegraph.settings;
-	auto&  topology_settings = topology->settings;
-	auto   root_settings = my_wksp->GetSettings();
+	//auto&   forensics_settings = my_wksp->GetForensics()->settings;
+	auto&   ng_settings = topology->my_nodegraph.settings;
+	auto&   topology_settings = topology->settings;
 	ImVec2  table_size(_gui_interactions.tabchild_size.x, 0.f); // full width, needed height
 	
 	if ( ImGui::BeginTable("Settings##", num_columns, table_flags, table_size) )
@@ -162,7 +161,7 @@ ImGuiWkspSettings::Draw()
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn();
 
-			auto  wndloc = [&tree_node_flags](const char* text, WindowLocation& loc) {
+			auto  wndloc = [&tree_node_flags, this](const char* text, const char* name, WindowLocation& loc) {
 				ImGui::TreeNodeEx(text, tree_node_flags);
 				ImGui::TableNextColumn();
 				ImGui::PushID(text);
@@ -175,6 +174,7 @@ ImGuiWkspSettings::Draw()
 					if ( index != (cur - 1) )
 					{
 						loc = TConverter<WindowLocation>::FromUint8(static_cast<uint8_t>((index + 1)));
+						my_wksp->ApplySetting(name, TConverter<WindowLocation>::ToString(loc).c_str());
 					}
 				}
 
@@ -182,8 +182,8 @@ ImGuiWkspSettings::Draw()
 				ImGui::TableNextColumn();
 			};
 
-			wndloc("Canvas Debug", root_settings->settings.dock_canvasdbg);
-			wndloc("Property View", root_settings->settings.dock_propview);
+			wndloc("Canvas Debug", settingname_dock_canvasdbg, settings.dock_canvasdbg);
+			wndloc("Property View", settingname_dock_propview, settings.dock_propview);
 
 			ImGui::TreePop();
 		}
@@ -328,6 +328,30 @@ ImGuiWkspSettings::Draw()
 			ImGui::TableNextRow();
 			ImGui::TableNextColumn();
 
+			ImGui::TreeNodeEx("Draw Headers [Topology]", tree_node_flags);
+			ImGui::TableNextColumn();
+			if ( ImGui::Checkbox("##Node.DrawHeaders", &ng_settings.node_draw_headers) )
+			{
+				my_wksp->ApplySetting(settingname_node_drawheaders, core::TConverter<bool>::ToString(ng_settings.node_draw_headers).c_str());
+			}
+			ImGui::TableNextColumn();
+
+			ImGui::TreeNodeEx("Drag from Headers only [Topology]", tree_node_flags);
+			ImGui::TableNextColumn();
+			if ( ImGui::Checkbox("##Node.DragViaHeaders", &ng_settings.node_drag_from_headers_only) )
+			{
+				my_wksp->ApplySetting(settingname_node_dragfromheadersonly, core::TConverter<bool>::ToString(ng_settings.node_drag_from_headers_only).c_str());
+			}
+			ImGui::TableNextColumn();
+
+			ImGui::TreeNodeEx("Track Online State", tree_node_flags);
+			ImGui::TableNextColumn();
+			if ( ImGui::Checkbox("##Node.TrackOnlineState", &topology_settings.node_track_online_state) )
+			{
+				my_wksp->ApplySetting(settingname_node_trackonlinestate, core::TConverter<bool>::ToString(topology_settings.node_track_online_state).c_str());
+			}
+			ImGui::TableNextColumn();
+
 			ImGui::TreeNodeEx("Node List Sort Method", tree_node_flags);
 			ImGui::TableNextColumn();
 			if ( ImGui::Combo("##NodeList.SortMethod", &settings.nodelist_sort_order, nodelist_sortstrs) )
@@ -336,11 +360,20 @@ ImGuiWkspSettings::Draw()
 			}
 			ImGui::TableNextColumn();
 
+			/*
+			 * Note:
+			 * Ensure this is last. The optional, dynamic tree entries breaks
+			 * the cell selection, so a following checkbox appears alongside
+			 * this row, not the following one like it should do.
+			 * 
+			 * This might be fixable by flag amendments, not looked into it;
+			 * plain relocation good enough for now
+			 */
 			ImGui::TreeNodeEx("Override application Node List style", tree_node_flags);
 			ImGui::TableNextColumn();
 			if ( ImGui::Checkbox("##NodeList.OverrideApplicationStyle", &settings.nodelist_override_app_style) )
 			{
-				my_wksp->ApplySetting(settingname_nodelist_overrideappstyle, settings.nodelist_override_app_style ? "true" : "false");
+				my_wksp->ApplySetting(settingname_nodelist_overrideappstyle, core::TConverter<bool>::ToString(settings.nodelist_override_app_style).c_str());
 			}
 			ImGui::TableNextColumn();
 
@@ -444,32 +477,6 @@ ImGuiWkspSettings::Draw()
 					ImGui::TreePop();
 				}
 			}
-
-			ImGui::TreeNodeEx("Draw Headers [Topology]", tree_node_flags);
-			ImGui::TableNextColumn();
-			if ( ImGui::Checkbox("##Node.DrawHeaders", &ng_settings.node_draw_headers) )
-			{
-				TZK_LOG_FORMAT(LogLevel::Debug, "%s set to %u", settingname_node_drawheaders, ng_settings.node_draw_headers);
-			}
-			ImGui::TableNextColumn();
-
-			ImGui::TreeNodeEx("Drag from Headers only [Topology]", tree_node_flags);
-			ImGui::TableNextColumn();
-			if ( ImGui::Checkbox("##Node.DragViaHeaders", &ng_settings.node_drag_from_headers_only) )
-			{
-				TZK_LOG_FORMAT(LogLevel::Debug, "%s set to %u", settingname_node_dragfromheadersonly, ng_settings.node_drag_from_headers_only);
-			}
-			ImGui::TableNextColumn();
-
-			ImGui::TreeNodeEx("Track Online State", tree_node_flags);
-			ImGui::TableNextColumn();
-			if ( ImGui::Checkbox("##Node.TrackOnlineState", &topology_settings.node_track_online_state) )
-			{
-				my_wksp->ApplySetting(settingname_node_trackonlinestate, topology_settings.node_track_online_state ? "true" : "false");
-			}
-			ImGui::TableNextColumn();
-
-			
 
 			ImGui::TreePop();
 		}
