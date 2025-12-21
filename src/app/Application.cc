@@ -68,6 +68,7 @@
 #include "imgui/dear_imgui/imgui_impl_sdl2.h"
 #include "imgui/dear_imgui/imgui_impl_sdlrenderer2.h"
 #include "imgui/ImGuiImpl_SDL2.h"
+#include "imgui/CustomImGui.h"
 
 #if TZK_USING_PUGIXML
 #	include <pugixml.hpp>
@@ -1648,8 +1649,8 @@ TZK_CC_RESTORE_WARNING // -Wmissing-field-initializers
 	{
 		TZK_LOG_FORMAT(LogLevel::Warning, "Unable to find configured style '%s'; reverting to inbuilt", my_cfg.ui.style.name.c_str());
 		
-		ImGui::StyleColorsDark();
-		my_cfg.ui.style.name = inbuilt_style_dark_name;
+		ImGui::StyleApplyTrezanikLight();
+		my_cfg.ui.style.name = default_style_tzklight_name;
 		my_gui_interactions->active_app_style.name = my_cfg.ui.style.name;
 		for ( auto& ast : my_gui_interactions->app_styles )
 		{

@@ -43,12 +43,21 @@ class Pin;
 
 
 // I'm aware these can be initialized alongside the variable in the struct. Prefer this.
+#if 0  // Dark
 constexpr ImU32   default_node_background = IM_COL32(55, 64, 75, 255);
 constexpr ImU32   default_node_header_background = IM_COL32(0, 0, 0, 255);
 constexpr ImU32   default_node_header_title_colour = IM_COL32(233, 241, 244, 255);
 constexpr ImU32   default_node_border_colour = IM_COL32(30, 38, 41, 140);
 constexpr ImU32   default_node_border_hover_colour = IM_COL32(170, 190, 205, 115);
 constexpr ImU32   default_node_border_selected_colour = IM_COL32(170, 190, 205, 230);
+#else  // Light
+constexpr ImU32   default_node_background = IM_COL32(255, 255, 255, 255);
+constexpr ImU32   default_node_header_background = IM_COL32(0, 0, 0, 255);
+constexpr ImU32   default_node_header_title_colour = IM_COL32(233, 241, 244, 255);
+constexpr ImU32   default_node_border_colour = IM_COL32(30, 38, 41, 140);
+constexpr ImU32   default_node_border_hover_colour = IM_COL32(134, 203, 255, 230);
+constexpr ImU32   default_node_border_selected_colour = IM_COL32(134, 203, 255, 230);
+#endif
 constexpr ImVec4  default_node_padding = ImVec4(13.7f, 6.f, 13.7f, 2.f);
 constexpr ImVec4  default_node_header_margin = ImVec4(5.f, 1.f, 0.f, 0.f); // LTRB; bottom and right are never used
 constexpr ImVec4  default_node_margin = ImVec4(5.f, 2.f, 2.f, 5.f); // LTRB; bottom is never used (difficult with current imgui APIs)

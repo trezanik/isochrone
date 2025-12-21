@@ -46,6 +46,8 @@
 #include "engine/resources/Resource.h"
 #include "engine/Context.h"
 
+#include "imgui/CustomImGui.h"
+
 
 namespace trezanik {
 namespace app {
@@ -137,6 +139,8 @@ char  xmlstr_attr_value[] = "value";
 const char  inbuilt_style_classic_name[] = "Inbuilt:Classic";
 const char  inbuilt_style_dark_name[] = "Inbuilt:Dark";
 const char  inbuilt_style_light_name[] = "Inbuilt:Light";
+const char  default_style_tzkdark_name[] = "Default:TrezanikDark";
+const char  default_style_tzklight_name[] = "Default:TrezanikLight";
 
 
 AppImGui::AppImGui(
@@ -198,6 +202,8 @@ AppImGui::AppImGui(
 		auto  appstyle_inbuilt_classic = std::make_unique<AppImGuiStyle>();
 		auto  appstyle_inbuilt_dark = std::make_unique<AppImGuiStyle>();
 		auto  appstyle_inbuilt_light = std::make_unique<AppImGuiStyle>();
+		//auto  appstyle_default_tzkdark = std::make_unique<AppImGuiStyle>();
+		auto  appstyle_default_tzklight = std::make_unique<AppImGuiStyle>();
 
 		appstyle_inbuilt_classic->name = inbuilt_style_classic_name;
 		appstyle_inbuilt_classic->id.Generate();
@@ -210,10 +216,21 @@ AppImGui::AppImGui(
 		appstyle_inbuilt_light->name = inbuilt_style_light_name;
 		appstyle_inbuilt_light->id.Generate();
 		ImGui::StyleColorsLight(&appstyle_inbuilt_light->style);
+
+		// placeholder for dark style, not yet created
+		//appstyle_default_tzkdark->name = default_style_tzkdark_name;
+		//appstyle_default_tzkdark->id.Generate();
+		//ImGui::StyleApplyTrezanikDark(&appstyle_default_tzkdark->style);
+
+		appstyle_default_tzklight->name = default_style_tzklight_name;
+		appstyle_default_tzklight->id.Generate();
+		ImGui::StyleApplyTrezanikLight(&appstyle_default_tzklight->style);
 		
 		my_gui.app_styles.emplace_back(std::move(appstyle_inbuilt_classic));
 		my_gui.app_styles.emplace_back(std::move(appstyle_inbuilt_dark));
 		my_gui.app_styles.emplace_back(std::move(appstyle_inbuilt_light));
+		//my_gui.app_styles.emplace_back(std::move(appstyle_default_tzkdark));
+		my_gui.app_styles.emplace_back(std::move(appstyle_default_tzklight));
 
 
 		my_known_versions.emplace_back(trezanik::core::UUID("783d1279-05ca-40af-b1c2-cfc40c212658")); // 1.0 [Non-Final]

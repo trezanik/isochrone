@@ -91,7 +91,7 @@ ImGuiLog::Draw()
 	 * Proper styling won't need this, but we don't have it yet!
 	 */
 	{
-		ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(220, 220, 220, 255));
+		ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(225, 225, 225, 255));
 	}
 
 	auto push_style_color = [this](
@@ -261,21 +261,19 @@ ImGuiLog::Initialize()
 {
 	using namespace trezanik::core;
 
-	// dark theme colours by default
+#if 0  // dark theme
 	uint32_t  debug_colour = IM_COL32(205, 195, 242, 255);
 	uint32_t  error_colour = IM_COL32(255,  77,  77, 255);
 	uint32_t  info_colour  = IM_COL32(  0, 153, 255, 255);
 	uint32_t  warn_colour  = IM_COL32(242, 212,   0, 255);
 	uint32_t  trace_colour = IM_COL32(111, 153, 146, 255);
-
-	auto  cfg = ServiceLocator::Config();
-	if ( cfg->Get(TZK_CVAR_SETTING_UI_STYLE_NAME) == "light" )
-	{
-		// debug and warning look unreadable in light theme, so adjust
-
-		debug_colour = IM_COL32(117,  45, 142, 255);
-		warn_colour  = IM_COL32(145, 155,  15, 255);
-	}
+#else
+    uint32_t  debug_colour = IM_COL32(154,  59, 187, 255);
+    uint32_t  error_colour = IM_COL32(255,  77,  77, 255);
+    uint32_t  info_colour  = IM_COL32(  0, 153, 255, 255);
+    uint32_t  warn_colour  = IM_COL32(145, 155,  15, 255);
+    uint32_t  trace_colour = IM_COL32(111, 153, 146, 255);
+#endif
 
 	SetLogLevelColour(LogLevel::Debug, debug_colour);
 	SetLogLevelColour(LogLevel::Error, error_colour);

@@ -11,6 +11,7 @@
 #include "imgui/definitions.h"
 
 #include "imgui/dear_imgui/imgui.h"
+#include "imgui/dear_imgui/imgui_internal.h"  // just for ImLerp
 
 #include <string>
 #include <vector>
@@ -308,6 +309,144 @@ namespace ImGui
 		return retval;
 	}
 	
+}
+
+namespace ImGui
+{
+	/**
+	 * Applies our internal, default light theme (blue-based)
+	 */
+	static void
+	StyleApplyTrezanikLight(
+		ImGuiStyle* dst = nullptr
+	)
+	{
+		ImGuiStyle*  style = dst != nullptr ? dst : &ImGui::GetStyle();
+		ImVec4*      colors = style->Colors;
+
+		// exported from imgui demo window -> style editor
+		colors[ImGuiCol_Text]                   = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
+		colors[ImGuiCol_TextDisabled]           = ImVec4(0.60f, 0.60f, 0.60f, 1.00f);
+		colors[ImGuiCol_WindowBg]               = ImVec4(1.00f, 1.00f, 1.00f, 0.98f);
+		colors[ImGuiCol_ChildBg]                = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+		colors[ImGuiCol_PopupBg]                = ImVec4(1.00f, 1.00f, 1.00f, 0.98f);
+		colors[ImGuiCol_Border]                 = ImVec4(0.00f, 0.00f, 0.00f, 0.30f);
+		colors[ImGuiCol_BorderShadow]           = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+		colors[ImGuiCol_FrameBg]                = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+		colors[ImGuiCol_FrameBgHovered]         = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
+		colors[ImGuiCol_FrameBgActive]          = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
+		colors[ImGuiCol_TitleBg]                = ImVec4(0.82f, 0.82f, 0.82f, 1.00f);
+		colors[ImGuiCol_TitleBgActive]          = ImVec4(0.51f, 0.82f, 1.00f, 0.82f);
+		colors[ImGuiCol_TitleBgCollapsed]       = ImVec4(1.00f, 1.00f, 1.00f, 0.51f);
+		colors[ImGuiCol_MenuBarBg]              = ImVec4(0.86f, 0.86f, 0.86f, 1.00f);
+		colors[ImGuiCol_ScrollbarBg]            = ImVec4(0.98f, 0.98f, 0.98f, 0.53f);
+		colors[ImGuiCol_ScrollbarGrab]          = ImVec4(0.69f, 0.69f, 0.69f, 0.80f);
+		colors[ImGuiCol_ScrollbarGrabHovered]   = ImVec4(0.49f, 0.49f, 0.49f, 0.80f);
+		colors[ImGuiCol_ScrollbarGrabActive]    = ImVec4(0.49f, 0.49f, 0.49f, 1.00f);
+		colors[ImGuiCol_CheckMark]              = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+		colors[ImGuiCol_SliderGrab]             = ImVec4(0.26f, 0.59f, 0.98f, 0.78f);
+		colors[ImGuiCol_SliderGrabActive]       = ImVec4(0.46f, 0.54f, 0.80f, 0.60f);
+		colors[ImGuiCol_Button]                 = ImVec4(0.26f, 0.59f, 0.98f, 0.40f);
+		colors[ImGuiCol_ButtonHovered]          = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
+		colors[ImGuiCol_ButtonActive]           = ImVec4(0.16f, 0.56f, 0.98f, 1.00f);
+		colors[ImGuiCol_Header]                 = ImVec4(0.26f, 0.59f, 0.98f, 0.31f);
+		colors[ImGuiCol_HeaderHovered]          = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
+		colors[ImGuiCol_HeaderActive]           = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+		colors[ImGuiCol_Separator]              = ImVec4(0.39f, 0.39f, 0.39f, 0.62f);
+		colors[ImGuiCol_SeparatorHovered]       = ImVec4(0.14f, 0.44f, 0.80f, 0.78f);
+		colors[ImGuiCol_SeparatorActive]        = ImVec4(0.14f, 0.44f, 0.80f, 1.00f);
+		colors[ImGuiCol_ResizeGrip]             = ImVec4(0.35f, 0.35f, 0.35f, 0.17f);
+		colors[ImGuiCol_ResizeGripHovered]      = ImVec4(0.26f, 0.59f, 0.98f, 0.67f);
+		colors[ImGuiCol_ResizeGripActive]       = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
+		colors[ImGuiCol_InputTextCursor]        = ImVec4(0.00f, 0.00f, 0.00f, 1.00f);
+		colors[ImGuiCol_TabHovered]             = ImVec4(0.26f, 0.59f, 0.98f, 0.80f);
+		colors[ImGuiCol_Tab]                    = ImVec4(0.76f, 0.80f, 0.84f, 0.93f);
+		colors[ImGuiCol_TabSelected]            = ImVec4(0.26f, 0.59f, 0.98f, 0.49f);
+		colors[ImGuiCol_TabSelectedOverline]    = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+		colors[ImGuiCol_TabDimmed]              = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+		colors[ImGuiCol_TabDimmedSelected]      = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+		colors[ImGuiCol_TabDimmedSelectedOverline]  = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+		colors[ImGuiCol_PlotLines]              = ImVec4(0.39f, 0.39f, 0.39f, 1.00f);
+		colors[ImGuiCol_PlotLinesHovered]       = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
+		colors[ImGuiCol_PlotHistogram]          = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+		colors[ImGuiCol_PlotHistogramHovered]   = ImVec4(1.00f, 0.45f, 0.00f, 1.00f);
+		colors[ImGuiCol_TableHeaderBg]          = ImVec4(0.78f, 0.87f, 0.98f, 1.00f);
+		colors[ImGuiCol_TableBorderStrong]      = ImVec4(0.57f, 0.57f, 0.64f, 1.00f);
+		colors[ImGuiCol_TableBorderLight]       = ImVec4(0.68f, 0.68f, 0.74f, 1.00f);
+		colors[ImGuiCol_TableRowBg]             = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+		colors[ImGuiCol_TableRowBgAlt]          = ImVec4(0.30f, 0.30f, 0.30f, 0.09f);
+		colors[ImGuiCol_TextLink]               = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+		colors[ImGuiCol_TextSelectedBg]         = ImVec4(0.26f, 0.59f, 0.98f, 0.35f);
+		colors[ImGuiCol_TreeLines]              = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+		colors[ImGuiCol_DragDropTarget]         = ImVec4(0.26f, 0.59f, 0.98f, 0.95f);
+		colors[ImGuiCol_DragDropTargetBg]       = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+		colors[ImGuiCol_UnsavedMarker]          = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+		colors[ImGuiCol_NavCursor]              = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+		colors[ImGuiCol_NavWindowingHighlight]  = ImVec4(0.70f, 0.70f, 0.70f, 0.70f);
+		colors[ImGuiCol_NavWindowingDimBg]      = ImVec4(0.20f, 0.20f, 0.20f, 0.20f);
+		colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.20f, 0.20f, 0.20f, 0.35f);
+
+		// manually populated
+
+		style->WindowPadding                    = ImVec2(8, 8);
+		style->FramePadding                     = ImVec2(4, 3);
+		style->ItemSpacing                      = ImVec2(8, 4);
+		style->ItemInnerSpacing                 = ImVec2(4, 4);
+		style->TouchExtraPadding                = ImVec2(0, 0);
+		style->IndentSpacing                    = 21.f;
+		style->GrabMinSize                      = 12.f;
+		style->WindowBorderSize                 = 1.f;
+		style->ChildBorderSize                  = 1.f;
+		style->PopupBorderSize                  = 1.f;
+		style->FrameBorderSize                  = 1.f;
+		style->WindowRounding                   = 0.f;
+		style->ChildRounding                    = 0.f;
+		style->FrameRounding                    = 1.f;
+		style->PopupRounding                    = 0.f;
+		style->GrabRounding                     = 1.f;
+		style->ScrollbarSize                    = 14.f;
+		style->ScrollbarRounding                = 9.f;
+		style->ScrollbarPadding                 = 2.f;
+		style->TabBorderSize                    = 0.f;
+		style->TabBarBorderSize                 = 1.f;
+		style->TabBarOverlineSize               = 1.f;
+		style->TabMinWidthBase                  = 1.f;
+		style->TabMinWidthShrink                = 80.f;
+		style->TabCloseButtonMinWidthSelected   = -1;
+		style->TabCloseButtonMinWidthUnselected = 0.f;
+		style->TabRounding                      = 4.f;
+		style->CellPadding                      = ImVec2(4, 2);
+		style->TableAngledHeadersAngle          = .35f;
+		style->TableAngledHeadersTextAlign      = ImVec2(0.5f, 0.f);
+		style->TreeLinesFlags                   = ImGuiTreeNodeFlags_DrawLinesNone;
+		style->TreeLinesSize                    = 1.f;
+		style->TreeLinesRounding                = 0.f;
+		style->WindowTitleAlign                 = ImVec2(0.5f, 0.5f);
+		style->WindowBorderHoverPadding         = 4.f;
+		style->WindowMenuButtonPosition         = ImGuiDir_Left;
+		style->ColorButtonPosition              = ImGuiDir_Right;
+		style->ButtonTextAlign                  = ImVec2(0.5f, 0.5f);
+		style->SelectableTextAlign              = ImVec2(0.f, 0.f);
+		style->SeparatorTextBorderSize          = 3.f;
+		style->SeparatorTextAlign               = ImVec2(0.f, 0.f);
+		style->SeparatorTextPadding             = ImVec2(20.f, 3.f);
+		style->LogSliderDeadzone                = 4.f;
+		style->ImageBorderSize                  = 0.f;
+		style->DisplayWindowPadding             = ImVec2(19.f, 19.f);
+		style->DisplaySafeAreaPadding           = ImVec2(3.f, 3.f);
+		
+		style->FontSizeBase                     = 16.f;
+		style->FontScaleMain                    = 1.f;
+		style->FontScaleDpi                     = 1.f;
+
+		style->AntiAliasedFill                  = true;
+		style->AntiAliasedLines                 = true;
+		style->AntiAliasedLinesUseTex           = true;
+		style->CurveTessellationTol             = 1.25f;
+		style->CircleTessellationMaxError       = 0.3f;
+		style->Alpha                            = 1.0f;
+		style->DisabledAlpha                    = 0.6f;
+	}
 }
 
 TZK_CC_RESTORE_WARNING

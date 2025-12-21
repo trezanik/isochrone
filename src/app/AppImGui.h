@@ -78,6 +78,8 @@ struct DrawClient;
 extern const char  inbuilt_style_classic_name[];
 extern const char  inbuilt_style_dark_name[];
 extern const char  inbuilt_style_light_name[];
+extern const char  default_style_tzkdark_name[];
+extern const char  default_style_tzklight_name[];
 
 // cth or ids??? can switch on hashes...
 static trezanik::core::UUID  drawclient_log_uuid("2e1ee664-2e7a-4d46-aca8-eea523a85cc5");
@@ -211,17 +213,25 @@ struct nodelist_style
 			return ImVec4(r/255.f, g/255.f, b/255.f, a/255.f);
 		};
 
+#if 0  // Dark
 		progress_colour1 = rgba_to_imvec4(126, 207, 247, 255);
 		progress_colour2 = rgba_to_imvec4(91, 148, 176, 255);
 		node_background_colour = rgba_to_imvec4(50, 50, 50, 255);
 		node_background_colour_selected = rgba_to_imvec4(110, 110, 110, 255);
 		node_text_colour = rgba_to_imvec4(190, 200, 190, 255);
+#else
+		progress_colour1 = rgba_to_imvec4(206, 156, 239, 255);
+		progress_colour2 = rgba_to_imvec4(143, 31, 28, 255);
+		node_background_colour = rgba_to_imvec4(243, 243, 243, 255);
+		node_background_colour_selected = rgba_to_imvec4(228, 255, 255, 255);
+		node_text_colour = rgba_to_imvec4(12, 57, 57, 255);
+#endif  // Light
 		// height should be:  ImGui::GetTextLineHeightWithSpacing() * 4/5 (Text, 3 for targets, progressbar)
 		node_size.x = TZK_WKSPLISTNODE_WIDTH;
 		node_size.y = TZK_WKSPLISTNODE_HEIGHT;
-		online_indicator_colour_down = rgba_to_imvec4(200, 0, 0, 255);
-		online_indicator_colour_mixed = rgba_to_imvec4(200, 200, 0, 255);
-		online_indicator_colour_up = rgba_to_imvec4(0, 200, 0, 255);
+		online_indicator_colour_down = rgba_to_imvec4(200, 0, 0, 225);
+		online_indicator_colour_mixed = rgba_to_imvec4(200, 200, 0, 225);
+		online_indicator_colour_up = rgba_to_imvec4(0, 200, 0, 225);
 		// these use drawlist, which only takes an ImU32
 		u32_online_indicator_colour_down = ImGui::ColorConvertFloat4ToU32(online_indicator_colour_down);
 		u32_online_indicator_colour_mixed = ImGui::ColorConvertFloat4ToU32(online_indicator_colour_mixed);

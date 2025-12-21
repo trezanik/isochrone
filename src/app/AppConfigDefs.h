@@ -26,7 +26,7 @@
 namespace trezanik {
 namespace app {
 	// default style name, AppImGui.cc
-	extern const char  inbuilt_style_dark_name[];
+	extern const char  default_style_tzklight_name[];
 } // namespace app
 } // namespace trezanik
 
@@ -237,7 +237,7 @@ constexpr char  assetdir_sprites[]      = "sprites";
 //#define TZK_CVAR_DEFAULT_UI_LAYOUT_VKBD_LOCATION         "Hidden"
 #define TZK_CVAR_DEFAULT_UI_PAUSE_ON_FOCUS_LOSS_ENABLED  "false"
 #define TZK_CVAR_DEFAULT_UI_SDL_RENDERER_TYPE            "Hardware"
-#define TZK_CVAR_DEFAULT_UI_STYLE_NAME                   inbuilt_style_dark_name
+#define TZK_CVAR_DEFAULT_UI_STYLE_NAME                   default_style_tzklight_name
 #define TZK_CVAR_DEFAULT_UI_TERMINAL_ENABLED             "false"
 #define TZK_CVAR_DEFAULT_UI_TERMINAL_POS_X               "1"
 #define TZK_CVAR_DEFAULT_UI_TERMINAL_POS_Y               "1"

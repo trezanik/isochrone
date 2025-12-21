@@ -45,12 +45,21 @@ ImNodeGraph::ImNodeGraph()
 	TZK_LOG(LogLevel::Trace, "Constructor starting");
 	{
 		// these are external configuration items, here for sane initialization values
+#if 0  // Dark
 		settings.grid_style.colours.background    = IM_COL32( 33,  41,  45, 255);
 		settings.grid_style.colours.primary       = IM_COL32(200, 200, 200,  28);
 		settings.grid_style.colours.secondary     = IM_COL32(100, 100,   0,  28);
 		settings.grid_style.colours.origins       = IM_COL32(200,   0,   0, 128);
 		settings.grid_style.colours.selector_rect = IM_COL32( 72, 200, 255, 255);
 		settings.grid_style.colours.link          = IM_COL32(200, 200, 200, 255);
+#else  // Light
+		settings.grid_style.colours.background    = IM_COL32(250, 253, 255, 255);
+		settings.grid_style.colours.primary       = IM_COL32(189, 197,   0,  40);
+		settings.grid_style.colours.secondary     = IM_COL32(166, 166,  46,  18);
+		settings.grid_style.colours.origins       = IM_COL32(200,   0,   0, 128);
+		settings.grid_style.colours.selector_rect = IM_COL32( 72, 200, 255, 255);
+		settings.grid_style.colours.link          = IM_COL32( 78,  60,  60, 255);
+#endif
 		settings.grid_style.size = 50;
 		settings.grid_style.subdivisions = settings.grid_style.size / 10;
 		settings.grid_style.draw = true;
