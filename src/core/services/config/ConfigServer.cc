@@ -97,6 +97,21 @@ ConfigServer::GetDefaults() const
 }
 
 
+bool
+ConfigServer::Has(
+	const char* name
+) const
+{
+	for ( auto& cvar : _cvars )
+	{
+		if ( cvar.path.compare(name) == 0 )
+			return true;
+	}
+
+	return false;
+}
+
+
 int
 ConfigServer::Load(
 	pugi::xml_node config_root,

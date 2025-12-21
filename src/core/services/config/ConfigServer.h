@@ -166,6 +166,26 @@ public:
 
 
 	/**
+	 * Checks if this ConfigServer has a setting of the supplied name
+	 * 
+	 * Compares the full path name (e.g. ui.style.name), case sensitive
+	 * 
+	 * Not actually used by ourselves yet, but might be useful in future. The
+	 * existing Set() call can be checked for ENOENT with an equivalent outcome,
+	 * if wanting to apply a setting
+	 * 
+	 * @param[in] name
+	 *  The setting name
+	 * @return
+	 *  Boolean result, true if this setting exists in this ConfigServer
+	 */
+	bool
+	Has(
+		const char* name
+	) const;
+
+
+	/**
 	 * Loads the configuration from the supplied variable
 	 * 
 	 * Anything not found or deemed invalid will be assigned their default value
@@ -175,7 +195,6 @@ public:
 	 * from the root XML element offset.
 	 * @param[in] config_root
 	 *  The pugi xml_node for the root element of the document
-	 * 
 	 * @param version
 	 *  Unused at present, reserved for future use
 	 * @return
