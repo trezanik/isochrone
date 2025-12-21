@@ -23,19 +23,13 @@
 #	if TZK_USING_FREETYPE
 #		if TZK_IS_DEBUG_BUILD
 #			pragma comment ( lib, "freetyped.lib" )
+#			pragma comment ( lib, "libpng16d.lib" )
 #			pragma comment ( lib, "zlibd.lib" )
 #		else
 #			pragma comment ( lib, "freetype.lib" )
+#			pragma comment ( lib, "libpng16.lib" )
 #			pragma comment ( lib, "zlib.lib" )
 #		endif
-#	endif
-/// @todo pending permanent optional addition, debug+release
-#	if TZK_IS_DEBUG_BUILD
-#		pragma comment ( lib, "libpng16d.lib" )
-#		pragma comment ( lib, "zlibd.lib" )
-#	else
-#		pragma comment ( lib, "libpng16.lib" )
-#		pragma comment ( lib, "zlib.lib" )
 #	endif
 #	if TZK_USING_PUGIXML
 #		pragma comment ( lib, "pugixml.lib" )
