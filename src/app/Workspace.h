@@ -29,6 +29,7 @@
 #	include <pugixml.hpp>
 #endif
 
+#include <algorithm>
 #include <array>
 #include <map>
 #include <set>

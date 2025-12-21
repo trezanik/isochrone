@@ -14,6 +14,7 @@
 #include "core/services/log/LogEvent.h"
 #include "core/util/SingularInstance.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <chrono>
