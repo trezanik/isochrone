@@ -74,6 +74,23 @@ const char  newnode_name[] = "New Node";
 const trezanik::core::UUID  drawclient_canvasdbg_uuid("9cbc06c0-c1e6-472c-a73a-1855039b1a1f");
 const trezanik::core::UUID  drawclient_propview_uuid("9a663f51-9162-4bec-964e-dd5f3da2db8e");
 
+/**
+ * Enumeration for Service Management selection and control flow
+ *
+ * @sa ServiceManagementSelection
+ */
+enum class SvcMgmtSwitch : uint8_t
+{
+	Select_ServiceGroup,
+	Select_ServiceGroupService,
+	Select_Service,
+	Include,
+	Unselect_ServiceGroup,
+	Unselect_ServiceGroupService,
+	Unselect_Service,
+	Exclude
+};
+
 
 /**
  * Private implementation of the ImGuiWorkspace class
@@ -594,81 +611,7 @@ public:
 				ImGui::Text("Target: %s", node->targets.cbegin()->target.c_str());
 			}
 		}
-
-		if ( ImGui::IsMouseHoveringRect(node_confines.Min, node_confines.Max) )
-		{
-			/**
-			 * @todo
-			 * Add element detection (name, target, listbox target) and enable editing
-			 * of the specific item, rather than forcing the name.
-			 * This saves the user having to open and edit in a dialog, instead being
-			 * completely dynamic in-session
-			 */
-			if ( ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) ) // && MousePos == NodeNameRect
-			{
-				edit_current_node_name = true;
-				TZK_LOG(LogLevel::Debug, "Double-clicked node");
-
-				if ( selected_node != node )
-				{
-					// shouldn't ever be the case.. double-click activates selection first
-					TZK_LOG(LogLevel::Warning, "Double-clicked node is not the selected node; overriding assignment");
-					selected_node = node;
-				}
-			}
-			else if ( ImGui::IsMouseClicked(ImGuiMouseButton_Left) && selected_node != node )
-			{
-				/*
-				 * This is triggered if we change nodelist node selection, but
-				 * NOT if we click within the nodegraph.
-				 * Unselected event handler will call this in advance if the
-				 * latter occurs, so shouldn't be invoked now on a fresh nodelist
-				 * selection
-				 */
-				if ( edit_current_node_name )
-				{
-					TZK_LOG(LogLevel::Info, "Node switch with incomplete edit");
-					// while selected_node still the editing entry, exec validation
-					CompleteNodeRename(selected_node);
-				}
-
-				/**
-				 * @bug 52
-				 * Do not assign the node now; due to unfortunate chaining via event
-				 * management (and purely because we want this node selection updated
-				 * if a new node is selected in the topology), its node update will
-				 * trigger unselection of the current item - which we'll have only
-				 * just replaced here.
-				 * This must therefore come after the node update call, which is fine
-				 * since this assignment can be pushed back to the next frame.
-				 * We still need to send the event 'in advance' of the change.
-				 * 
-				 * Note that the topology will only do the event send back to us
-				 * if it's actually open (i.e. the active tab) too! So we still need
-				 * to store the change regardless of our own dispatch
-				 */
-				TZK_LOG_FORMAT(LogLevel::Debug, "Selected node: %s", node->name.c_str());
-
-#if 1  // event chaining needed to keep topology and ourselves in sync, as per bug 52
-				app::EventData::selected_node  sn;
-				sn.node = node;
-				sn.workspace_id = wksp_data->id;
-				core::ServiceLocator::EventDispatcher()->DispatchEvent(uuid_listnode_selected, sn);
-#endif
-				selected_lastframe.insert(node);
-			}
-			else if ( ImGui::IsMouseClicked(ImGuiMouseButton_Right) )
-			{
-				// context popup
-
-				show_node_dialog = true;
-				// OpenPopup NOT suitable here, ID stack is wrong
-			}
-
-			//ImGui::TextDisabled("Hovering");
-		}
-
-
+		
 		if ( 1 ) // performing task
 		{
 			// colour child border differently rather than consuming valuable vertical space
@@ -755,6 +698,77 @@ public:
 		ImGui::PopStyleColor();
 		ImGui::PopID();
 		ImGui::EndChild();
+
+		if ( ImGui::IsItemHovered() )
+		{
+			/**
+			 * @todo
+			 * Add element detection (name, target, listbox target) and enable editing
+			 * of the specific item, rather than forcing the name.
+			 * This saves the user having to open and edit in a dialog, instead being
+			 * completely dynamic in-session
+			 */
+			if ( ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) )
+			{
+				edit_current_node_name = true;
+				TZK_LOG(LogLevel::Debug, "Double-clicked node");
+
+				if ( selected_node != node )
+				{
+					// shouldn't ever be the case.. double-click activates selection first
+					TZK_LOG(LogLevel::Warning, "Double-clicked node is not the selected node; overriding assignment");
+					selected_node = node;
+				}
+			}
+			else if ( ImGui::IsMouseClicked(ImGuiMouseButton_Left) && selected_node != node )
+			{
+				/*
+				 * This is triggered if we change nodelist node selection, but
+				 * NOT if we click within the nodegraph.
+				 * Unselected event handler will call this in advance if the
+				 * latter occurs, so shouldn't be invoked now on a fresh nodelist
+				 * selection
+				 */
+				if ( edit_current_node_name )
+				{
+					TZK_LOG(LogLevel::Info, "Node switch with incomplete edit");
+					// while selected_node still the editing entry, exec validation
+					CompleteNodeRename(selected_node);
+				}
+
+				/**
+				 * @bug 52
+				 * Do not assign the node now; due to unfortunate chaining via event
+				 * management (and purely because we want this node selection updated
+				 * if a new node is selected in the topology), its node update will
+				 * trigger unselection of the current item - which we'll have only
+				 * just replaced here.
+				 * This must therefore come after the node update call, which is fine
+				 * since this assignment can be pushed back to the next frame.
+				 * We still need to send the event 'in advance' of the change.
+				 *
+				 * Note that the topology will only do the event send back to us
+				 * if it's actually open (i.e. the active tab) too! So we still need
+				 * to store the change regardless of our own dispatch
+				 */
+				TZK_LOG_FORMAT(LogLevel::Debug, "Selected node: %s", node->name.c_str());
+
+#if 1  // event chaining needed to keep topology and ourselves in sync, as per bug 52
+				app::EventData::selected_node  sn;
+				sn.node = node;
+				sn.workspace_id = wksp_data->id;
+				core::ServiceLocator::EventDispatcher()->DispatchEvent(uuid_listnode_selected, sn);
+#endif
+				selected_lastframe.insert(node);
+			}
+			else if ( ImGui::IsMouseClicked(ImGuiMouseButton_Right) )
+			{
+				// context popup
+
+				show_node_dialog = true;
+				// OpenPopup NOT suitable here, ID stack is wrong
+			}
+		}
 	}
 
 
@@ -1045,6 +1059,9 @@ ImGuiWorkspace::ImGuiWorkspace(
 : IImGui(gui_interactions)
 , my_impl({ std::make_unique<Impl>(this) })
 , my_evtmgr(*core::ServiceLocator::EventDispatcher())
+, my_selected_service_group_service_index(-1)
+, my_selected_service_group_index(-1)
+, my_selected_service_index(-1)
 {
 	using namespace trezanik::core;
 
@@ -1471,6 +1488,11 @@ ImGuiWorkspace::Draw()
 
 	ImGui::EndChild();
 	ImGui::End();
+
+	if ( _gui_interactions.show_service_management )
+	{
+		DrawServiceManagement();
+	}
 }
 
 
@@ -1539,6 +1561,800 @@ ImGuiWorkspace::DrawLoadingDetails()
 
 	ImGui::PopStyleVar();
 	ImGui::EndChild();
+}
+
+
+void
+ImGuiWorkspace::DrawServiceManagement()
+{
+	using namespace trezanik::core;
+
+	// poor minimum calculations, doesn't consider font size
+	const ImVec2  min_wnd_size = ImVec2(700.f, 300.f); // cover 4*125+50
+	const ImVec2  min_section_size = ImVec2(125.f, 240.f);
+
+	//if ( !is_draw_client )
+	{
+	ImGui::SetNextWindowPosCenter(ImGuiCond_Appearing); // not always, permit to move
+	ImGui::SetNextWindowSizeConstraints(min_wnd_size, ImVec2(FLT_MAX, FLT_MAX));
+	ImGui::SetNextWindowSize(min_wnd_size, ImGuiCond_Appearing);
+
+	if ( !ImGui::Begin("Service Management", &_gui_interactions.show_service_management, ImGuiWindowFlags_NoScrollbar) )
+	{
+		ImGui::End();
+		return;
+	}
+	}
+
+	ImVec2  wnd_size = ImGui::GetContentRegionAvail();
+	ImVec2  mid_section = wnd_size;
+	ImVec2  section_size = wnd_size;
+	
+	mid_section.x = 50.f; // hardcoded
+	section_size.x -= mid_section.x;
+	section_size.x -= ((ImGui::GetStyle().WindowPadding.x * 2) * 5); // left + right, 5 sections
+	section_size.x *= 0.25; // 4 variable sections
+
+	float   button_height = 30.f; // can't do FLT_MAX
+	float   button_width = (section_size.x - 5) * 0.45f;
+	ImVec2  button_size(button_width, button_height);
+
+	// placeholder for disabled elements we still want drawn (with empty/null content)
+	static std::string  tmp_str;
+	static int tmp_int = 0;
+	static int tmp_selection = -1;
+
+	static bool  service_group_modified = false; 
+	static bool  service_modified = false;
+	bool  svcgrp_modified_this_frame = false;
+	bool  svc_modified_this_frame = false;
+
+	auto active_group_equals_loaded = [](service_group& active, service_group& loaded)
+	{
+		if ( active.name != loaded.name )
+			return false;
+		if ( active.comment != loaded.comment )
+			return false;
+		if ( active.services != loaded.services )
+			return false;
+
+		return true;
+	};
+	auto active_svc_equals_loaded = [](service& active, service& loaded)
+	{
+		if ( active.name != loaded.name )
+			return false;
+		if ( active.comment != loaded.comment )
+			return false;
+		if ( active.port_num != loaded.port_num )
+			return false;
+		if ( active.port_num_high != loaded.port_num_high )
+			return false;
+		if ( active.icmp_code != loaded.icmp_code )
+			return false;
+		if ( active.icmp_type != loaded.icmp_type )
+			return false;
+		if ( active.protocol_num != loaded.protocol_num )
+			return false;
+
+		return true;
+	};
+
+	/*
+	 * Disable everything unless service saved/cancelled. thankfully these stack!
+	 * This also makes the separator texts (titles) show as disabled, which looks
+	 * good but alas is inconsistent with the rest. I would like this layout, but
+	 * needs a little more work and handling prior to each child window.
+	 * Something to look at in future.
+	 */
+	if ( service_modified ) ImGui::BeginDisabled();
+
+	ImGui::SetNextWindowSizeConstraints(min_section_size, ImVec2(FLT_MAX, FLT_MAX));
+	ImGui::BeginChild("Service Groups", section_size);
+	{
+		// these (and text inputs further down) don't fully expand...explicit set
+		ImGui::PushItemWidth(section_size.x);
+		ImGui::SeparatorText("Service Groups");
+
+		ImVec2  lb_size(section_size.x, section_size.y - (button_size.y + (2 * ImGui::GetTextLineHeightWithSpacing())));
+
+		if ( ImGui::BeginListBox("##AllServiceGroups", lb_size) )
+		{
+			int   pos = -1;
+
+			// if active service group modifications outstanding, selection disabled
+			if ( service_group_modified ) ImGui::BeginDisabled();
+
+			for ( auto& g : my_wksp_data.service_groups )
+			{
+				const bool  is_selected = (++pos == my_selected_service_group_index);
+
+				if ( ImGui::Selectable(g->name.c_str(), is_selected) )
+				{
+					// since there's no trivial 'deselect', re-selection will clear
+					if ( my_selected_service_group_index == pos )
+					{
+						TZK_LOG_FORMAT(LogLevel::Trace, "Unselected %s: %d (%s)", "Service Group", pos, g->name.c_str());
+						ServiceManagementSelection(SvcMgmtSwitch::Unselect_ServiceGroup);
+					}
+					else
+					{
+						TZK_LOG_FORMAT(LogLevel::Trace, "Selected %s: %d (%s)", "Service Group", pos, g->name.c_str());
+						my_selected_service_group_index = pos;
+						my_loaded_service_group = g;
+						// copy the object and apply edits to it until saved
+						my_active_service_group = std::make_shared<service_group>(*my_loaded_service_group);
+						ServiceManagementSelection(SvcMgmtSwitch::Select_ServiceGroup);
+					}
+				}
+				if ( is_selected )
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			if ( service_group_modified ) ImGui::EndDisabled();
+			ImGui::EndListBox();
+		}
+		ImGui::PopItemWidth();
+
+		if ( service_group_modified ) ImGui::BeginDisabled();
+		if ( ImGui::Button("Add##ServiceGroupAdd", button_size) )
+		{
+			TZK_LOG(LogLevel::Trace, "Creating new inline service group");
+			ServiceManagementSelection(SvcMgmtSwitch::Unselect_ServiceGroup);
+			my_active_service_group = std::make_shared<service_group>();
+			my_active_service_group->name = "Service Group Name";
+			svcgrp_modified_this_frame = true;
+		}
+		if ( service_group_modified ) ImGui::EndDisabled();
+
+		ImGui::SameLine();
+
+		// temporary required as 'unselect' makes index -1, breaking disabled stack count
+		const bool  element_disabled = (my_selected_service_group_index == -1 || service_group_modified);
+
+		if ( element_disabled ) ImGui::BeginDisabled();
+		if ( ImGui::Button("Remove##ServiceGroupRemove", button_size) )
+		{
+			TZK_LOG_FORMAT(LogLevel::Trace, "Removing service group '%s'", my_active_service_group->name.c_str());
+			
+			auto& vecref = my_wksp_data.service_groups;
+			auto  iter = std::find_if(vecref.begin(), vecref.end(), [this](auto&& p) {
+				return p->name == my_active_service_group->name;
+			});
+			if ( iter == vecref.end() )
+			{
+				TZK_LOG_FORMAT(LogLevel::Error, "Service group '%s' not found in map", my_active_service_group->name.c_str());
+			}
+			else
+			{
+				vecref.erase(iter);
+			}
+
+			my_loaded_service_group.reset();
+			my_active_service_group.reset();
+			ServiceManagementSelection(SvcMgmtSwitch::Unselect_ServiceGroup);
+		}
+		if ( element_disabled ) ImGui::EndDisabled();
+
+	}
+	ImGui::EndChild();
+	ImGui::SameLine();
+	ImGui::SetNextWindowSizeConstraints(min_section_size, ImVec2(FLT_MAX, FLT_MAX));
+	ImGui::BeginChild("Service Group", section_size);
+	{
+		ImGui::PushItemWidth(section_size.x);
+		ImGui::SeparatorText("Service Group");
+
+		ImVec2  lb_size(section_size.x, section_size.y - (button_size.y + (5 * ImGui::GetTextLineHeightWithSpacing())));
+
+		if ( my_active_service_group == nullptr )
+		{
+			// much clearer keeping this separate, but could be done in-line
+			ImGui::BeginDisabled();
+			ImGui::InputTextWithHint("##ServiceGroupName", "Service Group Name", &tmp_str);
+			if ( ImGui::BeginListBox("##IncludedServices", lb_size) )
+				ImGui::EndListBox();
+			ImGui::InputTextWithHint("##ServiceGroupComment", "Comment", &tmp_str);
+			ImGui::EndDisabled();
+		}
+		else
+		{
+			ImGui::InputTextWithHint("##ServiceGroupName", "Service Group Name", &my_active_service_group->name);
+			if ( ImGui::IsItemEdited() )
+				svcgrp_modified_this_frame = true;
+
+			if ( ImGui::BeginListBox("##IncludedServices", lb_size) )
+			{
+				int  pos = -1;
+
+				// all actions taken on the copy
+				for ( auto& s : my_active_service_group->services )
+				{
+					const bool  is_selected = (++pos == my_selected_service_group_service_index);
+
+					if ( ImGui::Selectable(s.c_str(), is_selected) )
+					{
+						if ( service_modified )
+						{
+							// no-op
+						}
+						else if ( my_selected_service_group_service_index == pos )
+						{
+							TZK_LOG_FORMAT(LogLevel::Trace, "Unselected %s: %d (%s)", "Service [Included]", pos, s.c_str());
+							ServiceManagementSelection(SvcMgmtSwitch::Unselect_ServiceGroupService);
+						}
+						else
+						{
+							TZK_LOG_FORMAT(LogLevel::Trace, "Selected %s: %d (%s)", "Service [Included]", pos, s.c_str());
+							my_selected_service_group_service_index = pos;
+							my_loaded_service = my_topology->GetService(s.c_str());
+							my_active_service = std::make_shared<service>(*my_loaded_service);
+							service_modified = false;
+							ServiceManagementSelection(SvcMgmtSwitch::Select_ServiceGroupService);
+						}
+					}
+					if ( is_selected )
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndListBox();
+			}
+			ImGui::InputTextWithHint("##ServiceGroupComment", "Comment", &my_active_service_group->comment);
+			if ( ImGui::IsItemEdited() )
+				svcgrp_modified_this_frame = true;
+		}
+		
+		ImGui::PopItemWidth();
+
+		if ( svcgrp_modified_this_frame )
+		{
+			if ( my_loaded_service_group == nullptr )
+				service_group_modified = true; // 'new' item
+			else if ( !active_group_equals_loaded(*my_active_service_group, *my_loaded_service_group) )
+				service_group_modified = true;
+			else
+				service_group_modified = false;
+		}
+
+		bool  element_disabled = !service_group_modified || my_active_service_group == nullptr || my_active_service_group->name.empty();
+		
+		if ( element_disabled ) ImGui::BeginDisabled();
+		if ( ImGui::Button("Save##ServiceGroupSave", button_size) )
+		{
+			TZK_LOG_FORMAT(LogLevel::Trace, "Saving service group: Name='%s', Comment='%s', Services(Count)=%zu",
+				my_active_service_group->name.c_str(), my_active_service_group->comment.c_str(), my_active_service_group->services.size()
+			);
+
+			auto&  vecref = my_wksp_data.service_groups;
+			auto   iter = vecref.end();
+			std::string  svclist;
+
+			if ( my_active_service_group != nullptr )
+			{
+				iter = std::find_if(vecref.begin(), vecref.end(), [this](auto&& p) {
+					return p->name == my_active_service_group->name;
+				});
+
+				// all this is just to log (debug) the service list. could just report the count?
+				for ( auto& s : my_active_service_group->services )
+				{
+					svclist += s;
+					svclist += ";";
+				}
+				if ( !svclist.empty() )
+					svclist.pop_back();
+			}
+
+			if ( iter != vecref.end() )
+			{
+				TZK_LOG_FORMAT(LogLevel::Debug, "Updating existing service group: '%s': (%zu) %s", my_active_service_group->name.c_str(), my_active_service_group->services.size(), svclist.c_str());
+
+				auto& orig = (*iter);
+				orig->comment = my_active_service_group->comment;
+				orig->name = my_active_service_group->name;
+				orig->services = my_active_service_group->services;
+
+				TZK_LOG_FORMAT(LogLevel::Debug, "Amended service group details: '%s': (%zu) %s", my_active_service_group->name.c_str(), my_active_service_group->services.size(), svclist.c_str());
+			}
+			else
+			{
+				TZK_LOG_FORMAT(LogLevel::Debug, "Adding new service group: '%s': (%zu) %s", my_active_service_group->name.c_str(), my_active_service_group->services.size(), svclist.c_str());
+
+				vecref.push_back(my_active_service_group);
+			}
+
+			std::sort(vecref.begin(), vecref.end(), SortServiceGroup());
+			
+			// locate this new service group in the map so we can have it selected
+			my_selected_service_group_index = 0;
+			for ( auto& v : vecref )
+			{
+				if ( v->name == my_active_service_group->name )
+					break;
+				my_selected_service_group_index++;
+			}
+			assert((size_t)my_selected_service_group_index < vecref.size());
+
+			service_group_modified = false;
+		}
+
+		ImGui::SameLine();
+
+		if ( ImGui::Button("Cancel##ServiceGroupCancel", button_size) )
+		{
+			TZK_LOG(LogLevel::Debug, "Cancelling changes to service group");
+			// reduplicate if we were not working on a temporary
+			my_active_service_group.reset();
+			if ( my_loaded_service_group != nullptr )
+			{
+				my_active_service_group = std::make_shared<service_group>(*my_loaded_service_group);
+			}
+			service_group_modified = false;
+		}
+		if ( element_disabled ) ImGui::EndDisabled();
+	}
+	ImGui::EndChild();
+	ImGui::SameLine();
+	ImGui::BeginGroup(); // service group <-> service
+	{
+		ImGui::PushItemWidth(mid_section.x);
+		ImGui::Dummy(ImVec2(0.f, 50.f));
+
+		const bool  inc_disabled = (my_active_service_group == nullptr || my_selected_service_index == -1);
+		const bool  exc_disabled = (my_selected_service_group_service_index == -1);
+
+		if ( inc_disabled ) ImGui::BeginDisabled();
+		if ( ImGui::Button("<< Include") )
+		{
+			assert(my_active_service_group != nullptr);
+			TZK_LOG_FORMAT(LogLevel::Debug, "Including service '%s' in '%s'", my_active_service->name.c_str(), my_active_service_group->name.c_str());
+			my_active_service_group->services.push_back(my_active_service->name);
+
+			service_group_modified = (my_loaded_service_group == nullptr) ?
+				true : !active_group_equals_loaded(*my_active_service_group, *my_loaded_service_group);
+
+			ServiceManagementSelection(SvcMgmtSwitch::Include);
+		}
+		if ( inc_disabled ) ImGui::EndDisabled();
+
+		ImGui::Dummy(ImVec2(0.f, 25.f));
+
+		if ( exc_disabled ) ImGui::BeginDisabled();
+		if ( ImGui::Button("Exclude >>") )
+		{
+			assert(my_active_service_group != nullptr);
+			auto  vpos = std::find(my_active_service_group->services.begin(), my_active_service_group->services.end(), my_active_service->name);
+			TZK_LOG_FORMAT(LogLevel::Debug, "Excluding service '%s' from '%s'", my_active_service->name.c_str(), my_active_service_group->name.c_str());
+			my_active_service_group->services.erase(vpos);
+
+			service_group_modified = (my_loaded_service_group == nullptr) ?
+				true : !active_group_equals_loaded(*my_active_service_group, *my_loaded_service_group);
+
+			ServiceManagementSelection(SvcMgmtSwitch::Exclude);
+		}
+		if ( exc_disabled ) ImGui::EndDisabled();
+
+		ImGui::PopItemWidth();
+	}
+	ImGui::EndGroup();
+	ImGui::SameLine();
+	ImGui::SetNextWindowSizeConstraints(min_section_size, ImVec2(FLT_MAX, FLT_MAX));
+	ImGui::BeginChild("Services", section_size);
+	{
+		ImGui::PushItemWidth(section_size.x);
+		ImGui::SeparatorText("Services");
+
+		ImVec2  lb_size(section_size.x, section_size.y - (button_size.y + (2 * ImGui::GetTextLineHeightWithSpacing())));
+
+		if ( ImGui::BeginListBox("##AllServices", lb_size) ) // filtered if service group selected
+		{
+			if ( service_modified ) ImGui::BeginDisabled();
+
+			if ( my_active_service_group )
+			{
+				// show only services NOT in selected service group
+				int   pos = -1;
+
+				for ( auto& s : my_wksp_data.services )
+				{
+					bool  exists = false;
+
+					for ( auto& as : my_active_service_group->services )
+					{
+						if ( as == s->name )
+						{
+							exists = true;
+							break;
+						}
+					}
+
+					if ( exists )
+						continue;
+
+					const bool  is_selected = (++pos == my_selected_service_index);
+
+					if ( ImGui::Selectable(s->name.c_str(), is_selected) )
+					{
+						if ( my_selected_service_index == pos )
+						{
+							TZK_LOG_FORMAT(LogLevel::Trace, "Unselected %s: %d (%s)", "Service", pos, s->name.c_str());
+							ServiceManagementSelection(SvcMgmtSwitch::Unselect_Service);
+						}
+						else
+						{
+							TZK_LOG_FORMAT(LogLevel::Trace, "Selected %s: %d (%s)", "Service", pos, s->name.c_str());
+							my_selected_service_index = pos;
+							my_loaded_service = s;
+							my_active_service = std::make_shared<service>(*my_loaded_service);
+							service_modified = false;
+							ServiceManagementSelection(SvcMgmtSwitch::Select_Service);
+						}
+					}
+					if ( is_selected )
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+			}
+			else
+			{
+				// show all services
+				int   pos = -1;
+
+				for ( auto& s : my_wksp_data.services )
+				{
+					const bool  is_selected = (++pos == my_selected_service_index);
+
+					if ( ImGui::Selectable(s->name.c_str(), is_selected) )
+					{
+						if ( my_selected_service_index == pos )
+						{
+							TZK_LOG_FORMAT(LogLevel::Trace, "Unselected %s: %d (%s)", "Service", pos, s->name.c_str());
+							ServiceManagementSelection(SvcMgmtSwitch::Unselect_Service);
+						}
+						else
+						{
+							TZK_LOG_FORMAT(LogLevel::Trace, "Selected %s: %d (%s)", "Service", pos, s->name.c_str());
+							my_selected_service_index = pos;
+							my_loaded_service = s;
+							my_active_service = std::make_shared<service>(*my_loaded_service);
+							service_modified = false;
+							ServiceManagementSelection(SvcMgmtSwitch::Select_Service);
+						}
+					}
+					if ( is_selected )
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+			}
+
+			if ( service_modified ) ImGui::EndDisabled();
+
+			ImGui::EndListBox();
+		}
+		ImGui::PopItemWidth();
+
+		if ( service_modified ) ImGui::BeginDisabled();
+		if ( ImGui::Button("Add##ServiceAdd", button_size) )
+		{
+			TZK_LOG(LogLevel::Trace, "Creating new inline service");
+			ServiceManagementSelection(SvcMgmtSwitch::Unselect_Service);
+			// unselect purges these active+loaded services
+			my_active_service = std::make_shared<service>();
+			my_active_service->name = "Service Name";
+			svc_modified_this_frame = true;
+		}
+		if ( service_modified ) ImGui::EndDisabled();
+		
+		ImGui::SameLine();
+
+		const bool  element_disabled = (my_selected_service_index == -1 || service_modified);
+
+		if ( element_disabled ) ImGui::BeginDisabled();
+		if ( ImGui::Button("Remove##ServiceRemove", button_size) )
+		{
+			TZK_LOG_FORMAT(LogLevel::Trace, "Removing service '%s'", my_active_service->name.c_str());
+
+			/**
+			 * @warning
+			 * This service is already in active use in the workspace; while the
+			 * nodegraph will remain valid due to usage of a shared_ptr, when
+			 * saved it will be gone and result in a bad-validity workspace
+			 * config.
+			 * While we flag such an event, it'd be advisable to alert the
+			 * user here of active use, and get confirmation, or outright
+			 * reject the removal.
+			 * element_disabled right above is ripe for being set against the
+			 * active_service use_count...
+			 */
+
+			auto& vecref = my_wksp_data.services;
+			auto  iter = std::find_if(vecref.begin(), vecref.end(), [this](auto&& p) {
+					return p->name == my_active_service->name;
+			});
+			if ( iter == vecref.end() )
+			{
+				TZK_LOG_FORMAT(LogLevel::Error, "Service '%s' not found in map", my_active_service->name.c_str());
+			}
+			else
+			{
+				// potential check, but this is really volatile until we're stable..
+				// use count; 1 = raw vector storage, 2 = us
+				if ( iter->use_count() != 2 )
+				{
+					TZK_LOG_FORMAT(LogLevel::Error, "Service '%s' is in use; will not remove", (*iter)->name.c_str());
+				}
+				else
+				{
+					vecref.erase(iter);
+				}
+			}
+
+			my_loaded_service.reset();
+			my_active_service.reset();
+			ServiceManagementSelection(SvcMgmtSwitch::Unselect_Service);
+		}
+		if ( element_disabled ) ImGui::EndDisabled();
+	}
+	ImGui::EndChild();
+	ImGui::SameLine();
+	if ( service_modified ) ImGui::EndDisabled();
+	ImGui::SetNextWindowSizeConstraints(min_section_size, ImVec2(FLT_MAX, FLT_MAX));
+	ImGui::BeginChild("Service Editor", section_size);
+	{
+		ImGui::PushItemWidth(section_size.x);
+		ImGui::SeparatorText("Service");
+
+		// NOTE: must match with our IPProto enum member order
+		const char* ip_protos[] = { "", "TCP", "UDP", "ICMP" };
+
+		if ( my_active_service == nullptr )
+		{
+			// much clearer keeping this separate, but could be done in-line
+			ImGui::BeginDisabled();
+			ImGui::InputTextWithHint("##ServiceName", "Service Name", &tmp_str);
+			ImGui::PushItemWidth(100.f);
+			ImGui::Combo("##", &tmp_selection, ip_protos, IM_ARRAYSIZE(ip_protos));
+			ImGui::InputInt("Port##ServicePort", &tmp_int);
+			ImGui::PopItemWidth();
+			ImGui::InputTextWithHint("##ServiceComment", "Comment", &tmp_str);
+			ImGui::EndDisabled();
+		}
+		else
+		{
+			ImGui::InputTextWithHint("##ServiceName", "Service Name", &my_active_service->name);
+			if ( ImGui::IsItemEdited() )
+				svc_modified_this_frame = true;
+			
+			ImGui::PushItemWidth(100.f);
+
+			/*
+			 * int casting to match imgui types only; apply validators after
+			 * each frame/save/load to ensure accurate values
+			 */
+			ImGui::Combo("##", &my_active_service->protocol_num, ip_protos, IM_ARRAYSIZE(ip_protos));
+			if ( my_active_service->protocol_num < 1 || my_active_service->protocol_num > IM_ARRAYSIZE(ip_protos) )
+				my_active_service->protocol_num = 1; // first real value
+			if ( ImGui::IsItemEdited() )
+				svc_modified_this_frame = true;
+			
+			if ( my_active_service->protocol_num == IPProto::icmp )
+			{
+				/*
+				 * Given the limited number of ICMP types, we could simply make
+				 * this a dropdown
+				 */
+				ImGui::InputInt("Type##ICMPType", &my_active_service->icmp_type);
+				if ( my_active_service->icmp_type < 0 )
+					my_active_service->icmp_type = 0;
+				else if ( my_active_service->icmp_type > UINT8_MAX )
+					my_active_service->icmp_type = UINT8_MAX;
+				if ( ImGui::IsItemEdited() )
+					svc_modified_this_frame = true;
+
+				ImGui::InputInt("Code##ICMPCode", &my_active_service->icmp_code);
+				if ( my_active_service->icmp_code < 0 )
+					my_active_service->icmp_code = 0;
+				else if ( my_active_service->icmp_code > UINT8_MAX )
+					my_active_service->icmp_code = UINT8_MAX;
+				if ( ImGui::IsItemEdited() )
+					svc_modified_this_frame = true;
+			}
+			else
+			{
+				// limit width so the label isn't cut off; we only need '0'-'65535' anyway
+				ImGui::PushItemWidth(50.f);
+
+				// low/lone port
+				ImGui::InputInt("Port##ServicePortLow", &my_active_service->port_num, 0, 0);
+				if ( my_active_service->port_num <= 0 )
+					my_active_service->port_num = 1;
+				else if ( my_active_service->port_num > UINT16_MAX )
+					my_active_service->port_num = UINT16_MAX;
+				if ( ImGui::IsItemEdited() )
+					svc_modified_this_frame = true;
+
+				// high-port, used for implementing ranges
+				ImGui::InputInt("To Port##ServicePortHigh", &my_active_service->port_num_high, 0, 0);
+				if ( my_active_service->port_num_high == 0 )
+				{ /* permit 0 as unset for this only */ }
+				else if ( my_active_service->port_num_high < my_active_service->port_num )
+					my_active_service->port_num_high = my_active_service->port_num;
+				else if ( my_active_service->port_num_high > UINT16_MAX )
+					my_active_service->port_num_high = UINT16_MAX;
+				if ( ImGui::IsItemEdited() )
+					svc_modified_this_frame = true;
+				ImGui::SameLine();
+				ImGui::HelpMarker("Use for port ranges; leave as 0 to have this field ignored");
+
+				ImGui::PopItemWidth();
+			}
+			
+
+			ImGui::PopItemWidth();
+
+			ImGui::InputTextWithHint("##ServiceComment", "Comment", &my_active_service->comment);
+			if ( ImGui::IsItemEdited() )
+				svc_modified_this_frame = true;
+		}
+
+		ImGui::PopItemWidth();
+
+		if ( svc_modified_this_frame )
+		{
+			if ( my_loaded_service == nullptr )
+				service_modified = true; // 'new' item
+			else if ( !active_svc_equals_loaded(*my_active_service, *my_loaded_service) )
+				service_modified = true;
+			else
+				service_modified = false;
+		}
+
+		const bool element_disabled = (!service_modified || my_active_service == nullptr || my_active_service->name.empty());
+
+		if ( element_disabled ) ImGui::BeginDisabled();
+		if ( ImGui::Button("Save##ServiceSave", button_size) )
+		{
+			TZK_LOG_FORMAT(LogLevel::Trace, "Saving service: Name='%s', Port=%d, PortHigh=%d, Type=%d, Code=%d, Protocol=%d, Comment='%s'",
+				my_active_service->name.c_str(), my_active_service->port_num, my_active_service->port_num_high, my_active_service->icmp_type, my_active_service->icmp_code,
+				my_active_service->protocol_num, my_active_service->comment.c_str()
+			);
+
+			my_workspace->CheckServiceName(my_active_service->name);
+
+			// Workspace::AddService loads; we assign
+			my_active_service->protocol = TConverter<IPProto>::ToString((IPProto)my_active_service->protocol_num);
+
+			if ( my_active_service->protocol_num == IPProto::icmp )
+			{
+				my_active_service->port = std::to_string(my_active_service->icmp_type);
+				my_active_service->high_port = std::to_string(my_active_service->icmp_code);
+			}
+			else
+			{
+				my_active_service->port = std::to_string(my_active_service->port_num);
+				if ( my_active_service->port_num_high != 0 )
+				{
+					my_active_service->high_port = std::to_string(my_active_service->port_num_high);
+				}
+			}
+
+			auto&  vecref = my_wksp_data.services;
+			auto   iter = vecref.end();
+			
+			if ( my_active_service != nullptr )
+			{
+				iter = std::find_if(vecref.begin(), vecref.end(), [this](auto&& p) {
+					return p->name == my_active_service->name;
+				});
+			}
+
+			int  i1 = my_active_service->port_num;
+			int  i2 = my_active_service->port_num_high;
+			if ( my_active_service->protocol_num == IPProto::icmp )
+			{
+				i1 = my_active_service->icmp_type;
+				i2 = my_active_service->icmp_code;
+			}
+
+			if ( iter != vecref.end() )
+			{
+				TZK_LOG_FORMAT(LogLevel::Debug, "Updating existing service: '%s': %s/%d-%d", my_active_service->name.c_str(), my_active_service->protocol.c_str(), i1, i2);
+
+				auto&  orig = (*iter);
+				orig->comment = my_active_service->comment;
+				orig->high_port = my_active_service->high_port;
+				orig->icmp_code = my_active_service->icmp_code;
+				orig->icmp_type = my_active_service->icmp_type;
+				orig->name = my_active_service->name;
+				orig->port = my_active_service->port;
+				orig->port_num = my_active_service->port_num;
+				orig->port_num_high = my_active_service->port_num_high;
+				orig->protocol = my_active_service->protocol;
+				orig->protocol_num = my_active_service->protocol_num;
+
+				// active & loaded service should be identical now
+				TZK_LOG_FORMAT(LogLevel::Debug, "Amended service details: '%s': %s/%d-%d", my_active_service->name.c_str(), my_active_service->protocol.c_str(), i1, i2);
+			}
+			else
+			{
+				TZK_LOG_FORMAT(LogLevel::Debug, "Adding service '%s': %s/%d-%d", my_active_service->name.c_str(), my_active_service->protocol.c_str(), i1, i2);
+
+				vecref.push_back(my_active_service);
+			}
+
+			// create a new copied instance for further modifications
+			my_loaded_service = my_active_service;
+			my_active_service.reset();
+			my_active_service = std::make_shared<service>(*my_loaded_service);
+
+			// always sort on save, minimal time; required for following selection too
+			std::sort(vecref.begin(), vecref.end(), SortService());
+
+			// locate this new service in the map so we can have it selected
+			my_selected_service_index = 0;
+			for ( auto& v : vecref )
+			{
+				/*
+				 * Services list is dynamic, referencing the same map. Only way
+				 * we can determine position in the service list is by also
+				 * performing the presence check, and omitting those in here!
+				 */
+				if ( my_active_service_group != nullptr )
+				{
+					bool  listed = false;
+					for ( auto& as : my_active_service_group->services )
+					{
+						if ( as == v->name )
+						{
+							listed = true;
+							break;
+						}
+					}
+					if ( listed )
+						continue;
+				}
+
+				if ( v->name == my_active_service->name )
+					break;
+				my_selected_service_index++;
+			}
+			assert((size_t)my_selected_service_index < vecref.size());
+
+			service_modified = false;
+		}
+
+		ImGui::SameLine();
+
+		if ( ImGui::Button("Cancel##ServiceCancel", button_size) )
+		{
+			TZK_LOG(LogLevel::Debug, "Cancelling changes to service");
+			// reduplicate
+			my_active_service.reset();
+			if ( my_loaded_service != nullptr )
+			{
+				my_active_service = std::make_shared<service>(*my_loaded_service);
+			}
+			service_modified = false;
+		}
+		if ( element_disabled ) ImGui::EndDisabled();
+
+		// since we have the spare space, additional details can be output here
+
+#if 0  // Code Disabled: future addition, tooltip assistance/display without selection?
+		ImGui::Dummy(ImVec2(0.f, 50.f));
+		ImGui::Checkbox("Tooltips##smgttt", &tooltips);
+#endif
+	}
+	ImGui::EndChild();
+
+	//if ( !is_draw_client )
+	{
+	ImGui::End();
+	}
 }
 
 
@@ -2164,6 +2980,86 @@ ImGuiWorkspace::HandleNodeTargetState(
 				return;
 			}
 		}
+	}
+}
+
+
+void
+ImGuiWorkspace::ServiceManagementSelection(
+	SvcMgmtSwitch what
+)
+{
+	switch ( what )
+	{
+	case SvcMgmtSwitch::Exclude:
+		{
+			my_selected_service_group_service_index = -1;
+			my_active_service.reset();
+		}
+		break;
+	case SvcMgmtSwitch::Include:
+		{
+			my_selected_service_index = -1;
+			my_active_service.reset();
+		}
+		break;
+	case SvcMgmtSwitch::Select_Service:
+		{
+			assert(my_active_service != nullptr);
+			assert(my_loaded_service != nullptr);
+			assert(my_selected_service_index != -1);
+			my_selected_service_group_service_index = -1;
+		}
+		break;
+	case SvcMgmtSwitch::Select_ServiceGroup:
+		{
+			assert(my_active_service_group != nullptr);
+			assert(my_loaded_service_group != nullptr);
+			assert(my_selected_service_group_index != -1);
+			my_selected_service_group_service_index = -1;
+			if ( my_active_service )
+			{
+				my_active_service.reset();
+				my_selected_service_index = -1;
+			}
+		}
+		break;
+	case SvcMgmtSwitch::Select_ServiceGroupService:
+		{
+			assert(my_active_service != nullptr);
+			assert(my_loaded_service != nullptr);
+			assert(my_selected_service_group_service_index != -1);
+			my_selected_service_index = -1;
+		}
+		break;
+	case SvcMgmtSwitch::Unselect_Service:
+		{
+			my_active_service.reset();
+			my_loaded_service.reset();
+			my_selected_service_index = -1;
+		}
+		break;
+	case SvcMgmtSwitch::Unselect_ServiceGroup:
+		{
+			my_active_service_group.reset();
+			my_loaded_service_group.reset();
+			my_selected_service_group_index = -1;
+			my_selected_service_group_service_index = -1;
+#if 0  // don't unselect a non-included service, as unrelated
+			my_active_service = nullptr;
+			my_selected_service_index = -1;
+#endif
+		}
+		break;
+	case SvcMgmtSwitch::Unselect_ServiceGroupService:
+		{
+			my_active_service.reset();
+			my_loaded_service.reset();
+			my_selected_service_group_service_index = -1;
+		}
+		break;
+	default:
+		break;
 	}
 }
 

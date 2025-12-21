@@ -36,20 +36,6 @@ class ClientPin;
 class ConnectorPin;
 class ServerPin;
 class ImGuiWorkspace;
-#if 0
-class Workspace;
-struct graph_node;
-struct link;
-struct pin;
-struct service;
-struct service_group;
-struct workspace_data;
-#endif
-
-/**
- * Forward declaration for handling service management changes
- */
-enum class SvcMgmtSwitch : uint8_t;
 
 
 /**
@@ -442,44 +428,6 @@ private:
 	 */
 	std::vector<std::shared_ptr<IsochroneNode>>  my_nodes;
 
-	/**
-	 * Service Management: The loaded service group being modified
-	 * 
-	 * Will be the workspace vectors object value
-	 */
-	std::shared_ptr<service_group>  my_loaded_service_group;
-
-	/**
-	 * Service Management: The loaded service being modified
-	 *
-	 * Will be the workspace vectors object value
-	 */
-	std::shared_ptr<service>  my_loaded_service;
-
-	/**
-	 * Service Management: Duplicated copy of my_loaded_service_group
-	 *
-	 * Will be empty if 'Add'ing new; used for making live modifications without
-	 * a commit until saved
-	 */
-	std::shared_ptr<service_group>  my_active_service_group;
-
-	/**
-	 * Service Management: Duplicated copy of my_loaded_service
-	 *
-	 * Will be empty if 'Add'ing new; used for making live modifications without
-	 * a commit until saved
-	 */
-	std::shared_ptr<service>  my_active_service;
-
-
-	/** Service Management: The services listbox selection within the service group */
-	int   my_selected_service_group_service_index;
-	/** Service Management: The service groups listbox selection */
-	int   my_selected_service_group_index;
-	/** Service Management: The services listbox selection */
-	int   my_selected_service_index;
-
 	/** Service Selector: Flag to open the modal popup */
 	bool  my_open_service_selector_popup;
 	/** Service Selector: The pin service/service group selection */
@@ -833,19 +781,6 @@ private:
 		int& row_count,
 		node_component_systeminfo::system& sysinf
 	);
-
-
-	/**
-	 * Draws the Service Management window
-	 * 
-	 * Used as a one-stop shop for creating services and service groups, and
-	 * including services within groups. Intended to be used for bulk setups
-	 * that don't require constant windows being opened and closed; downside
-	 * being the code is fairly delicate - extremely easy to introduce bugs - and
-	 * needs a fair bit of width to display cleanly.
-	 */
-	void
-	DrawServiceManagement();
 
 
 	/**
@@ -1223,24 +1158,6 @@ private:
 	RenamePinStyle(
 		const char* original_name,
 		const char* new_name
-	);
-
-
-	/**
-	 * Logic handler for selection and unselection
-	 *
-	 * Input parameter determines what was [un]selected; this method will then
-	 * perform necessary steps for the other windows to ensure consistency and
-	 * prevent bugs (like leftover selections when switching).
-	 * 
-	 * Keep this logic dedicated to this method.
-	 *
-	 * @param[in] what
-	 *  Enum class value for the switch performed
-	 */
-	void
-	ServiceManagementSelection(
-		SvcMgmtSwitch what
 	);
 
 
