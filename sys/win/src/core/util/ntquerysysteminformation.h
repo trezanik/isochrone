@@ -121,8 +121,8 @@ typedef struct _SYSTEM_PROCESS_INFORMATION
 	LARGE_INTEGER   KernelTime;
 	UNICODE_STRING  ProcessName;
 	KPRIORITY    BasePriority;
-	ULONG        ProcessId;
-	ULONG        InheritedFromProcessId;
+	HANDLE       ProcessId;
+	HANDLE       InheritedFromProcessId;
 	ULONG        HandleCount;
 	ULONG        SessionId;
 	ULONG        Reserved2;

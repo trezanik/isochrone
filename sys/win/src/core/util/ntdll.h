@@ -44,6 +44,14 @@
 typedef LONG  NTSTATUS;   // 32-bit value
 typedef LONG  KPRIORITY;  // first found in BOINC source
 
+// https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/596a1078-e883-4972-9bbc-49e60bebca55
+#ifndef STATUS_SUCCESS
+#	define STATUS_SUCCESS  0x00000000
+#endif
+#ifndef STATUS_INFO_LENGTH_MISMATCH
+#	define STATUS_INFO_LENGTH_MISMATCH  0xC0000004L
+#endif
+
 #define MAXIMUM_FILENAME_LENGTH  256  // taken from NTDDK
 
 
