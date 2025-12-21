@@ -28,6 +28,23 @@ namespace core {
 
 
 /**
+ * Configuration Variable flags
+ * 
+ * Another unused item, but lays the foundation for a potential user experience
+ * improvement by not saving command-line overrides in amongst the rest of the
+ * settings, for example.
+ * There needs to be a *lot* of supporting code for this to function.
+ */
+enum CVarFlags_
+{
+	CVarFlags_None = 0,   //< No special flags
+	CVarFlags_Created    = (1 << 0), //< Is dynamic creation
+	CVarFlags_ClOverride = (1 << 1)  //< Is command-line override
+};
+typedef CVarFlags_  CVarFlags;
+
+
+/**
  * Configuration Variable structure
  * 
  * Used by the Config and ConfigServer classes for lookup, assignment and
@@ -44,9 +61,10 @@ struct cvar
 	std::string  value;  ///< data value
 	std::string  default_value;  ///< data value default
 	size_t       hash;   ///< hash value for this setting
+	CVarFlags    flags;  ///< flags for the value, informational
 
 	cvar(const char* vpath, const char* vattrib, const char* vvalue, const char* vdvalue, size_t vhash)
-		: path(vpath), attrib(vattrib), value(vvalue), default_value(vdvalue), hash(vhash)
+		: path(vpath), attrib(vattrib), value(vvalue), default_value(vdvalue), hash(vhash), flags(CVarFlags_None)
 	{
 	}
 };
@@ -197,6 +215,8 @@ public:
 	 *  The setting name to apply/update
 	 * @param[in] value
 	 *  The string representation of the new value
+	 * @param[in] flags
+	 *  (Optional) Flags to associate with this setting
 	 * @return
 	 *  ENOENT if the setting name was not found
 	 *  EINVAL if the setting was found, but did not validate
@@ -205,7 +225,8 @@ public:
 	virtual int
 	Set(
 		const char* name,
-		const char* value
+		const char* value,
+		CVarFlags flags = CVarFlags_None
 	);
 
 
@@ -220,6 +241,8 @@ public:
 	 *  The hash value of the setting to apply/update
 	 * @param[in] value
 	 *  The string representation of the new value
+	 * @param[in] flags
+	 *  (Optional) Flags to associate with this setting
 	 * @return
 	 *  ENOENT if the setting name was not found
 	 *  EINVAL if the setting was found, but did not validate
@@ -228,7 +251,8 @@ public:
 	virtual int
 	Set(
 		uint32_t hashval,
-		const char* value
+		const char* value,
+		CVarFlags flags = CVarFlags_None
 	);
 
 

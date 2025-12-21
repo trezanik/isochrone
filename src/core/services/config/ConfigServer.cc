@@ -184,7 +184,8 @@ ConfigServer::Load(
 int
 ConfigServer::Set(
 	const char* name,
-	const char* value
+	const char* value,
+	CVarFlags flags
 )
 {
 	int  retval = ENOENT;
@@ -196,6 +197,7 @@ ConfigServer::Set(
 			if ( (retval = ValidateForCvar(cvar, value)) == ErrNONE )
 			{
 				cvar.value = value;
+				cvar.flags = flags;
 			}
 			else
 			{
@@ -213,7 +215,8 @@ ConfigServer::Set(
 int
 ConfigServer::Set(
 	uint32_t hashval,
-	const char* value
+	const char* value,
+	CVarFlags flags
 )
 {
 	int  retval = ENOENT;
@@ -225,6 +228,7 @@ ConfigServer::Set(
 			if ( (retval = ValidateForCvar(cvar, value)) == ErrNONE )
 			{
 				cvar.value = value;
+				cvar.flags = flags;
 			}
 			else
 			{
