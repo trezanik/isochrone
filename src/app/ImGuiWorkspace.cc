@@ -1881,6 +1881,43 @@ ImGuiWorkspace::HandleNodegraphUpdate(
 				}
 				(*res)->destroy_component(cth_cmpt_online_track);
 			}
+
+			// special handling for links, so we avoid warnings (harmless, but indicates fault)
+			for ( auto& p : (*res)->graph.pins )
+			{
+				for ( ;; )
+				{
+					bool  any_found = false;
+
+					for ( auto& link : my_wksp_data.links )
+					{
+						bool  is_source = link->source == p.id;
+						bool  is_target = link->target == p.id;
+						if ( is_source || is_target )
+						{
+							TZK_LOG_FORMAT(LogLevel::Debug, "Node %s has live link: %s", (*res)->id.GetCanonical(), link->id.GetCanonical());
+							/*
+							 * note: each of these will reinvoke this handler, if you
+							 * have an excessive number of live links it could lead to
+							 * a crash due to stack consumption
+							 */
+							my_topology->BreakLink(link->id);
+
+							any_found = true;
+							// iterator is invalid, deleted in event handler
+							break;
+						}
+					}
+					// break endless loop once no more are found
+					if ( !any_found )
+						break;
+				}
+			}
+
+			// remove from grid and internal state
+			my_topology->RemoveNode((*res));
+
+			// we remove from the workspace data, nothing else
 			nodes.erase(res);
 		}
 		break;

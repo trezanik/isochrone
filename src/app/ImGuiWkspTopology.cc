@@ -1515,7 +1515,18 @@ ImGuiWkspTopology::DrawContextPopupNodeSelect(
 	if ( ImGui::Button("Delete Node") )
 	{
 		TZK_LOG(LogLevel::Trace, "Deleting node");
-		RemoveNode(node);
+
+		node->Close(); // optional call
+		/*
+		 * trigger removal from our state and the workspace data. Must be a
+		 * consistent route as the nodegraph handler is unaware of the topology
+		 * and can only issue an event dispatch; this makes it the same setup
+		 * regardless of GUI delete (this) or keyboard delete (nodegraph)
+		 */
+		imgui::EventData::node_graph_update  nu{ imgui::NodeGraphUpdate::NodeDeleting, &my_nodegraph };
+		nu.opt.node_uuid = node->ID();
+		ServiceLocator::EventDispatcher()->DispatchEvent(imgui::uuid_nodegraph_update, nu);
+
 		retval = true;
 	}
 
@@ -5066,8 +5077,11 @@ ImGuiWkspTopology::RemoveNode(
 	 * its distribution being desired for consistency
 	 */
 
-	// remove from visual grid
-	my_nodegraph.DeleteNode(node);
+	if ( !node->IsPendingDestruction() )
+	{
+		// remove from visual grid (marked only)
+		my_nodegraph.DeleteNode(node);
+	}
 
 	auto gns_iter = std::find_if(my_nodes.begin(), my_nodes.end(), [&node](auto& p)
 	{
@@ -5080,13 +5094,14 @@ ImGuiWkspTopology::RemoveNode(
 			node->GetID().GetCanonical()
 		);
 
-		// extra check, search and remove from dataset still? Handle by function
 		return ENOENT;
 	}
 
+	// remove from internal state only; no effect to the graph or dataset
 	TZK_LOG_FORMAT(LogLevel::Debug, "Removing node '%s' from topology", node->GetID().GetCanonical());
 	my_nodes.erase(gns_iter);
 
+#if 0 // Code Disabled: We must not touch workspace data here, Workspace handles it in event handler
 	auto dat_iter = std::find_if(my_wksp_data->nodes.begin(), my_wksp_data->nodes.end(), [&node](auto& p)
 	{
 		return p->id == node->GetID();
@@ -5102,6 +5117,7 @@ ImGuiWkspTopology::RemoveNode(
 	
 	TZK_LOG_FORMAT(LogLevel::Debug, "Removing node '%s' from dataset", node->GetID().GetCanonical());
 	my_wksp_data->nodes.erase(dat_iter);
+#endif
 
 	return ErrNONE;
 }
