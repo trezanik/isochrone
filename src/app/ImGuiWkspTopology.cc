@@ -5860,6 +5860,21 @@ ServerPin::CreateLink(
 		TZK_LOG(LogLevel::Error, "Pins cannot connect on the same node");
 		return;
 	}
+	for ( auto& l : other->GetLinks() )
+	{
+		/*
+		 * Note:
+		 * It's still possible to have a different client pin (from the same
+		 * source node) connecting to this pin, and it won't be flagged. Don't
+		 * consider this a fault, if a user wants to do something so strange
+		 * it's up to them.
+		 */
+		if ( l->Source().get() == other && l->Target().get() == this )
+		{
+			TZK_LOG(LogLevel::Error, "Duplicate link denied");
+			return;
+		}
+	}
 
 	auto  imwksp = node->GetWorkspace();
 	// create in ImGuiWorkspace data (and forwards to nodegraph)

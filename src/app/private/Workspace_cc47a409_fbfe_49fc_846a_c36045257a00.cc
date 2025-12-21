@@ -1181,6 +1181,28 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadLinks(
 
 		TZK_LOG_FORMAT(LogLevel::Debug, "Link %zu: [%s] %s -> %s", num_links, id.GetCanonical(), source.GetCanonical(), target.GetCanonical());
 
+		bool  source_found = false;
+		bool  target_found = false;
+		
+		for ( const auto& n : loader.wksp_data->nodes )
+		{
+			for ( auto& p : n->graph.pins )
+			{
+				if ( !source_found && p.id == source )
+					source_found = true;
+				if ( !target_found && p.id == target )
+					target_found = true;
+				if ( target_found && source_found )
+					break;
+			}
+		}
+		if ( !target_found || !source_found )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_links_child, num_links, "non-existent source and/or target");
+			xml_link = xml_link.next_sibling();
+			continue;
+		}
+
 		if ( xmltxt )
 		{
 			float  x = 0.f;
@@ -1199,6 +1221,23 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadLinks(
 		
 		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu complete", xmlstr_links_child, num_links);
 		xml_link = xml_link.next_sibling();
+
+		// detect duplicate links from manual XML manipulation
+		bool  skip = false;
+		for ( auto& l : loader.wksp_data->links )
+		{
+			if ( l->id == id || (l->source == source && l->target == target) )
+			{
+				TZK_LOG(LogLevel::Warning, "Duplicate link; skipping");
+				skip = true;
+				break;
+			}
+		}
+		if ( skip )
+		{
+			--valid_links;
+			continue;
+		}
 
 		app::EventData::loaded_link  evt;
 		evt.workspace_id = loader.wksp_data->id;
