@@ -201,9 +201,14 @@ BaseNode::Draw()
 			p.y += margin_t_header;
 			ImGui::SetCursorPos(p);
 
-			// temp fix, must have data to call against - imgui assertion
-			//ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(my_style->header_title_colour), "%s", my_name->c_str());
-			ImGui::Text("");
+			if ( _header_text == nullptr )
+			{
+				ImGui::Text(" ");
+			}
+			else
+			{
+				ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(my_style->header_title_colour), "%s", _header_text->c_str());
+			}
 
 			ImGui::EndTable();
 		}

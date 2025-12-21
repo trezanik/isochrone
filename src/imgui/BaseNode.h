@@ -608,6 +608,11 @@ protected:
 	 */
 	ImRect  _work_rect;
 
+	/** 
+	 * If the header is displayed, this is the text that will be drawn within
+	 */
+	std::string*  _header_text;
+
 
 	/**
 	 * Draws a hover-highlight border around the node

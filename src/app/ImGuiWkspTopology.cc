@@ -5669,7 +5669,7 @@ IsochroneNode::IsochroneNode(
 
 	TZK_LOG(LogLevel::Trace, "Constructor starting");
 	{
-
+		_header_text = &my_wksp_node->name;
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
