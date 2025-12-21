@@ -126,9 +126,6 @@ Canvas::EndFrame()
 {
 	using namespace trezanik::core;
 
-	my_any_window_hovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
-	// yup, only false when out of window or menubar activated and 'hover' is the base menu itself
-
 	ImDrawData*  draw_data = ImGui::GetDrawData();
 
 	if ( draw_data != nullptr )
@@ -139,7 +136,8 @@ Canvas::EndFrame()
 		}
 	}
 
-	my_hovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows);
+	my_hovered = ImGui::IsWindowHovered() // this window only
+		&& !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
 
 	// true only when hovering the 'graph window'
 	if ( my_hovered )
@@ -159,7 +157,7 @@ Canvas::EndFrame()
 	 * Prevent keypresses and drag movements interpretation if an imgui item
 	 * (like an input field) is active elsewhere
 	 */
-	if ( !ImGui::IsAnyItemActive() && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup) && my_hovered )
+	if ( my_hovered )
 	{
 		// zooming
 		if ( configuration.zoom_enabled && ImGui::GetIO().MouseWheel != 0.f )

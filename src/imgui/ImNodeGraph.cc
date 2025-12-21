@@ -376,6 +376,9 @@ ImNodeGraph::HasFocus() const
 bool
 ImNodeGraph::MouseOnFreeSpace()
 {
+	if ( !my_window_has_focus )
+		return false;
+
 	return std::all_of(
 		my_nodes.begin(), my_nodes.end(), [](const auto& n) {
 			// pins count as free space, unless we loop all them here too; debating!
@@ -583,9 +586,8 @@ ImNodeGraph::Update()
 		 * id unused; this checks for ANY popup, not just our own one!
 		 * popup clicks are not handled by the nodegraph...
 		 */
-		bool  popup_open = ImGui::IsPopupOpen(ImGuiID(0), ImGuiPopupFlags_AnyPopup);
-		my_lclick_available = canvas_hovered && !popup_open && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
-		my_rclick_available = canvas_hovered && !popup_open && ImGui::IsMouseClicked(ImGuiMouseButton_Right);
+		my_lclick_available = canvas_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left);
+		my_rclick_available = canvas_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right);
 
 		my_lclick_dragging = ImGui::IsMouseDragging(ImGuiMouseButton_Left);
 		my_rclick_dragging = ImGui::IsMouseDragging(ImGuiMouseButton_Right);
@@ -617,15 +619,11 @@ ImNodeGraph::Update()
 			clear_drag_state = true;
 		}
 		
-		if ( !ImGui::IsAnyItemActive() && !ImGui::IsPopupOpen(nullptr, ImGuiPopupFlags_AnyPopup) && canvas_hovered )
+		if ( canvas_hovered )
 		{
 			if ( /* NextNodeKeyEnabled && */ ImGui::IsKeyPressed(settings.next_node_key, false) )
 			{
 				SelectNextNode();
-			}
-			else if ( my_lclick_dragging )
-			{
-				UpdateSelectionDragging();
 			}
 		}
 	}
@@ -719,6 +717,12 @@ ImNodeGraph::Update()
 						ReplaceSelectedNodes(node);
 						ConsumeClick(ImGuiMouseButton_Left);
 					}
+					else
+					{
+						// prevents selector rect dragging when dragging a node
+						ConsumeClick(ImGuiMouseButton_Left);
+					}
+					// we now consume regardless, would like to retain comments
 				}
 				/**
 				 * @bug
@@ -857,6 +861,7 @@ ImNodeGraph::Update()
 //  Node Select Dragging
 // ##########
 
+	if ( my_window_has_focus )
 	{
 		UpdateSelectionDragging();
 	}
@@ -891,7 +896,8 @@ ImNodeGraph::UpdateSelectionDragging()
 
 	my_dragging_selection = my_dragging_selection_next;
 
-	if ( ImGui::IsMouseDragging(ImGuiMouseButton_Left) && !my_dragging_selection && MouseOnFreeSpace() && !IsLinkDragging() )
+	// pins still register as free space, so extra check that a pin drag isn't in progress
+	if ( ImGui::IsMouseDragging(ImGuiMouseButton_Left) && !my_dragging_selection && MouseOnFreeSpace() && my_drag_out_pin == nullptr )
 	{
 		ConsumeClick(ImGuiMouseButton_Left);
 		my_dragging_selection_next = true;
