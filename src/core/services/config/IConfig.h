@@ -55,7 +55,8 @@ public:
 	 * Not pure-virtual to not force derived implementations to offer this
 	 * 
 	 * @param[in] fp
-	 *  The file pointer to write out to
+	 *  The file pointer to write out to. If a nullptr, this method will return
+	 *  immediately
 	 * @param[in] cmdline
 	 *  The application command-line
 	 */

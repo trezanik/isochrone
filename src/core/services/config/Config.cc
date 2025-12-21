@@ -150,6 +150,9 @@ Config::DumpSettings(
 	const char* cmdline
 ) const
 {
+	if ( fp == nullptr )
+		return;
+
 	/*
 	 * we have the engine Context hold this data, but it won't exist when this
 	 * is first called, so just do the same work it would do anyway. There's no
@@ -173,9 +176,6 @@ Config::DumpSettings(
 	const char    ellips[] = "~~~";
 	const size_t  lhs_max = 42;
 	const size_t  lhs_tgt = lhs_max - strlen(ellips);
-
-	if ( fp == nullptr )
-		fp = stdout;
 
 	std::fprintf(fp,
 		"  Command Line\n"

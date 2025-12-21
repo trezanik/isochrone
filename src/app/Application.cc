@@ -1253,7 +1253,7 @@ Application::Initialize(
 	using namespace trezanik::engine;
 
 	unsigned int  rand_seed = 0;
-	FILE*     config_dump_stream = stdout;
+	FILE*     config_dump_stream = nullptr;
 	uint64_t  start = aux::get_ms_since_epoch();
 	uint64_t  config_end;
 	int       retval;
@@ -1333,6 +1333,7 @@ Application::Initialize(
 		if ( my_cfg.log.terminal.enabled )
 		{
 			CreateLogTerminalTarget();
+			config_dump_stream = stdout;
 		}
 		if ( my_cfg.log.file.enabled )
 		{
