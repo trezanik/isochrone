@@ -54,9 +54,6 @@ namespace imgui {
 	class ImGuiConfigServer;
 	class IImGuiImpl;
 } // namespace imgui
-namespace interprocess {
-	class InterprocessConfigServer;
-} // namespace interprocess
 namespace app {
 	class AppConfigServer;
 	class AppImGui;
@@ -126,7 +123,6 @@ private:
 	std::shared_ptr<app::AppConfigServer>  my_app_cfg_svr;
 	std::shared_ptr<engine::EngineConfigServer>  my_eng_cfg_svr; //< @copydoc my_app_cfg_svr
 	std::shared_ptr<imgui::ImGuiConfigServer>  my_imgui_cfg_svr; //< @copydoc my_app_cfg_svr
-	std::shared_ptr<interprocess::InterprocessConfigServer>  my_ipc_cfg_svr; //< @copydoc my_app_cfg_svr
 
 
 	/**

@@ -772,7 +772,7 @@ Context::Update()
 		ImGui::Render(); // calls ImGui::EndFrame()
 		ImGuiIO& io = ImGui::GetIO();
 		SDL_RenderSetScale(my_sdl_renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
-		SDL_SetRenderDrawColor(my_sdl_renderer, 110, 140, 170, SDL_ALPHA_OPAQUE);
+		SDL_SetRenderDrawColor(my_sdl_renderer, 110, 140, 170, SDL_ALPHA_OPAQUE); /// @todo make configurable
 		SDL_RenderClear(my_sdl_renderer);
 
 		// render to SDL

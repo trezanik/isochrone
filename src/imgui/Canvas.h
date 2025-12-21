@@ -94,9 +94,7 @@ private:
 	/// Canvas size; picked up each frame using ImGui::GetContentRegionAvail
 	ImVec2  my_size;
 
-	/// Flag indicating if any window is hovered (menubar is excluded)
-	bool  my_any_window_hovered = false;
-	/// Flag indicating if the canvas is hovered
+	/// Flag indicating if the canvas window is hovered
 	bool  my_hovered = false;
 
 	/// Current applied scale (for zooming)

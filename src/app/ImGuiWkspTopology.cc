@@ -1022,7 +1022,6 @@ ImGuiWkspTopology::Draw()
 		ImGui::EndChild();
 	}
 
-	
 	if ( my_open_service_selector_popup )
 	{
 		ImGui::OpenPopup(popupname_service_selector);
@@ -1054,7 +1053,7 @@ ImGuiWkspTopology::Draw()
 
 		auto  pinpos = ContextCalcNodePinPosition();
 		auto  inode = dynamic_cast<IsochroneNode*>(my_context_node);
-		
+
 		if ( inode == nullptr )
 		{
 			TZK_LOG(LogLevel::Error, "Failed to cast context node to an IsochroneNode");
@@ -1231,7 +1230,6 @@ ImGuiWkspTopology::DrawContextPopupNoSelect()
 	
 	return false;
 }
-
 
 
 bool

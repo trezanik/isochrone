@@ -184,7 +184,12 @@ private:
 
 
 	/**
+	 * Possibly temporary; sets the loading display to be retained, not jumping
+	 * into the workspace proper so the loading details can be viewed, such as
+	 * any warnings or errors (they'll be in the log, but if the log isn't
+	 * visible, may be questions as to why stuff is missing or the like).
 	 * 
+	 * Currently enabled in debug builds, release closes on loading completion.
 	 */
 	bool  my_hold_on_loading = TZK_IS_DEBUG_BUILD;
 

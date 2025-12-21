@@ -576,7 +576,7 @@ ImNodeGraph::Update()
 			{
 				// should never hit - we only just looked up this node!
 				TZK_DEBUG_BREAK;
-			}			
+			}
 		}
 		
 

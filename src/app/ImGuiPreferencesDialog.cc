@@ -662,7 +662,8 @@ ImGuiPreferencesDialog::Draw_Display()
 		ImGui::SameLine();
 		ImGui::HelpMarker("To view, create or delete styles and settings, open the Style Editor");
 
-		int  font_style = 0; /// @todo to implement soon
+#if 0  // Code Disabled: /// @todo to implement soon
+		int  font_style = 0;
 		ImGui::Text("Style:");
 		ImGui::SameLine();
 		ImGui::RadioButton("Default", &font_style);
@@ -670,6 +671,7 @@ ImGuiPreferencesDialog::Draw_Display()
 		ImGui::RadioButton("Dark", &font_style); // for lighter elements
 		ImGui::SameLine();
 		ImGui::HelpMarker("Changes to styles may make certain text illegible; this allows setting something more suitable");
+#endif
 	}
 	ImGui::Unindent();
 
@@ -1711,11 +1713,11 @@ ImGuiPreferencesDialog::LoadPreferences()
 		my_loaded_settings[TZK_CVAR_SETTING_AUDIO_FX_TASKFAILED_NAME]   = inflight[TZK_CVAR_SETTING_AUDIO_FX_TASKFAILED_NAME];
 		my_loaded_settings[TZK_CVAR_SETTING_AUDIO_FX_APPERROR_ENABLED]     = TConverter<bool>::FromString(inflight[TZK_CVAR_SETTING_AUDIO_FX_APPERROR_ENABLED]);
 		my_loaded_settings[TZK_CVAR_SETTING_AUDIO_FX_BUTTONSELECT_ENABLED] = TConverter<bool>::FromString(inflight[TZK_CVAR_SETTING_AUDIO_FX_BUTTONSELECT_ENABLED]);
-		my_loaded_settings[TZK_CVAR_SETTING_AUDIO_FX_RSSNOTIFY_ENABLED] = TConverter<bool>::FromString(inflight[TZK_CVAR_SETTING_AUDIO_FX_RSSNOTIFY_ENABLED]);
+		my_loaded_settings[TZK_CVAR_SETTING_AUDIO_FX_RSSNOTIFY_ENABLED]    = TConverter<bool>::FromString(inflight[TZK_CVAR_SETTING_AUDIO_FX_RSSNOTIFY_ENABLED]);
 		my_loaded_settings[TZK_CVAR_SETTING_AUDIO_FX_TASKCOMPLETE_ENABLED] = TConverter<bool>::FromString(inflight[TZK_CVAR_SETTING_AUDIO_FX_TASKCOMPLETE_ENABLED]);
 		my_loaded_settings[TZK_CVAR_SETTING_AUDIO_FX_TASKFAILED_ENABLED]   = TConverter<bool>::FromString(inflight[TZK_CVAR_SETTING_AUDIO_FX_TASKFAILED_ENABLED]);
 
-		my_loaded_settings[TZK_CVAR_SETTING_AUDIO_AMBIENT_TRACK_NAME] = inflight[TZK_CVAR_SETTING_AUDIO_AMBIENT_TRACK_NAME];
+		my_loaded_settings[TZK_CVAR_SETTING_AUDIO_AMBIENT_TRACK_NAME]    = inflight[TZK_CVAR_SETTING_AUDIO_AMBIENT_TRACK_NAME];
 		my_loaded_settings[TZK_CVAR_SETTING_AUDIO_AMBIENT_TRACK_ENABLED] = TConverter<bool>::FromString(inflight[TZK_CVAR_SETTING_AUDIO_AMBIENT_TRACK_ENABLED]);
 
 		my_loaded_settings[TZK_CVAR_SETTING_AUDIO_VOLUME_EFFECTS] = std::stof(inflight[TZK_CVAR_SETTING_AUDIO_VOLUME_EFFECTS]);
@@ -1754,14 +1756,14 @@ ImGuiPreferencesDialog::LoadPreferences()
 		my_loaded_settings[TZK_CVAR_SETTING_ENGINE_FPS_CAP]    = std::stoi(inflight[TZK_CVAR_SETTING_ENGINE_FPS_CAP]);
 
 		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_BOTTOM_EXTEND] = TConverter<bool>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_BOTTOM_EXTEND]);
-		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_LEFT_EXTEND] = TConverter<bool>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_LEFT_EXTEND]);
-		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_EXTEND] = TConverter<bool>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_EXTEND]);
-		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_TOP_EXTEND] = TConverter<bool>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_TOP_EXTEND]);
+		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_LEFT_EXTEND]   = TConverter<bool>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_LEFT_EXTEND]);
+		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_EXTEND]  = TConverter<bool>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_EXTEND]);
+		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_TOP_EXTEND]    = TConverter<bool>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_TOP_EXTEND]);
 
 		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_BOTTOM_RATIO] = TConverter<float>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_BOTTOM_RATIO]);
-		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_LEFT_RATIO] = TConverter<float>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_LEFT_RATIO]);
-		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_RATIO] = TConverter<float>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_RATIO]);
-		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_TOP_RATIO] = TConverter<float>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_TOP_RATIO]);
+		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_LEFT_RATIO]   = TConverter<float>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_LEFT_RATIO]);
+		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_RATIO]  = TConverter<float>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_RIGHT_RATIO]);
+		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_TOP_RATIO]    = TConverter<float>::FromString(inflight[TZK_CVAR_SETTING_UI_LAYOUT_TOP_RATIO]);
 
 		//my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_CONSOLE_LOCATION] = inflight[TZK_CVAR_SETTING_UI_LAYOUT_CONSOLE_LOCATION];
 		my_loaded_settings[TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION] = inflight[TZK_CVAR_SETTING_UI_LAYOUT_LOG_LOCATION];

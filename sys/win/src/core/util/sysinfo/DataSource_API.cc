@@ -57,7 +57,6 @@ DataSource_API::~DataSource_API()
 }
 
 
-
 unsigned long
 DataSource_API::CountSetBits(
 	ULONG_PTR bitmask

@@ -134,7 +134,7 @@
 #
 #	if __has_declspec_attribute(dllexport)
 #		define TZK_DLLEXPORT  __declspec(dllexport)
-/// @TODO determine if this works without issue
+/// @todo determine if this works without issue
 #		define TZK_DLLIMPORT  __declspec(dllimport)
 #	else
 #		// ESTIMATE: handy to know the exact version this was supported
@@ -209,9 +209,9 @@
  *----------------------------------------------------------------------------*/
 
 #if defined(_MSC_VER)
-#	define TZK_IS_VISUAL_STUDIO	 1
+#	define TZK_IS_VISUAL_STUDIO  1
 #else
-#	define TZK_IS_VISUAL_STUDIO	 0
+#	define TZK_IS_VISUAL_STUDIO  0
 #endif
 
 #if TZK_IS_VISUAL_STUDIO

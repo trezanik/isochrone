@@ -64,7 +64,8 @@ namespace app {
 
 
 /*
- * 
+ * Counter for inbuilt styles, so they can be taken into account for automatic
+ * inclusion but separated from loaded ones in workspace data
  */
 size_t  num_inbuilt_nodestyles = 0;
 size_t  num_inbuilt_pinstyles = 0;
@@ -303,7 +304,6 @@ public:
 
 				selected_lastframe.clear();
 			}
-
 		}
 
 		auto  wksp_settings = wksp->GetSettings();
@@ -331,7 +331,7 @@ public:
 
 		// needs cleaning effort
 		if ( ImGui::Combo("Sorting", &wksp_settings->settings.nodelist_sort_order, nodelist_sortstrs) )
-		{		
+		{
 			wksp->ApplySetting(settingname_nodelist_sortorder, nodelist_sortstrmap[nodelist_sortstrs.at(wksp_settings->settings.nodelist_sort_order)].c_str());
 		}
 
@@ -3252,6 +3252,12 @@ ImGuiWorkspace::UpdateDrawClientDockLocation(
 	using namespace trezanik::core;
 
 	/// @todo map lookup for future expansion without touching this method
+	/*
+	 * These cover external changes to the locations (such as the menu bar),
+	 * which will update visually but not permanent settings without this; I
+	 * believe having settings updated would be the least surprise.
+	 * We do route through to here from ApplySetting.
+	 */
 	if ( drawclient_id == drawclient_canvasdbg_uuid )
 	{
 		my_wksp_data.settings[settingname_dock_canvasdbg] = TConverter<WindowLocation>::ToString(newloc);

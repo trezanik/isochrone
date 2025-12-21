@@ -158,9 +158,6 @@ Application::Application()
 	 * Ensure our current directory is set to the path where the executing
 	 * binary resides; other activities require this to be the case, or are
 	 * just so much easier knowing that this the current setup.
-	 *
-	 * In particular, our library to execute must be within the same
-	 * directory as this binary, enforced by full path usage.
 	 */
 #if TZK_IS_WIN32
 	wchar_t  binpath[MAX_PATH];
@@ -1276,7 +1273,6 @@ Application::Initialize(
 	my_app_cfg_svr = std::make_shared<app::AppConfigServer>();
 	// core has no configuration server
 	my_eng_cfg_svr = std::make_shared<engine::EngineConfigServer>();
-	//my_ipc_cfg_svr = std::make_shared<interprocess::InterprocessConfigServer>();
 
 
 	/*
@@ -1409,7 +1405,7 @@ Application::Initialize(
 #if TZK_IS_WIN32
 		if ( InitializeWindows() != ErrNONE )
 		{
-			TZK_LOG_FORMAT(LogLevel::Error, "WinSock init failure");
+			TZK_LOG_FORMAT(LogLevel::Error, "Windows initialization failure");
 			return ErrFAILED;
 		}
 #endif
@@ -1418,8 +1414,7 @@ Application::Initialize(
 		my_context = std::make_unique<Context>();
 
 
-		/// @todo check cl args, direct launch if provided
-		// SetAssetPath() needed too
+		/// @todo check cl args, set asset path if provided
 	}
 
 
@@ -1978,7 +1973,6 @@ Application::InitializeSDL()
 	///@todo SDL_SetWindowIcon() once we have a custom icon to use (Visual Studio build will already add via resource script)
 	SDL_SetWindowMinimumSize(my_window, TZK_WINDOW_MINIMUM_WIDTH, TZK_WINDOW_MINIMUM_HEIGHT);
 
-
 	TZK_LOG(LogLevel::Debug, "SDL Initialization complete");
 
 	return ErrNONE;
@@ -2244,7 +2238,6 @@ Application::LoadConfiguration()
 	// register all app dependency config servers
 	cfg->RegisterConfigServer(my_app_cfg_svr);
 	cfg->RegisterConfigServer(my_eng_cfg_svr);
-	//cfg->RegisterConfigServer(my_ipc_cfg_svr);
 
 	/*
 	 * all (internal) configsvrs must be registered by now, as cfg->FileLoad
@@ -2511,7 +2504,7 @@ Application::LogSysInfo() const
 
 	if ( my_cfg.data.telemetry.enabled )
 	{
-		// submit hardware report, async - must not intefere with user functions
+		// submit hardware report, async - must not interfere with user functions
 	}
 
 	TZK_LOG_FORMAT(LogLevel::Mandatory, "Host System Information:\n%s", ss.str().c_str());
@@ -2534,6 +2527,7 @@ Application::MapSettingsFromMemberVars()
 	cfg->Set(TZK_CVAR_SETTING_AUDIO_AMBIENT_TRACK_ENABLED, TConverter<bool>::ToString(my_cfg.audio.ambient_track.enabled));
 	cfg->Set(TZK_CVAR_SETTING_AUDIO_AMBIENT_TRACK_NAME, my_cfg.audio.ambient_track.name);
 	cfg->Set(TZK_CVAR_SETTING_AUDIO_DEVICE, my_cfg.audio.device);
+	// getting audio?
 	cfg->Set(TZK_CVAR_SETTING_AUDIO_ENABLED, TConverter<bool>::ToString(my_cfg.audio.enabled));
 	cfg->Set(TZK_CVAR_SETTING_AUDIO_VOLUME_EFFECTS, float_string_precision(my_cfg.audio.volume.effects, 2));
 	cfg->Set(TZK_CVAR_SETTING_AUDIO_VOLUME_MUSIC, float_string_precision(my_cfg.audio.volume.music, 2));
@@ -2609,10 +2603,6 @@ Application::MapSettingsToMemberVars()
 	my_cfg.audio.effects.task_failed.name = cfg->Get(TZK_CVAR_SETTING_AUDIO_FX_TASKFAILED_NAME);
 	my_cfg.audio.effects.button_select.enabled = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_AUDIO_FX_BUTTONSELECT_ENABLED));
 	my_cfg.audio.effects.button_select.name = cfg->Get(TZK_CVAR_SETTING_AUDIO_FX_BUTTONSELECT_NAME);
-	//my_cfg.audio.effects.process_complete_failure.enabled = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_AUDIO_FX_PROCCOMP_FAILURE_ENABLED));
-	//my_cfg.audio.effects.process_complete_failure.name = cfg->Get(TZK_CVAR_SETTING_AUDIO_FX_PROCCOMP_FAILURE_NAME);
-	//my_cfg.audio.effects.process_complete_success.enabled = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_AUDIO_FX_PROCCOMP_SUCCESS_ENABLED));
-	//my_cfg.audio.effects.process_complete_success.name = cfg->Get(TZK_CVAR_SETTING_AUDIO_FX_PROCCOMP_FAILURE_NAME);
 	my_cfg.audio.enabled = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_AUDIO_ENABLED));
 	my_cfg.audio.volume.effects = TConverter<float>::FromString(cfg->Get(TZK_CVAR_SETTING_AUDIO_VOLUME_EFFECTS));
 	my_cfg.audio.volume.music = TConverter<float>::FromString(cfg->Get(TZK_CVAR_SETTING_AUDIO_VOLUME_MUSIC));
