@@ -1470,7 +1470,10 @@ ImGuiWorkspace::Draw()
 
 	_gui_interactions.tabchild_pos = ImGui::GetCursorPos();
 	_gui_interactions.tabchild_size = ImGui::GetContentRegionAvail();
+
+#if TZK_IS_DEBUG_BUILD
 	_gui_interactions.tabchild_rect = { _gui_interactions.tabchild_pos, _gui_interactions.tabchild_size };
+#endif
 
 
 	/*
