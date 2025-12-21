@@ -998,8 +998,6 @@ struct workspace_node_target
 						type = TargetType::Hostname;
 						return type;
 					}
-
-					break;
 				}
 
 				freeaddrinfo(result);
