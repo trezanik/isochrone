@@ -1,8 +1,8 @@
 #pragma once
 
 /**
- * @file        src/app/Task.h
- * @brief       .
+ * @file        src/app/tasks/Task.h
+ * @brief       Base class for an invokable task
  * @license     zlib (view the LICENSE file for details)
  * @copyright   Trezanik Developers, 2014-2025
  */
@@ -20,7 +20,6 @@
 
 namespace trezanik {
 namespace app {
-
 
 
 /**
