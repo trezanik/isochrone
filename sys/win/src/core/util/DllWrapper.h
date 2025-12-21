@@ -93,6 +93,11 @@ public:
 	/**
 	 * Obtains a function pointer for the supplied procedure name
 	 * 
+	 * @warning
+	 *  You should check if the function is a nullptr, or test the OS version
+	 *  for general availability (e.g. RegDisableReflectionKey on XP x86 does
+	 *  not exist, so check for >=NT6/NT5 + x64)
+	 * 
 	 * @param[in] proc_name
 	 *  The function/procedure name, as exported from the DLL
 	 * @return
@@ -123,10 +128,13 @@ typedef BOOLEAN(WINAPI* pf_RtlGenRandom)(PVOID, ULONG);
 class Module_advapi32
 {
 private:
-	DllWrapper my_dll{ L"advapi32.dll" };
+	DllWrapper  my_dll{ L"advapi32.dll" };
 public:
+	// introduced in Windows XP
 	pf_RtlGenRandom  RtlGenRandom = my_dll["SystemFunction036"];
+	// introduced in Windows XP x64/Server 2003 SP1/Windows Vista
 	decltype(RegDisableReflectionKey)*  RegDisableReflectionKey = my_dll["RegDisableReflectionKey"];
+	// introduced in Windows XP x64/Server 2003 SP1/Windows Vista
 	decltype(RegEnableReflectionKey)*  RegEnableReflectionKey = my_dll["RegEnableReflectionKey"];
 };
 
@@ -134,20 +142,34 @@ public:
 class Module_kernel32
 {
 private:
-	DllWrapper my_dll{ L"kernel32.dll" };
+	DllWrapper  my_dll{ L"kernel32.dll" };
 public:
-	decltype(IsWow64Process)* IsWow64Process = my_dll["IsWow64Process"];
+	// introduced in Windows XP SP2
+	decltype(IsWow64Process)*  IsWow64Process = my_dll["IsWow64Process"];
 };
 
 
 class Module_ntdll
 {
 private:
-	DllWrapper my_dll{ L"ntdll.dll" };
+	DllWrapper  my_dll{ L"ntdll.dll" };
 public:
+	// introduced with Windows NT (? confirm)
 	pf_NtQuerySystemInformation  NtQuerySystemInformation = my_dll["NtQuerySystemInformation"];
 	// introduced in Windows 2000
 	pf_RtlGetVersion  RtlGetVersion = my_dll["RtlGetVersion"];
+};
+
+
+class Module_user32
+{
+private:
+	DllWrapper  my_dll{ L"user32.dll" };
+public:
+#if !TZK_ENABLE_XP2003_SUPPORT
+	// introduced in Windows Vista
+	decltype(SetProcessDPIAware)*  SetProcessDPIAware = my_dll["SetProcessDPIAware"];
+#endif
 };
 
 

@@ -17,6 +17,12 @@
 #	elif TZK_ENABLE_XP2003_SUPPORT && _M_X64
 #		pragma comment ( linker, "/SUBSYSTEM:CONSOLE,5.02" )
 #	endif
+#	if _WIN32_WINNT < _WIN32_WINNT_WIN7
+#		// build target Vista or older, use the original PSAPI, so the methods will be in psapi.dll
+#		// n.b. could just dynamic link, we already have a DllWrapper...
+#		define PSAPI_VERSION 1
+#		pragma comment ( lib, "psapi.lib" )
+#	endif
 #
 #	// ---- third-party dependencies ----
 #

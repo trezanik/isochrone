@@ -87,6 +87,21 @@ convert_wide_path_chars(
 
 
 /**
+ * Converts a wide character array (UTF-16) to a multibyte (UTF-8) std::string
+ *
+ * @param[in] wstr
+ *  The string to convert
+ * @return
+ *  The converted buffer as a string; will be empty on failure
+ */
+TZK_CORE_API
+std::string
+utf16_array_to_utf8_string(
+	const wchar_t* wstr
+);
+
+
+/**
  * Converts a wide character string (UTF-16) to a multibyte one (UTF-8)
  *
  * @param[in] src

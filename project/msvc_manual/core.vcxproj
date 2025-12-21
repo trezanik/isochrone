@@ -84,6 +84,7 @@
     <ClInclude Include="..\..\sys\win\src\core\util\sysinfo\DataSource_WMI.h" />
     <ClInclude Include="..\..\sys\win\src\core\util\sysinfo\win32_info.h" />
     <ClInclude Include="..\..\sys\win\src\core\util\winerror.h" />
+    <ClInclude Include="..\..\sys\win\src\core\util\winops.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="core.rc" />
@@ -133,6 +134,7 @@
     <ClCompile Include="..\..\sys\win\src\core\util\sysinfo\DataSource_SMBIOS.cc" />
     <ClCompile Include="..\..\sys\win\src\core\util\sysinfo\DataSource_WMI.cc" />
     <ClCompile Include="..\..\sys\win\src\core\util\winerror.cc" />
+    <ClCompile Include="..\..\sys\win\src\core\util\winops.cc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

@@ -56,6 +56,15 @@ private:
 	 */
 	std::set<uint64_t>  my_reg_ids;
 
+	/** Time of last running-system refresh */
+	time_t  my_last_refresh;
+
+	/** Time between refreshes */
+	time_t  my_refresh_schedule;
+
+	/** Holds the running system state stream */
+	std::string  my_sysinf;
+
 
 	/**
 	 * Dedicated method for drawing the 'Acknowledgements' tab
@@ -76,6 +85,12 @@ private:
 	DrawLicense() const;
 
 	/**
+	 * Dedicated method for drawing the 'Running System' tab
+	 */
+	void
+	DrawRunningSystem();
+
+	/**
 	 * Handles resource state change events
 	 *
 	 * @param[in] res_state
@@ -85,6 +100,18 @@ private:
 	HandleResourceState(
 		trezanik::engine::EventData::resource_state res_state
 	);
+
+	/**
+	 * Performs a refresh of the executing system details
+	 * 
+	 * Borrows a lot from the LogSysInfo dump to file, re-performed here with
+	 * subtle amendments to cover GUI text output.
+	 * 
+	 * Will not run every frame; refresh schedule determines how frequently the
+	 * data is updated
+	 */
+	void
+	RefreshSystem();
 
 protected:
 public:

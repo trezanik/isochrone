@@ -103,6 +103,27 @@ convert_wide_path_chars(
 }
 
 
+std::string
+utf16_array_to_utf8_string(
+	const wchar_t* wstr
+)
+{
+	std::string  str;
+	int  required = ::WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
+
+	if ( required > 0 )
+	{
+		std::vector<char>  buffer(required);
+
+		::WideCharToMultiByte(CP_UTF8, 0, wstr, -1, &buffer[0], required, nullptr, nullptr);
+
+		str.assign(buffer.begin(), buffer.end() - 1);
+	}
+
+	return str;
+}
+
+
 int
 utf8_to_utf16(
 	const char* src,

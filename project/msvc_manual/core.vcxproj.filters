@@ -279,6 +279,9 @@
     <ClInclude Include="..\..\src\core\services\event\EventDispatcher.h">
       <Filter>Header Files\services\event</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\sys\win\src\core\util\winops.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="core.rc">
@@ -417,6 +420,9 @@
     </ClCompile>
     <ClCompile Include="..\..\sys\win\src\core\util\net\win32net.cc">
       <Filter>Source Files\util\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\sys\win\src\core\util\winops.cc">
+      <Filter>Source Files\util</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
