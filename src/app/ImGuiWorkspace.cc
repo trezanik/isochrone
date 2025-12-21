@@ -1991,12 +1991,21 @@ ImGuiWorkspace::HandleNodegraphUpdate(
 		break;
 	case NodeGraphUpdate::PinDeleted:
 		{
-			auto  oldc = iso_node->GetWorkspaceNode()->graph.pins.size();
+			assert(update.opt.pin_uuid != blank_uuid);
 
+			auto  oldc = iso_node->GetWorkspaceNode()->graph.pins.size();
+			
 			for ( auto iter = iso_node->GetWorkspaceNode()->graph.pins.begin(); iter != iso_node->GetWorkspaceNode()->graph.pins.end(); iter++ )
 			{
+				if ( iter->id != update.opt.pin_uuid )
+				{
+					continue;
+				}
+
+				// pin found in the graph data; check to make sure it's the one gone from live state
 				bool  found = false;
 
+				// this list will not have the deleted entry
 				for ( auto& p : iso_node->GetPins() )
 				{
 					if ( iter->id == p->GetID() )
@@ -2007,6 +2016,11 @@ ImGuiWorkspace::HandleNodegraphUpdate(
 				}
 
 				if ( found )
+				{
+					TZK_LOG_FORMAT(LogLevel::Warning, "Pin ID %s notified of deletion, but was found held within node", iter->id.GetCanonical());
+					TZK_LOG_FORMAT(LogLevel::Error, "Potential data corruption or loss if file is saved, deleted pin is still retained");
+				}
+				else
 				{
 					iso_node->GetWorkspaceNode()->graph.pins.erase(iter);
 					TZK_LOG(LogLevel::Trace, "Removed pin from workspace data"); // improve
