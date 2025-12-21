@@ -38,7 +38,6 @@ Tasker::Tasker()
 
 		// run the receiver thread
 		my_receiver = std::thread(&Tasker::ReceiverThread, this);
-		my_receiver.detach();
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
