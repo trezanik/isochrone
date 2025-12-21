@@ -257,6 +257,7 @@ main(
 
 
 	int   exit_code = EXIT_FAILURE;
+	int   appinit = ErrNONE;
 	bool  init_ok = false;
 
 	/*
@@ -268,7 +269,7 @@ main(
 	{
 		::app = std::make_unique<trezanik::app::Application>();
 		
-		if ( ::app->Initialize(argc, argv) == ErrNONE )
+		if ( (appinit = ::app->Initialize(argc, argv)) == ErrNONE )
 		{
 			init_ok = true;
 
@@ -293,7 +294,7 @@ main(
 		TZK_LOG(LogLevel::Error, "Unhandled catch-all exception");
 	}
 
-	if ( !init_ok )
+	if ( !init_ok && appinit != ErrNOOP )
 	{
 		/*
 		 * Chance that event storage is still enabled, so the startup failure

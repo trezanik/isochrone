@@ -1245,8 +1245,8 @@ Application::HandleWindowSize(
 
 int
 Application::Initialize(
-	int TZK_UNUSED(argc), // unused until we integrate command-line config overrides
-	char** TZK_UNUSED(argv)
+	int argc,
+	char** argv
 )
 {
 	using namespace trezanik::core;
@@ -1285,12 +1285,10 @@ Application::Initialize(
 	 * out - any error events will display the failure.
 	 */
 
-#if 0  // Code Disabled: this is not yet integrated
 	if ( (retval = InterpretCommandLine(argc, argv)) != ErrNONE )
 	{
 		return retval;
 	}
-#endif
 
 	// load the configuration from file, validating settings
 	if ( (retval = LoadConfiguration()) != ErrNONE )
@@ -1298,13 +1296,9 @@ Application::Initialize(
 		return retval;
 	}
 
-#if 0  // Code Disabled: this is not yet integrated
 	// apply command line overrides
-	if ( (retval = LoadFromCommandLine(_cli_args)) != ErrNONE )
-	{
-		return retval;
-	}
-#endif
+	LoadFromCommandLine(_cli_args);
+
 
 	// apply configuration from service key:val to our typed member variables
 	MapSettingsToMemberVars();
@@ -2295,6 +2289,49 @@ Application::LoadConfiguration()
 
 
 void
+Application::LoadFromCommandLine(
+	std::vector<std::pair<std::string, std::string>> args
+)
+{
+	using namespace trezanik::core;
+
+	for ( auto& arg : args )
+	{
+		bool  found = false;
+
+		// add this, can then lambda to apply until found or out of choices?
+		if ( my_app_cfg_svr->Set(arg.first.c_str(), arg.second.c_str(), CVarFlags_ClOverride) != ENOENT )
+		{
+			found = true;
+		}
+		else if ( my_eng_cfg_svr->Set(arg.first.c_str(), arg.second.c_str(), CVarFlags_ClOverride) != ENOENT )
+		{
+			found = true;
+		}
+
+		if ( !found )
+		{
+			// warn, don't cause failure
+			TZK_LOG_FORMAT(LogLevel::Warning,
+				"Unrecognized command-line argument ignored: %s=%s",
+				arg.first.c_str(), arg.second.c_str()
+			);
+		}
+		else
+		{
+			/*
+			 * With the config server values updated, we now need to apply it to
+			 * the actual live configuration used by getters. As per the standard
+			 * flow, config server validates so we can blind assign.
+			 */
+			TZK_LOG_FORMAT(LogLevel::Info, "Overriding setting for '%s': %s", arg.first.c_str(), arg.second.c_str());
+			ServiceLocator::Config()->Set(arg.first, arg.second);
+		}
+	}
+}
+
+
+void
 Application::LogSysInfo() const
 {
 	using namespace trezanik::core;
@@ -2726,7 +2763,21 @@ Application::PlaySound(
 void
 Application::PrintHelp()
 {
-	/// @todo command line help
+	std::printf("Usage: %s [options]\n", _command_line.c_str());
+	std::printf("\nCommand-line parameters allow overriding file-based configuration values, but otherwise serve no purpose\n");
+	std::printf("\t* Saving configuration with overrides in place will commit the overridden setting!\n");
+	std::printf("\nSpecify '--option=value', space separated, where option is an application configuration item:\n");
+
+	std::stringstream  ss;
+	auto  app_defs = my_app_cfg_svr->GetDefaults();
+	auto  eng_defs = my_eng_cfg_svr->GetDefaults();
+
+	for ( const auto& def : app_defs )
+		ss << "\t" << def.first << "\n";
+	for ( const auto& def : eng_defs )
+		ss << "\t" << def.first << "\n";
+
+	std::printf("%s", ss.str().c_str());
 }
 
 

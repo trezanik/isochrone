@@ -587,6 +587,22 @@ private:
 
 
 	/**
+	 * .
+	 * 
+	 * Must be after a full, successful config Load, so whatever is specified
+	 * will overwrite
+	 * 
+	 * ** need to add a flag where these apply, so they don't get saved to file
+	 *    on exit. A regular Set() call afterwards WILL replace this and still
+	 *    get handled normally
+	 */
+	void
+	LoadFromCommandLine(
+		std::vector<std::pair<std::string, std::string>> args
+	);
+
+
+	/**
 	 * Logs system information out to file, if info and file logging are enabled
 	 * 
 	 * The sysinfo 'minimal' configuration option can restrict obtaining data
