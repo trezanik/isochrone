@@ -36,7 +36,7 @@ struct mac_address;
 TZK_CORE_API
 std::string
 ipaddr_to_string(
-	trezanik::core::aux::ip_address& addr
+	const trezanik::core::aux::ip_address& addr
 );
 
 
@@ -55,7 +55,7 @@ ipaddr_to_string(
 TZK_CORE_API
 std::string
 macaddr_to_string(
-	trezanik::core::aux::mac_address& addr
+	const trezanik::core::aux::mac_address& addr
 );
 
 

@@ -25,7 +25,7 @@ namespace aux {
 
 std::string
 ipaddr_to_string(
-	trezanik::core::aux::ip_address& addr
+	const trezanik::core::aux::ip_address& addr
 )
 {
 	char  ipaddr[INET6_ADDRSTRLEN];
@@ -43,7 +43,7 @@ ipaddr_to_string(
 
 std::string
 macaddr_to_string(
-	trezanik::core::aux::mac_address& addr
+	const trezanik::core::aux::mac_address& addr
 )
 {
 	char  macaddr[13];
