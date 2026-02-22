@@ -321,6 +321,9 @@ ImGuiSemiFixedDock::RemoveDrawClient(
 		my_active_inuse.store(false);
 	}
 
+	// draw clients can only be in one dock at a time, so removal will always be hiding
+	client->dock = WindowLocation::Hidden;
+
 	my_draw_clients.erase(ret);
 }
 

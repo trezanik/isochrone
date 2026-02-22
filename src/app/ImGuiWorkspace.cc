@@ -3277,7 +3277,7 @@ ImGuiWorkspace::UpdateDrawClientDockLocation(
 		if ( dc->id == drawclient_id )
 		{
 			auto  retval = std::make_tuple<>(dc, dc->dock);
-			// AddDrawClient in ImGuiSemiFixedDock updates dc->dock, skip here
+			// AddDrawClient/RemoveDrawClient in ImGuiSemiFixedDock updates dc->dock, skip here
 			return retval;
 		}
 	}
