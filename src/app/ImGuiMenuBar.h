@@ -90,6 +90,8 @@ private:
 	MenuBarItem  workspace_save;
 	/** Menu item to open the search dialog */
 	MenuBarItem  workspace_search;
+	/** Menu item controlling the component editor dialog */
+	MenuBarItem  workspace_cedit;
 	/** Menu item controlling the service management dialog */
 	MenuBarItem  workspace_svcm;
 	/** Menu item controlling the Active Tasks dialog */

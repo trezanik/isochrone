@@ -54,6 +54,7 @@ ImGuiMenuBar::ImGuiMenuBar(
 , workspace_open  { "Open",               "Ctrl+O", &gui_interactions.show_open_workspace, true }
 , workspace_save  { "Save",               "Ctrl+S", &gui_interactions.save_current_workspace, true }
 , workspace_search{ "Search",             "Ctrl+F", &gui_interactions.show_search, true }
+, workspace_cedit { "Component Editor",   "Ctrl+E", &gui_interactions.show_component_editor, true }
 , workspace_svcm  { "Service Management", "Ctrl+M", &gui_interactions.show_service_management, true }
 , active_tasks    { "Active Tasks",       "Ctrl+T", &gui_interactions.show_tasks, true }
 , rss             { "RSS",                "", &gui_interactions.show_rss, true } // enabled if inbuilt
@@ -314,6 +315,7 @@ ImGuiMenuBar::Draw()
 		ImGui::Separator();
 		
 		bool  disabled = _gui_interactions.workspaces.empty();
+		workspace_cedit.enabled = !disabled;
 		workspace_close.enabled = !disabled;
 		workspace_save.enabled = !disabled;
 		workspace_search.enabled = !disabled;
@@ -323,6 +325,7 @@ ImGuiMenuBar::Draw()
 		ImGui::MenuItem(workspace_save.text, workspace_save.shortcut, workspace_save.setting, workspace_save.enabled);
 		ImGui::Separator();
 		ImGui::MenuItem(workspace_search.text, workspace_search.shortcut, workspace_search.setting, workspace_search.enabled);
+		ImGui::MenuItem(workspace_cedit.text, workspace_cedit.shortcut, workspace_cedit.setting, workspace_cedit.enabled);
 		ImGui::MenuItem(workspace_svcm.text, workspace_svcm.shortcut, workspace_svcm.setting, workspace_svcm.enabled);
 		ImGui::MenuItem(active_tasks.text, active_tasks.shortcut, active_tasks.setting, active_tasks.enabled);
 

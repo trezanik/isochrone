@@ -360,6 +360,8 @@ struct GuiInteractions
 	bool  show_service = false;
 	bool  show_service_group = false;
 #endif
+	/** Flag to show the component editor dialog */
+	bool  show_component_editor = false;
 	/** Flag to show the service management dialog */
 	bool  show_service_management = false;
 	/** Flag to show the style editor window */
