@@ -22,7 +22,7 @@
 #if TZK_USING_STBI
 #	define STB_IMAGE_IMPLEMENTATION
 	TZK_VC_DISABLE_WARNINGS(4244) // int to short/unsigned char - third-party code
-#	include "engine/resources/stb_image.h"
+#	include "engine/resources/stb/stb_image.h"
 	TZK_VC_RESTORE_WARNINGS(4244)
 #	undef STB_IMAGE_IMPLEMENTATION
 #endif

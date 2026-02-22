@@ -101,7 +101,7 @@
     <ClInclude Include="..\..\src\engine\resources\Resource_Font.h" />
     <ClInclude Include="..\..\src\engine\resources\Resource_Image.h" />
     <ClInclude Include="..\..\src\engine\resources\Resource_Sprite.h" />
-    <ClInclude Include="..\..\src\engine\resources\stb_image.h" />
+    <ClInclude Include="..\..\src\engine\resources\stb\stb_image.h" />
     <ClInclude Include="..\..\src\engine\resources\TypeLoader.h" />
     <ClInclude Include="..\..\src\engine\resources\TypeLoader_Audio.h" />
     <ClInclude Include="..\..\src\engine\resources\TypeLoader_Font.h" />

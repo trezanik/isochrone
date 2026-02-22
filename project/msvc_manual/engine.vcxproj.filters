@@ -49,6 +49,9 @@
     <Filter Include="Source Files\services\net">
       <UniqueIdentifier>{cec3105a-a906-45a7-871a-8e9f7397eeb8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\resources\stb">
+      <UniqueIdentifier>{a4857151-febe-4feb-80c0-5c246432cdfe}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\engine\services\audio\AudioFile.cc">
@@ -365,8 +368,8 @@
     <ClInclude Include="..\..\src\engine\services\net\INet.h">
       <Filter>Header Files\services\net</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\engine\resources\stb_image.h">
-      <Filter>Header Files\resources</Filter>
+    <ClInclude Include="..\..\src\engine\resources\stb\stb_image.h">
+      <Filter>Header Files\resources\stb</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

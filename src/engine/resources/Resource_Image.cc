@@ -22,9 +22,7 @@
 #endif
 
 #if TZK_USING_STBI
-	TZK_VC_DISABLE_WARNINGS(4244) // int to short/unsigned char - third-party code
-#	include "engine/resources/stb_image.h"
-	TZK_VC_RESTORE_WARNINGS(4244)
+#	include "engine/resources/stb/stb_image.h"
 #endif
 
 #include <cassert>
