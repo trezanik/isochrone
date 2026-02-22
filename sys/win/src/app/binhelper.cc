@@ -98,6 +98,5 @@
 #	pragma comment ( lib, "core.lib" )
 #	pragma comment ( lib, "engine.lib" )
 #	pragma comment ( lib, "imgui.lib" )
-//#	pragma comment ( lib, "interprocess.lib" )
 #
 #endif

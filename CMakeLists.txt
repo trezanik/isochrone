@@ -158,7 +158,6 @@ file(GLOB_RECURSE source_app src/app/*.cc src/app/*.h)
 file(GLOB_RECURSE source_core src/core/*.cc src/core/*.h)
 file(GLOB_RECURSE source_engine src/engine/*.cc src/engine/*.h)
 file(GLOB_RECURSE source_imgui src/imgui/*.cc src/imgui/*.cpp src/imgui/*.h) # imgui integration, uses .cpp
-file(GLOB_RECURSE source_interprocess src/interprocess/*.cc src/interprocess/*.h)
 
 file(GLOB_RECURSE linux_source_core sys/linux/src/core/*.cc sys/linux/src/core/*.h)
 file(GLOB_RECURSE linux_source_engine sys/linux/src/engine/*.cc sys/linux/src/engine/*.h)
@@ -170,7 +169,6 @@ if ( ISOCHRONE_IS_LINUX )
 	set(all_source_core ${source_core} ${linux_source_core})
 	set(all_source_engine ${source_engine} ${linux_source_engine})
 	set(all_source_imgui ${source_imgui} ${linux_source_imgui})
-	set(all_source_interprocess ${source_interprocess} ${linux_source_interprocess})
 endif()
 if ( ISOCHRONE_IS_WINDOWS )
 	set(all_source_engine ${source_core} ${win_source_core})
@@ -445,15 +443,4 @@ target_link_libraries(imgui PUBLIC core)
 set_target_properties(imgui PROPERTIES DEBUG_POSTFIX ${BINARY_DEBUG_POSTFIX})
 
 ##############
-# Interprocess
 ##############
-#add_library(interprocess ${all_source_interprocess})
-# -I flags for compiler, for interprocess
-#target_include_directories(interprocess PUBLIC src/interprocess)
-#if ( ISOCHRONE_FORCE_INCLUDE_CONFIGURE )
-#	target_include_directories(interprocess PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-#endif()
-#target_compile_options(interprocess PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_CXX_FLAGS}>")
-#target_compile_options(interprocess PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_CXX_FLAGS}>")
-#target_link_options()
-#set_target_properties(interprocess PROPERTIES DEBUG_POSTFIX ${BINARY_DEBUG_POSTFIX})
