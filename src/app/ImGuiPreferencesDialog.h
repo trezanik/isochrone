@@ -171,6 +171,18 @@ private:
 	std::vector<std::string>  my_feeds;
 
 
+	/*
+	 * Much like the file paths, easier to work with local storage for strings.
+	 * Does mean repeatedly modifying this class, which sucks, but at least we
+	 * know there's no further knock-on as we're self contained
+	 * 
+	 * We can do a collection of say, a handful of objects and clear/assign
+	 * whenever we switch between popups to enable them as generics
+	 */
+	/** Explicit path to the python executable */
+	std::string  my_python_path;
+
+
 	/**
 	 * Live tracking of all modifications made while the dialog is open
 	 * 

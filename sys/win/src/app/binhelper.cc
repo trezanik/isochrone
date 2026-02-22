@@ -60,6 +60,9 @@
 #		pragma comment ( lib, "libcrypto.lib" )
 #		pragma comment ( lib, "libssl.lib" )
 #	endif
+#	if TZK_USING_PYTHON
+#		pragma comment ( lib, "python3.lib" )
+#	endif
 #	if TZK_USING_SDL
 #		pragma comment ( lib, "opengl32.lib" )
 #		if TZK_IS_DEBUG_BUILD

@@ -14,6 +14,7 @@
     <openalsoft>$(DependencyRoot)/OpenAL-Soft/$(PlatformShortName)</openalsoft>
     <openssl>$(DependencyRoot)/openssl/$(PlatformShortName)</openssl>
     <pugixml>$(DependencyRoot)/pugixml/$(PlatformShortName)</pugixml>
+    <python>$(DependencyRoot)/python</python>
     <SDL>$(DependencyRoot)/SDL2/$(PlatformShortName)</SDL>
     <SDLImage>$(DependencyRoot)/SDL2_image/$(PlatformShortName)</SDLImage>
     <SDLTTF>$(DependencyRoot)/SDL2_ttf/$(PlatformShortName)</SDLTTF>
@@ -22,11 +23,11 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(Catch2)/include;$(FLAC)/include;$(freetype)/include/freetype2;$(libogg)/include;$(libopus)/include/opus;$(libopusfile)/include;$(libpng)/include;$(libuv)/include;$(libvorbis)/include;$(openalsoft)/include;$(openalsoft)/Alc;$(openalsoft)/common;$(openalsoft)/OpenAL32/include;$(openssl)/include;$(poco)/include;$(pugixml)/include;$(RCCPP)/include;$(SDL)/include/SDL2;$(SDLImage)/include/SDL2;$(SDLTTF)/include/SDL2;$(sqlite)/include;$(vulkansdk)/Include;$(zlib)/include;%(AdditionalIncludeDirectories);</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_WIN32_WINNT=$(Win32WinNT);TZK_AUDIO_LOG_TRACING=$(AudioLogTracing);TZK_MOUSEMOVE_LOGS=$(MouseMoveLogs);TZK_USING_CATCH2=$(UsingCatch2);TZK_USING_FLAC=$(UsingFLAC);TZK_USING_FREETYPE=$(UsingFreetype);TZK_USING_IMGUI=$(UsingImGui);TZK_USING_LIBPNG=$(UsingLibPNG);TZK_USING_OGGOPUS=$(UsingOggOpus);TZK_USING_OGGVORBIS=$(UsingOggVorbis);TZK_USING_OPENALSOFT=$(UsingOpenALSoft);TZK_USING_OPENSSL=$(UsingOpenSSL);TZK_USING_PUGIXML=$(UsingPugixml);TZK_USING_RCCPP=$(UsingRCCPP);TZK_USING_SDL=$(UsingSDL);SDL_MAIN_HANDLED;TZK_USING_SDLIMAGE=$(UsingSDLImage);TZK_USING_SQLITE=$(UsingSqlite);TZK_USING_SDLTTF=$(UsingSDLTTF);TZK_USING_STBF=$(UsingSTBF);TZK_USING_STBI=$(UsingSTBI);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(Catch2)/include;$(FLAC)/include;$(freetype)/include/freetype2;$(libogg)/include;$(libopus)/include/opus;$(libopusfile)/include;$(libpng)/include;$(libuv)/include;$(libvorbis)/include;$(openalsoft)/include;$(openalsoft)/Alc;$(openalsoft)/common;$(openalsoft)/OpenAL32/include;$(openssl)/include;$(poco)/include;$(pugixml)/include;$(python)/include;$(RCCPP)/include;$(SDL)/include/SDL2;$(SDLImage)/include/SDL2;$(SDLTTF)/include/SDL2;$(sqlite)/include;$(vulkansdk)/Include;$(zlib)/include;%(AdditionalIncludeDirectories);</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_WIN32_WINNT=$(Win32WinNT);TZK_AUDIO_LOG_TRACING=$(AudioLogTracing);TZK_MOUSEMOVE_LOGS=$(MouseMoveLogs);TZK_USING_CATCH2=$(UsingCatch2);TZK_USING_FLAC=$(UsingFLAC);TZK_USING_FREETYPE=$(UsingFreetype);TZK_USING_IMGUI=$(UsingImGui);TZK_USING_LIBPNG=$(UsingLibPNG);TZK_USING_OGGOPUS=$(UsingOggOpus);TZK_USING_OGGVORBIS=$(UsingOggVorbis);TZK_USING_OPENALSOFT=$(UsingOpenALSoft);TZK_USING_OPENSSL=$(UsingOpenSSL);TZK_USING_PUGIXML=$(UsingPugixml);TZK_USING_PYTHON=$(UsingPython);TZK_USING_RCCPP=$(UsingRCCPP);TZK_USING_SDL=$(UsingSDL);SDL_MAIN_HANDLED;TZK_USING_SDLIMAGE=$(UsingSDLImage);TZK_USING_SQLITE=$(UsingSqlite);TZK_USING_SDLTTF=$(UsingSDLTTF);TZK_USING_STBF=$(UsingSTBF);TZK_USING_STBI=$(UsingSTBI);%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(FLAC)/lib;$(freetype)/lib;$(libogg)/lib;$(libopus)/lib;$(libopusfile)/lib;$(libpng)/lib;$(libvorbis)/lib;$(openalsoft)/lib;$(openssl)/lib;$(pugixml)/lib;$(RCCPP)/lib;$(SDL)/lib;$(SDLImage)/lib;$(SDLTTF)/lib;$(sqlite)/lib;$(vulkansdk)/lib;$(zlib)/lib;%(AdditionalLibraryDirectories);</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(FLAC)/lib;$(freetype)/lib;$(libogg)/lib;$(libopus)/lib;$(libopusfile)/lib;$(libpng)/lib;$(libvorbis)/lib;$(openalsoft)/lib;$(openssl)/lib;$(pugixml)/lib;$(python)/libs;$(RCCPP)/lib;$(SDL)/lib;$(SDLImage)/lib;$(SDLTTF)/lib;$(sqlite)/lib;$(vulkansdk)/lib;$(zlib)/lib;%(AdditionalLibraryDirectories);</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -65,6 +66,9 @@
     </BuildMacro>
     <BuildMacro Include="pugixml">
       <Value>$(pugixml)</Value>
+    </BuildMacro>
+    <BuildMacro Include="python">
+      <Value>$(python)</Value>
     </BuildMacro>
     <BuildMacro Include="SDL">
       <Value>$(SDL)</Value>

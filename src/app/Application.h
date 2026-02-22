@@ -262,6 +262,12 @@ private:
 		} display;
 
 		struct {
+		
+			std::string  python_executable;
+
+		} environment;
+
+		struct {
 
 		} keybinds;
 

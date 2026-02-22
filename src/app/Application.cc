@@ -2569,6 +2569,7 @@ Application::MapSettingsFromMemberVars()
 	cfg->Set(TZK_CVAR_SETTING_RSS_DATABASE_ENABLED, TConverter<bool>::ToString(my_cfg.rss.database.enabled));
 	cfg->Set(TZK_CVAR_SETTING_RSS_DATABASE_PATH, my_cfg.rss.database.path);
 	cfg->Set(TZK_CVAR_SETTING_RSS_FEEDS, my_cfg.rss.feeds);
+	cfg->Set(TZK_CVAR_SETTING_PYTHON_EXECUTABLE, my_cfg.environment.python_executable);
 	cfg->Set(TZK_CVAR_SETTING_UI_DEFAULT_FONT_FILE, my_cfg.ui.default_font.name);
 	cfg->Set(TZK_CVAR_SETTING_UI_DEFAULT_FONT_SIZE, TConverter<uint8_t>::ToString(my_cfg.ui.default_font.pt_size));
 	cfg->Set(TZK_CVAR_SETTING_UI_FIXED_WIDTH_FONT_FILE, my_cfg.ui.fixed_width_font.name);
@@ -2641,6 +2642,7 @@ Application::MapSettingsToMemberVars()
 	my_cfg.log.file.name_format = cfg->Get(TZK_CVAR_SETTING_LOG_FILE_NAME_FORMAT);
 	my_cfg.log.terminal.enabled = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_LOG_TERMINAL_ENABLED));
 	my_cfg.log.terminal.level = TConverter<LogLevel>::FromString(cfg->Get(TZK_CVAR_SETTING_LOG_TERMINAL_LEVEL));
+	my_cfg.environment.python_executable = cfg->Get(TZK_CVAR_SETTING_PYTHON_EXECUTABLE);
 	my_cfg.rss.database.enabled = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_RSS_DATABASE_ENABLED));
 	my_cfg.rss.database.path = cfg->Get(TZK_CVAR_SETTING_RSS_DATABASE_PATH);
 	my_cfg.rss.enabled = TConverter<bool>::FromString(cfg->Get(TZK_CVAR_SETTING_RSS_ENABLED));
