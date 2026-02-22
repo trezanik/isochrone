@@ -1071,6 +1071,7 @@ ImGuiWorkspace::ImGuiWorkspace(
 		my_title = "Loading";
 
 		my_reg_ids.emplace(my_evtmgr.Register(std::make_shared<core::DelayedEvent<std::shared_ptr<engine::EventData::config_change>>>(engine::uuid_configchange, std::bind(&ImGuiWorkspace::HandleConfigChange, this, std::placeholders::_1))));
+		my_reg_ids.emplace(my_evtmgr.Register(std::make_shared<core::Event<app::EventData::loaded_component_config>>(uuid_loaded_componentconfig, std::bind(&ImGuiWorkspace::HandleLoadedComponentConfig, this, std::placeholders::_1))));
 		my_reg_ids.emplace(my_evtmgr.Register(std::make_shared<core::Event<app::EventData::loaded_link>>(uuid_loaded_link, std::bind(&ImGuiWorkspace::HandleLoadedLink, this, std::placeholders::_1))));
 		my_reg_ids.emplace(my_evtmgr.Register(std::make_shared<core::Event<app::EventData::loaded_node>>(uuid_loaded_node, std::bind(&ImGuiWorkspace::HandleLoadedNode, this, std::placeholders::_1))));
 		my_reg_ids.emplace(my_evtmgr.Register(std::make_shared<core::Event<app::EventData::loaded_nodestyle>>(uuid_loaded_nodestyle, std::bind(&ImGuiWorkspace::HandleLoadedNodeStyle, this, std::placeholders::_1))));
@@ -1526,13 +1527,17 @@ ImGuiWorkspace::DrawLoadingDetails()
 
 	ImGui::BeginGroup();
 	ImGui::PushFont(_gui_interactions.font_fixed_width, _gui_interactions.font_fixed_width_size);
-	ImGui::Text("Nodes...........:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.nodes.size());
-	ImGui::Text("Links...........:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.links.size());
-	ImGui::Text("Node Styles.....:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.node_styles.size());
-	ImGui::Text("Pin Styles......:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.pin_styles.size());
-	ImGui::Text("Services........:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.services.size());
-	ImGui::Text("Service Groups..:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.service_groups.size());
-	ImGui::Text("Settings........:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.settings.size());
+	ImGui::Text("Nodes............:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.nodes.size());
+	ImGui::Text("Links............:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.links.size());
+	ImGui::Text("Node Styles......:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.node_styles.size());
+	ImGui::Text("Pin Styles.......:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.pin_styles.size());
+	ImGui::Text("Services.........:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.services.size());
+	ImGui::Text("Service Groups...:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.service_groups.size());
+	ImGui::Text("Settings.........:");  ImGui::SameLine();  ImGui::Text("%zu", my_loading_wksp_data.settings.size());
+	size_t  total = my_loading_wksp_data.configs.credentials.size()
+		+ my_loading_wksp_data.configs.headers.size()
+		+ my_loading_wksp_data.configs.online_track_states.size();
+	ImGui::Text("Component Configs:");  ImGui::SameLine();  ImGui::Text("%zu", total);
 	ImGui::PopFont();
 	ImGui::EndGroup();
 
@@ -2459,6 +2464,46 @@ ImGuiWorkspace::HandleLoadedNode(
 
 
 void
+ImGuiWorkspace::HandleLoadedComponentConfig(
+	app::EventData::loaded_component_config loaded
+)
+{
+	if ( my_workspace != nullptr )
+	{
+		// not for this workspace instance
+		// no ID to check against at this stage either
+		return;
+	}
+
+	switch ( loaded.type )
+	{
+	case cth_cmpt_credentials:
+		{
+			// contents here are not important (debug viewing), only the overall quantity of elements
+			auto cc = std::make_shared<credentials_config>();
+			cc->id = loaded.id;
+			cc->name = loaded.name;
+			my_loading_wksp_data.configs.credentials.push_back(cc);
+		}
+	default:
+		break;
+	}
+
+	std::stringstream  linf;
+	char  indent[] = "  ";
+
+	linf << "Component Config loaded:";
+	linf << "\n" << indent << "Type: " << loaded.type;
+	linf << "\n" << indent << "ID: " << loaded.id.GetCanonical();
+	linf << "\n" << indent << "Name: " << loaded.name;
+	// per-component specifics omitted intentionally for now
+
+	std::lock_guard<std::mutex>  lock(my_loading_entries_mutex);
+	my_loading_entries.emplace_back(linf.str());
+}
+
+
+void
 ImGuiWorkspace::HandleLoadedLink(
 	app::EventData::loaded_link loaded
 )
@@ -3211,6 +3256,9 @@ ImGuiWorkspace::SetWorkspace(
 	  || my_wksp_data.services.size() != my_loading_wksp_data.services.size()
 	  || my_wksp_data.service_groups.size() != my_loading_wksp_data.service_groups.size()
 	  || my_wksp_data.settings.size() != my_loading_wksp_data.settings.size()
+	  || my_wksp_data.configs.credentials.size() != my_loading_wksp_data.configs.credentials.size()
+	  || my_wksp_data.configs.headers.size() != my_loading_wksp_data.configs.headers.size()
+	  || my_wksp_data.configs.online_track_states.size() != my_loading_wksp_data.configs.online_track_states.size()
 	  // additional as needed
 	)
 	{

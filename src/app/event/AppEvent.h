@@ -36,6 +36,7 @@ static trezanik::core::UUID  uuid_process_stoppedfailure("f351235f-e4de-45fc-a21
 static trezanik::core::UUID  uuid_process_stoppedsuccess("bbb8c4a7-64b8-4e67-90bf-0224e0381205");
 static trezanik::core::UUID  uuid_userdata_update("dde82b54-382b-4710-a859-b0701d275b8f");
 
+static trezanik::core::UUID  uuid_loaded_componentconfig("82e81c8d-0684-4aa4-8533-bb4f1bd6d8bd");
 static trezanik::core::UUID  uuid_loaded_link("67487b8a-4d80-43c3-9f5b-fa5e29506062");
 static trezanik::core::UUID  uuid_loaded_node("1445a68e-c2aa-464c-8566-7fc498610b61");
 static trezanik::core::UUID  uuid_loaded_nodestyle("0fbcb7bb-b3aa-457f-b8eb-8bf6b344914b");
@@ -60,6 +61,7 @@ static trezanik::core::UUID  uuid_drawclient_location("ea099d77-7f00-4a3f-8340-2
 enum class UpState;  // PingMonitor.h
 enum class WindowLocation;  // ImGuiSemiFixedDock.h
 
+struct component_config;
 struct link;
 struct graph_node;
 struct service;
@@ -232,6 +234,15 @@ struct process_stopped_success
 	std::string   command_line;
 };
 
+
+struct loaded_component_config
+{
+	trezanik::core::UUID  workspace_id;
+	unsigned int  type;
+	trezanik::core::UUID  id;
+	std::string   name;
+	// component-specific attributes omitted by intent
+};
 
 struct loaded_link
 {

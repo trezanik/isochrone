@@ -44,6 +44,7 @@ extern size_t  num_inbuilt_pinstyles;
 /*
 
  */
+const char  xmlstr_root_configs[] = "configurations";
 const char  xmlstr_root_links[] = "links";
 const char  xmlstr_root_nodes[] = "nodes";
 const char  xmlstr_root_services[] = "services";
@@ -53,6 +54,7 @@ const char  xmlstr_root_styles[] = "styles";
 
 const char  xmlstr_components[] = "components";
 const char  xmlstr_components_child[] = "component";
+const char  xmlstr_configurations_child[] = "component";
 const char  xmlstr_forensics[] = "forensics";
 const char  xmlstr_links[] = "links";
 const char  xmlstr_links_child[] = "link";
@@ -77,6 +79,7 @@ const char  xmlstr_background[] = "background";
 const char  xmlstr_border[] = "border";
 const char  xmlstr_border_selected[] = "border_selected";
 const char  xmlstr_cpu[] = "cpu";
+const char  xmlstr_credentials[] = "credentials";
 const char  xmlstr_data[] = "data";
 const char  xmlstr_disk[] = "disk";
 const char  xmlstr_gpu[] = "gpu";
@@ -157,6 +160,8 @@ const char  xmlstr_attr_name[] = "name";
 const char  xmlstr_attr_nameserver[] = "nameserver";
 const char  xmlstr_attr_nameservers[] = "nameservers";
 const char  xmlstr_attr_netmask[] = "netmask";
+const char  xmlstr_attr_os[] = "os";
+const char  xmlstr_attr_password[] = "password";
 const char  xmlstr_attr_port[] = "port";
 const char  xmlstr_attr_port_high[] = "port_high";
 const char  xmlstr_attr_prefixlen[] = "prefixlen";
@@ -174,6 +179,7 @@ const char  xmlstr_attr_style[] = "style";
 const char  xmlstr_attr_thickness[] = "thickness";
 const char  xmlstr_attr_t[] = "t";
 const char  xmlstr_attr_type[] = "type";
+const char  xmlstr_attr_username[] = "username";
 const char  xmlstr_attr_value[] = "value";
 const char  xmlstr_attr_vendor[] = "vendor";
 const char  xmlstr_attr_version[] = "version";
@@ -217,6 +223,19 @@ std::map<std::string, std::string>  typemap {
 	{settingname_nodelist_overrideappstyle, strtype_bool},
 	{settingname_nodelist_sortorder, strtype_string}
 };
+
+
+// Used as node and shared component
+void
+LoadComponent_Credentials(
+	pugi::xml_node xml_component,
+	node_component_credentials& credentials
+)
+{
+	pugi::xml_attribute  attr_id = xml_component.attribute(xmlstr_attr_id);
+
+	credentials.id = attr_id.value();
+}
 
 
 void
@@ -753,15 +772,14 @@ LoadPins(
 }
 
 
-#if 0
 void
 SaveComponent_Credentials(
 	pugi::xml_node xml_component,
-	node_component_credentials& creds
+	node_component_credentials& credentials
 )
 {
+	xml_component.append_attribute(xmlstr_attr_id).set_value(credentials.id.GetCanonical());
 }
-#endif
 
 
 void
@@ -1039,6 +1057,7 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::Load(
 	pugi::xml_node  xml_service_groups = xml_wksproot.child(xmlstr_root_servicegroups);
 	pugi::xml_node  xml_settings = xml_wksproot.child(xmlstr_root_settings);
 	pugi::xml_node  xml_styles = xml_wksproot.child(xmlstr_root_styles);
+	pugi::xml_node  xml_configs = xml_wksproot.child(xmlstr_root_configs);
 
 	if ( xml_settings )
 	{
@@ -1069,6 +1088,134 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::Load(
 	{
 		wksp_load_styles  styles_ldr { loader.wksp_data, &xml_styles };
 		LoadStyles(styles_ldr);
+	}
+	if ( xml_configs )
+	{
+		wksp_load_configs  configs_ldr { loader.wksp_data, &xml_configs };
+		LoadConfigs(configs_ldr);
+	}
+
+	return ErrNONE;
+}
+
+
+int
+Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadConfigs(
+	struct wksp_load_configs& loader
+)
+{
+	using namespace trezanik::core;
+
+	pugi::xml_node&  xml_comps = *loader.xml_configs_root;
+	pugi::xml_node   xml_comp;
+	size_t  num_comps = 0;
+	size_t  valid_comps = 0;
+	bool    case_sens = true;
+
+	if ( xml_comps )
+	{
+		xml_comp = xml_comps.child(xmlstr_configurations_child);
+	}
+
+	while ( xml_comp )
+	{
+		if ( STR_compare(xml_comp.name(), xmlstr_configurations_child, case_sens) != 0 )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", xmlstr_configurations_child, xmlstr_root_configs, xml_comp.name());
+			xml_comp = xml_comp.next_sibling();
+			continue;
+		}
+
+		num_comps++;
+
+		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu", xmlstr_configurations_child, num_comps);
+
+		pugi::xml_attribute  attr_type = xml_comp.attribute(xmlstr_attr_type);
+		pugi::xml_attribute  attr_id = xml_comp.attribute(xmlstr_attr_id);
+		pugi::xml_attribute  attr_name = xml_comp.attribute(xmlstr_attr_name); // optional, but common
+
+		char  failfmt[] = "Fail: %s %zu is invalid - %s";
+
+		if ( !attr_id )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_configurations_child, num_comps, "no id");
+			xml_comp = xml_comp.next_sibling();
+			continue;
+		}
+		if ( !UUID::IsStringUUID(attr_id.value()) )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_configurations_child, num_comps, "malformed id");
+			xml_comp = xml_comp.next_sibling();
+			continue;
+		}
+		if ( !attr_type )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_configurations_child, num_comps, "no type");
+			xml_comp = xml_comp.next_sibling();
+			continue;
+		}
+
+		switch ( attr_type.as_uint() )
+		{
+		case cth_cmpt_credentials:
+			{
+				pugi::xml_attribute  attr_user = xml_comp.attribute(xmlstr_attr_username);
+				pugi::xml_attribute  attr_pass = xml_comp.attribute(xmlstr_attr_password);
+
+				auto  creds = std::make_shared<credentials_config>();
+				creds->id = attr_id.value();
+				creds->name = attr_name.value();
+				creds->username = attr_user.value();
+				creds->password = attr_pass.value();
+
+				// direct addition
+				loader.wksp_data->configs.credentials.push_back(creds);
+			}
+			break;
+		case cth_cmpt_header:
+			{
+				// no current config options
+			}
+			break;
+		case cth_cmpt_online_track:
+			{
+				// coming real soon kids!
+			}
+			break;
+		case cth_cmpt_sysinfo:
+			{
+				// no current config options (expand to auto-acq, manual only, scopes)
+			}
+			break;
+		default:
+			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_configurations_child, num_comps, "type hash unrecognised");
+			xml_comp = xml_comp.next_sibling();
+			continue;
+		}
+
+		valid_comps++;
+
+		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu complete", xmlstr_configurations_child, num_comps);
+		xml_comp = xml_comp.next_sibling();
+
+		/*
+		 * This is for advisory purposes only; direct addition bypasses event
+		 * management needs.
+		 * We must bypass here and add directly above otherwise the receivers
+		 * will have to have unique event types for each, making them poorly
+		 * extensible - especially considering we already have the requirements
+		 * in place above!
+		 * 
+		 * Main intention is to avoid credentials/secrets from hitting the event
+		 * pump, so all component configs are basic info for logging and tracking
+		 * purposes.
+		 */
+		app::EventData::loaded_component_config  evt;
+		evt.name = attr_name.value();
+		evt.id = attr_id.value();
+		evt.type = attr_type.as_uint();
+		evt.workspace_id = loader.wksp_data->id;
+		my_evtmgr.DispatchEvent(uuid_loaded_componentconfig, evt);
 	}
 
 	return ErrNONE;
@@ -1436,6 +1583,14 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadNodes(
 		}
 
 
+		pugi::xml_attribute  attr_os = xml_node.attribute(xmlstr_attr_os);
+
+		if ( attr_os )
+		{
+			node->operating_system = TConverter<OperatingSystem>::FromString(attr_os.value());
+		}
+
+
 		pugi::xml_attribute  attr_added = xml_node.attribute(xmlstr_attr_added); 
 
 		if ( attr_added )
@@ -1474,17 +1629,17 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadNodes(
 			auto  xpns = xml_components.select_nodes(xmlstr_components_child);
 			for ( auto& xnode : xpns )
 			{
-				pugi::xml_attribute  attr_cmpt_id = xnode.node().attribute(xmlstr_attr_id);
-				uint32_t  cth = attr_cmpt_id.as_uint();
+				pugi::xml_attribute  attr_cmpt_type = xnode.node().attribute(xmlstr_attr_type);
+				uint32_t  cth = attr_cmpt_type.as_uint();
 
 				switch ( cth )
 				{
 				case cth_cmpt_credentials:
 					{
 						TZK_LOG(LogLevel::Trace, "Credentials component identified");
-						/*auto  creds = std::make_unique<node_component_credentials>();
+						auto  creds = std::make_unique<node_component_credentials>();
 						LoadComponent_Credentials(xnode.node(), *creds.get());
-						node->components.push_back(std::move(creds));*/
+						node->components.push_back(std::move(creds));
 					}
 					break;
 				case cth_cmpt_header:
@@ -1512,12 +1667,12 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadNodes(
 					}
 					break;
 				default:
-					TZK_LOG_FORMAT(LogLevel::Warning, "No compile-time hash found for provided id: %u", cth);
+					TZK_LOG_FORMAT(LogLevel::Warning, "No compile-time hash found for provided %s: %u", xmlstr_attr_type, cth);
 					break;
 				}
 			}
 		}
-			
+		
 		valid_nodes++;
 
 		LoadPins(xml_topology.child(xmlstr_pins), node->id, &node->graph, loader.wksp_data);
@@ -2451,7 +2606,6 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::Save(
 		SaveLinks(wsl);
 	}
 
-	
 	size_t  saveables = 0;
 	nodelist_style  default_nlstyle;
 	saveables += (saver.wksp_data->node_styles.size() - num_inbuilt_nodestyles);
@@ -2471,13 +2625,67 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::Save(
 		wss.wksp_data = saver.wksp_data;
 
 		SaveStyles(wss);
-	}	
+	}
+
+	bool  has_configs = !saver.wksp_data->configs.credentials.empty()
+		|| !saver.wksp_data->configs.headers.empty()
+		|| !saver.wksp_data->configs.online_track_states.empty();
+	if ( has_configs )
+	{
+		wksp_save_configs  wssc;
+		pugi::xml_node   child = xml_workspace.append_child(xmlstr_root_configs);
+
+		wssc.xml_configs_root = &child;
+		wssc.wksp_data = saver.wksp_data;
+
+		SaveConfigs(wssc);
+	}
 
 	// caller will now call doc.save_file() to commmit to disk
 
 	return ErrNONE;
 }
-	
+
+
+int
+Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::SaveConfigs(
+	struct wksp_save_configs& saver
+)
+{
+	using namespace trezanik::core;
+
+	for ( auto& cmpt : saver.wksp_data->configs.credentials )
+	{
+		pugi::xml_node  xmlcmpt = saver.xml_configs_root->append_child(xmlstr_configurations_child);
+
+		xmlcmpt.append_attribute(xmlstr_attr_type).set_value(cth_cmpt_credentials);
+		xmlcmpt.append_attribute(xmlstr_attr_id).set_value(cmpt->id.GetCanonical());
+		xmlcmpt.append_attribute(xmlstr_attr_name).set_value(cmpt->name.c_str());
+		if ( !cmpt->username.empty() )
+			xmlcmpt.append_attribute(xmlstr_attr_username).set_value(cmpt->username.c_str());
+		if ( !cmpt->password.empty() )
+			xmlcmpt.append_attribute(xmlstr_attr_password).set_value(cmpt->password.c_str());
+
+		// keys
+	}
+	for ( auto& cmpt : saver.wksp_data->configs.headers )
+	{
+		pugi::xml_node  xmlcmpt = saver.xml_configs_root->append_child(xmlstr_configurations_child);
+
+		xmlcmpt.append_attribute(xmlstr_attr_type).set_value(cth_cmpt_header);
+		xmlcmpt.append_attribute(xmlstr_attr_id).set_value(cmpt->id.GetCanonical());
+	}
+	for ( auto& cmpt : saver.wksp_data->configs.online_track_states )
+	{
+		pugi::xml_node  xmlcmpt = saver.xml_configs_root->append_child(xmlstr_configurations_child);
+
+		xmlcmpt.append_attribute(xmlstr_attr_type).set_value(cth_cmpt_online_track);
+		xmlcmpt.append_attribute(xmlstr_attr_id).set_value(cmpt->id.GetCanonical());
+	}
+
+	return ErrNONE;
+}
+
 
 int
 Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::SaveLinks(
@@ -2553,6 +2761,13 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::SaveNodes(
 			}
 		}
 
+		if ( node->operating_system != OperatingSystem::Invalid )
+		{
+			xmlnode.append_attribute(xmlstr_attr_os).set_value(
+				TConverter<OperatingSystem>::ToString(node->operating_system).c_str()
+			);
+		}
+
 		//pugi::xml_node  xml_forensics = xmlnode.append_child(xmlstr_forensics);
 		//todo; and only create if content exists
 
@@ -2563,13 +2778,21 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::SaveNodes(
 			for ( auto& cmpt : node->components )
 			{
 				pugi::xml_node  xmlcomponent = xmlcomponents.append_child(xmlstr_components_child);
-				xmlcomponent.append_attribute(xmlstr_attr_id).set_value(cmpt->component_id);
+				xmlcomponent.append_attribute(xmlstr_attr_type).set_value(cmpt->component_id);
 
 				switch ( cmpt->component_id )
 				{
 				case cth_cmpt_credentials:
 					{
-						
+						auto cast = dynamic_cast<node_component_credentials*>(cmpt.get());
+						if ( cast != nullptr )
+						{
+							SaveComponent_Credentials(xmlcomponent, *cast);
+						}
+						else
+						{
+							TZK_LOG_FORMAT(LogLevel::Warning, "Component has hash %u, but typecast failed", cmpt->component_id);
+						}
 					}
 					break;
 				case cth_cmpt_header:
@@ -2603,7 +2826,19 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::SaveNodes(
 						auto cast = dynamic_cast<node_component_systeminfo*>(cmpt.get());
 						if ( cast != nullptr )
 						{
-							SaveComponent_SysInfo(xmlcomponent, cast->system_info);
+							/*
+							 * SystemInfo components are useless if empty, and
+							 * automatically created on demand so don't bother
+							 * saving them
+							 */
+							if ( cast->system_info.IsEmpty() )
+							{
+								xmlcomponents.remove_child(xmlcomponent);
+							}
+							else
+							{
+								SaveComponent_SysInfo(xmlcomponent, cast->system_info);
+							}
 						}
 						else
 						{

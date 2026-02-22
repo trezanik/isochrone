@@ -99,6 +99,88 @@ TConverter<AudioAction>::ToUint8(
 }
 
 
+//-------------- ComponentConfigType
+
+const char  str_credentials[] = "Credentials";
+const char  str_headers[] = "Headers";
+const char  str_online_track[] = "OnlineTrack";
+const char  str_system_info[] = "SystemInfo";
+
+template<>
+ComponentConfigType
+TConverter<ComponentConfigType>::FromString(
+	const char* str
+)
+{
+	bool  case_sensitive = false;
+
+	if ( STR_compare(str, str_play, case_sensitive) == 0 )
+		return ComponentConfigType::Credentials;
+	if ( STR_compare(str, str_pause, case_sensitive) == 0 )
+		return ComponentConfigType::Header;
+	if ( STR_compare(str, str_stop, case_sensitive) == 0 )
+		return ComponentConfigType::OnlineTrack;
+	if ( STR_compare(str, str_stop, case_sensitive) == 0 )
+		return ComponentConfigType::SystemInfo;
+
+	return ComponentConfigType::Invalid;
+}
+
+
+template<>
+ComponentConfigType
+TConverter<ComponentConfigType>::FromString(
+	const std::string& str
+)
+{
+	return FromString(str.c_str());
+}
+
+
+template<>
+ComponentConfigType
+TConverter<ComponentConfigType>::FromUint8(
+	const uint8_t uint8
+)
+{
+	// the last element
+	if ( uint8 > static_cast<uint8_t>(ComponentConfigType::SystemInfo) )
+		return ComponentConfigType::Invalid;
+
+	return static_cast<ComponentConfigType>(uint8);
+}
+
+
+template<>
+std::string
+TConverter<ComponentConfigType>::ToString(
+	ComponentConfigType value
+)
+{
+	switch ( value )
+	{
+	case ComponentConfigType::Credentials:  return str_credentials;
+	case ComponentConfigType::Header:       return str_headers;
+	case ComponentConfigType::OnlineTrack:  return str_online_track;
+	case ComponentConfigType::SystemInfo:   return str_system_info;
+	default:
+		break;
+	}
+
+	return text_invalid;
+}
+
+
+template<>
+uint8_t
+TConverter<ComponentConfigType>::ToUint8(
+	ComponentConfigType value
+)
+{
+	return static_cast<uint8_t>(value);
+}
+
+
 //-------------- PinType
 
 const char  str_svr[] = "Server";
@@ -250,6 +332,83 @@ TConverter<IPProto>::ToUint8(
 )
 {
 	return static_cast<uint8_t>(proto);
+}
+
+
+//-------------- Operating System
+
+const char  str_os_unspecified[] = "Unspecified";
+const char  str_os_windows[] = "Windows";
+const char  str_os_linux[] = "Linux";
+
+template<>
+OperatingSystem
+TConverter<OperatingSystem>::FromString(
+	const char* str
+)
+{
+	bool  case_sensitive = false;
+
+	if ( STR_compare(str, str_os_windows, case_sensitive) == 0 )
+		return OperatingSystem::Windows;
+	if ( STR_compare(str, str_os_linux, case_sensitive) == 0 )
+		return OperatingSystem::Linux;
+
+	return OperatingSystem::Invalid;
+}
+
+
+
+template<>
+OperatingSystem
+TConverter<OperatingSystem>::FromString(
+	const std::string& str
+)
+{
+	return FromString(str.c_str());
+}
+
+
+ 
+template<>
+OperatingSystem
+TConverter<OperatingSystem>::FromUint8(
+	const uint8_t uint8
+)
+{
+	// the last element
+	if ( uint8 > static_cast<uint8_t>(OperatingSystem::Linux) )
+		return OperatingSystem::Invalid;
+
+	return static_cast<OperatingSystem>(uint8);
+}
+ 
+ 
+template<>
+std::string
+TConverter<OperatingSystem>::ToString(
+	OperatingSystem os
+)
+{
+	switch ( os )
+	{
+	case OperatingSystem::Windows:   return str_os_windows;
+	case OperatingSystem::Linux:     return str_os_linux;
+	default:
+		break;
+	}
+
+	return str_os_unspecified; // special case as displayed in the UI
+}
+ 
+ 
+template<>
+uint8_t
+TConverter<OperatingSystem>::ToUint8(
+	OperatingSystem os
+)
+{
+	return static_cast<uint8_t>(os);
 }
 
 

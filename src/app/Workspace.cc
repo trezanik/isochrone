@@ -480,6 +480,23 @@ Workspace::GetWorkspaceData() const
 
 
 void
+Workspace::HandleLoadedComponentConfig(
+	app::EventData::loaded_component_config loaded
+)
+{
+	if ( loaded.workspace_id != my_id )
+		return;
+
+	/*
+	 * Special case; we need no operations here, the loader adds all these to
+	 * the dataset directly.
+	 * 
+	 * See Workspace_<id>.cc : LoadConfigs event dispatch comment
+	 */
+}
+
+
+void
 Workspace::HandleLoadedLink(
 	app::EventData::loaded_link loaded
 )
@@ -654,6 +671,7 @@ Workspace::Load(
 	my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<app::EventData::process_stopped_failure>>(uuid_process_stoppedfailure, std::bind(&Workspace::HandleProcessFailure, this, std::placeholders::_1))));
 	my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<app::EventData::process_stopped_success>>(uuid_process_stoppedsuccess, std::bind(&Workspace::HandleProcessSuccess, this, std::placeholders::_1))));
 
+	my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<app::EventData::loaded_component_config>>(uuid_loaded_componentconfig, std::bind(&Workspace::HandleLoadedComponentConfig, this, std::placeholders::_1))));
 	my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<app::EventData::loaded_link>>(uuid_loaded_link, std::bind(&Workspace::HandleLoadedLink, this, std::placeholders::_1))));
 	my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<app::EventData::loaded_node>>(uuid_loaded_node, std::bind(&Workspace::HandleLoadedNode, this, std::placeholders::_1))));
 	my_reg_ids.emplace(evtmgr->Register(std::make_shared<core::Event<app::EventData::loaded_nodestyle>>(uuid_loaded_nodestyle, std::bind(&Workspace::HandleLoadedNodeStyle, this, std::placeholders::_1))));

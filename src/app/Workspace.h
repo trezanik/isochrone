@@ -26,7 +26,9 @@
 #include "imgui/ImNodeGraphLink.h"  // only for LinkMethod - refactor like pin, avoid imgui headers here
 
 #if TZK_USING_PUGIXML
-#	include <pugixml.hpp>
+namespace pugi {
+	class xml_node;
+}
 #endif
 
 #include <algorithm>
@@ -59,6 +61,16 @@ struct wksp_load
 	workspace_data*  wksp_data;
 #if TZK_USING_PUGIXML
 	pugi::xml_node*  xml_root;
+#else
+	void*  dummy;
+#endif
+};
+
+struct wksp_load_configs
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_configs_root;
 #else
 	void*  dummy;
 #endif
@@ -114,6 +126,16 @@ struct wksp_load_settings
 #endif
 };
 
+struct wksp_load_shared_components
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_shared_components_root;
+#else
+	void*  dummy;
+#endif
+};
+
 struct wksp_load_styles
 {
 	workspace_data*  wksp_data;
@@ -134,6 +156,16 @@ struct wksp_save
 	void*  dummy;
 #endif
 	
+};
+
+struct wksp_save_configs
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_configs_root;
+#else
+	void*  dummy;
+#endif
 };
 
 struct wksp_save_links
@@ -181,6 +213,16 @@ struct wksp_save_settings
 	workspace_data*  wksp_data;
 #if TZK_USING_PUGIXML
 	pugi::xml_node*  xml_settings_root;
+#else
+	void*  dummy;
+#endif
+};
+
+struct wksp_save_shared_components
+{
+	workspace_data*  wksp_data;
+#if TZK_USING_PUGIXML
+	pugi::xml_node*  xml_shared_components_root;
 #else
 	void*  dummy;
 #endif
@@ -462,6 +504,11 @@ struct node_component_credentials : public node_component
 	{
 		return false;
 	}*/
+
+	/**
+	 * Identifier for credentials this component maps to
+	 */
+	trezanik::core::UUID  id;
 };
 
 
@@ -707,6 +754,102 @@ struct node_component_systeminfo : public node_component
 	/** Manually entered system information */
 	system  system_info;
 };
+
+
+/**
+ * .
+ */
+enum class ComponentConfigType : uint8_t
+{
+	Invalid,  //< Initial, undefined state
+	Credentials, //< .
+	Header,      //< .
+	OnlineTrack, //< .
+	SystemInfo   //< .
+};
+
+
+/**
+ * Target operating system
+ *
+ * Used to determine what command to execute, and the parser routine to engage.
+ *
+ * Should a system do something different (e.g. if Windows has a redesign and
+ * there's now a Registry2.0), they'll need to be added independently and all
+ * surrounding code/structure updated to support the new requirements
+ */
+enum class OperatingSystem : uint8_t
+{
+	Invalid,
+	Windows,
+	Linux,
+	// no actual implementation - and has various issues in concept! But I can dream
+	FreeBSD,
+	OpenBSD,
+	NetBSD
+};
+
+
+/**
+ * Credentials used for remote system connections
+ * 
+ * Components 'point' to these structures via ID, making them shareable across
+ * multiple nodes, and enable pre-creation.
+ * 
+ * This structure is written out to the workspace XML.
+ * 
+ * Keys and encryption will be handled later, basic operations first-off
+ */
+struct credentials_config
+{
+	/** Unique identifier of this configuration */
+	trezanik::core::UUID  id;
+
+	/**
+	 * Display name, as presented to the user. Need not be unique
+	 */
+	std::string  name;
+
+	/** Self-explanatory */
+	std::string  username;
+	/** Self-explanatory */
+	std::string  password;
+};
+
+/**
+ * .
+ */
+struct online_state_track_config
+{
+	/** Unique identifier of this configuration */
+	trezanik::core::UUID  id;
+
+	/**
+	 * Display name, as presented to the user. Need not be unique
+	 */
+	std::string  name;
+};
+
+/**
+ * .
+ */
+struct node_header_config
+{
+	/** Unique identifier of this configuration */
+	trezanik::core::UUID  id;
+
+	/**
+	 * Display name, as presented to the user. Need not be unique
+	 */
+	std::string  name;
+};
+
+
+
+
+
+
+
 
 
 /**
@@ -1069,6 +1212,14 @@ struct workspace_node
 	 */
 	time_t  added = 0;
 
+	/**
+	 * The type of operating system this node hosts
+	 * 
+	 * Optional in design; used for determining process flows for executing
+	 * commands, obtaining forensic data, and general display. Valid only
+	 * for single target nodes (i.e. one host, not ranges, subnets, etc.)
+	 */
+	OperatingSystem  operating_system = OperatingSystem::Invalid;
 
 	/**
 	 * Destroys the component of the supplied ID if present in this node
@@ -1192,6 +1343,12 @@ struct workspace_data
 
 	/** Backend service_group definitions */
 	std::vector<std::shared_ptr<service_group>>  service_groups;
+
+	struct {
+		std::vector<std::shared_ptr<credentials_config>>  credentials;
+		std::vector<std::shared_ptr<online_state_track_config>>  online_track_states;
+		std::vector<std::shared_ptr<node_header_config>>  headers;
+	} configs;//cmpt_configs or smth? I don't like this! Think of better name...
 
 	/**
 	 * All nodes
@@ -1420,7 +1577,7 @@ private:
 	AddServiceGroup(
 		std::shared_ptr<service_group> svc_grp
 	);
-	
+
 
 	/**
 	 * Event handler for a Process Abort notification
@@ -1469,6 +1626,18 @@ private:
 		trezanik::app::EventData::process_stopped_success pssuccess
 	);
 
+
+
+	/**
+	 * Event handler for a Component Config loaded notification
+	 *
+	 * @param[in] loaded
+	 *  Event data for loaded_component_config
+	 */
+	void
+	HandleLoadedComponentConfig(
+		app::EventData::loaded_component_config loaded
+	);
 
 
 	/**

@@ -301,6 +301,22 @@ private:
 
 
 	/**
+	 * 
+	 */
+	void
+	DrawComponentEditor();
+
+
+	/**
+	 * 
+	 */
+	void
+	DrawHardwareEditor(
+		node_component_systeminfo::system& sysinf
+	);
+
+
+	/**
 	 * Displays the loading window, showing the live progress load
 	 * 
 	 * Replaces the standard workspace view. Configurable as to whether this
@@ -334,6 +350,18 @@ private:
 	void
 	HandleConfigChange(
 		std::shared_ptr<trezanik::engine::EventData::config_change> cc
+	);
+
+
+	/**
+	 * Event handler for when a component config has been loaded
+	 *
+	 * @param[in] loaded
+	 *  The structure detailing the loaded component config
+	 */
+	void
+	HandleLoadedComponentConfig(
+		app::EventData::loaded_component_config loaded
 	);
 
 

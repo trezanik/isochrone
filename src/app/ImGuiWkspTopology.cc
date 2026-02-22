@@ -1586,11 +1586,16 @@ ImGuiWkspTopology::DrawHardwareDialog(
 	auto  wnode = node->GetWorkspaceNode();
 	if ( !wnode->has_component(cth_cmpt_sysinfo) )
 	{
+#if 0  // Code Disabled: create the component if it doesn't have one already. Auto-deleted on save if empty
 		TZK_LOG_FORMAT(LogLevel::Warning, "Hardware Dialog attempted opening for node (%s) without a system info component", node->GetID().GetCanonical());
 		my_draw_hardware_popup = false;
 		ImGui::CloseCurrentPopup();
 		ImGui::EndPopup();
 		return;
+#else
+		auto  sysinf = std::make_unique<node_component_systeminfo>();
+		wnode->components.push_back(std::move(sysinf));
+#endif
 	}
 
 	auto  nc_sysinf = dynamic_cast<node_component_systeminfo*>(wnode->get_component(cth_cmpt_sysinfo));

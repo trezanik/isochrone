@@ -37,6 +37,14 @@ private:
 protected:
 	
 	/**
+	 * Implementation of IWorkspacePimpl::LoadConfigs
+	 */
+	virtual int
+	LoadConfigs(
+		struct wksp_load_configs& loader
+	) override;
+
+	/**
 	 * Implementation of IWorkspacePimpl::LoadLinks
 	 */
 	virtual int
@@ -84,6 +92,14 @@ protected:
 		struct wksp_load_styles& loader
 	) override;
 
+
+	/**
+	 * Implementation of IWorkspacePimpl::SaveConfigs
+	 */
+	virtual int
+	SaveConfigs(
+		struct wksp_save_configs& saver
+	) override;
 
 	/**
 	 * Implementation of IWorkspacePimpl::SaveLinks

@@ -32,6 +32,7 @@ namespace app {
  */
  
 struct wksp_load;
+struct wksp_load_configs;
 struct wksp_load_links;
 struct wksp_load_nodes;
 struct wksp_load_services;
@@ -40,6 +41,7 @@ struct wksp_load_settings;
 struct wksp_load_styles;
 
 struct wksp_save;
+struct wksp_save_configs; 
 struct wksp_save_links;
 struct wksp_save_nodes;
 struct wksp_save_services;
@@ -66,6 +68,11 @@ protected:
 
 	trezanik::core::UUID  _wkspversion_id;
 	
+
+	virtual int
+	LoadConfigs(
+		struct wksp_load_configs& loader
+	) = 0;
 
 	virtual int
 	LoadLinks(
@@ -97,6 +104,11 @@ protected:
 		struct wksp_load_styles& loader
 	) = 0;
 
+
+	virtual int
+	SaveConfigs(
+		struct wksp_save_configs& saver
+	) = 0;
 
 	virtual int
 	SaveLinks(
