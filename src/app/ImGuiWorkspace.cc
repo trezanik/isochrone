@@ -779,14 +779,17 @@ public:
 	{
 		using namespace trezanik::core;
 
-		ImVec2  listbox_size(250.f, 3 * ImGui::GetTextLineHeightWithSpacing());
+		float   preferred_width = 250.f;
+		ImVec2  listbox_size(preferred_width, 3 * ImGui::GetTextLineHeightWithSpacing());
 
-		ImVec2  min(100.f, 100.f);
-		ImVec2  max(768.f, 512.f);
+		ImVec2  min(110.f, 110.f);
+		ImVec2  max = ImGui::GetMainViewport()->Size;
+		max.x -= 20.f;
+		max.y -= 20.f;
 		ImGui::SetNextWindowSizeConstraints(min, max);
 
 		// ensure OpenPopup is performed at the same ID stack level
-		if ( node == nullptr || !ImGui::BeginPopupModal("Workspace Node Editor", &show_node_dialog, ImGuiWindowFlags_AlwaysAutoResize) )
+		if ( node == nullptr || !ImGui::BeginPopupModal("Workspace Node Editor", &show_node_dialog, ImGuiWindowFlags_None) )
 		{
 			// titlebar closure will not send the update event!
 			return;
@@ -797,167 +800,537 @@ public:
 			ImGuiInputTextFlags_CallbackCompletion
 			| ImGuiInputTextFlags_EnterReturnsTrue;
 
+		ImGui::PushItemWidth(preferred_width);
 		if ( ImGui::InputText("Node Name", &node->name, txtinp_flags, &NodeNameEditCallbackStub, &udata) )
 		{
 			// handles return, but not tab - callback needed to handle tab too
 			CompleteNodeRename(node);
 		}
+		ImGui::PopItemWidth();
 		ImGui::SameLine();
 		ImGui::HelpMarker("Maximum 127 characters, cannot be all whitespace");
 
 		ImGui::Separator();
 
-		ImGui::BeginGroup();
-
-		/// @todo add callback for validation, IP lookups. Hosts must not start with a digit.
-		ImGui::InputText("Target", target_input_buf, sizeof(target_input_buf));
-		ImGui::SameLine();
-		ImGui::HelpMarker("One of Hostname, IP address, IP range, Subnet, e.g.\n"
-			"host, 127.0.0.1, 127.0.0.1-127.0.0.128, 127.0.0.0/24"
-		);
-
-		if ( ImGui::BeginListBox("##NodeTargets", listbox_size) )
+		if ( !ImGui::BeginTabBar("NodeEditorTabBar") )
 		{
-			int   pos = -1;
-			for ( auto& t : node->targets )
-			{
-				const bool  is_selected = (++pos == node->selected_target);
+			//ImGui::CloseCurrentPopup(); // unbreakable, leave so resize could work??
+			ImGui::EndPopup();
+			return;
+		}
 
-				if ( ImGui::Selectable(t.target.c_str(), is_selected) )
+
+		if ( ImGui::BeginTabItem("Targets") )
+		{
+			ImGui::BeginGroup();
+			ImGui::PushItemWidth(preferred_width);
+			/// @todo add callback for validation, IP lookups. Hosts must not start with a digit.
+			ImGui::InputText("Target", target_input_buf, sizeof(target_input_buf));
+			ImGui::PopItemWidth();
+			ImGui::SameLine();
+			ImGui::HelpMarker("One of Hostname, IP address, IP range, Subnet, e.g.\n"
+				"host, 127.0.0.1, 127.0.0.1-127.0.0.128, 127.0.0.0/24"
+			);
+
+			if ( ImGui::BeginListBox("##NodeTargets", listbox_size) )
+			{
+				int   pos = -1;
+				for ( auto& t : node->targets )
 				{
-					// since there's no trivial 'deselect', re-selection will clear
-					if ( node->selected_target == pos )
+					const bool  is_selected = (++pos == node->selected_target);
+
+					if ( ImGui::Selectable(t.target.c_str(), is_selected) )
 					{
-						TZK_LOG_FORMAT(LogLevel::Trace, "Unselected %s: %d (%s)", "target", pos, t.target.c_str());
-						node->selected_target = -1;
-						selected_node_target = nullptr;
+						// since there's no trivial 'deselect', re-selection will clear
+						if ( node->selected_target == pos )
+						{
+							TZK_LOG_FORMAT(LogLevel::Trace, "Unselected %s: %d (%s)", "target", pos, t.target.c_str());
+							node->selected_target = -1;
+							selected_node_target = nullptr;
+						}
+						else
+						{
+							TZK_LOG_FORMAT(LogLevel::Trace, "Selected %s: %d (%s)", "target", pos, t.target.c_str());
+							node->selected_target = pos;
+							// set: selected_node_target = (workspace_node_target*)&(*std::next(node->targets.begin(), node->selected_target));
+							selected_node_target = &node->targets.at(node->selected_target);
+						}
 					}
-					else
+					if ( is_selected )
 					{
-						TZK_LOG_FORMAT(LogLevel::Trace, "Selected %s: %d (%s)", "target", pos, t.target.c_str());
-						node->selected_target = pos;
-						// set: selected_node_target = (workspace_node_target*)&(*std::next(node->targets.begin(), node->selected_target));
-						selected_node_target = &node->targets.at(node->selected_target);
+						ImGui::SetItemDefaultFocus();
 					}
 				}
-				if ( is_selected )
-				{
-					ImGui::SetItemDefaultFocus();
-				}
+				ImGui::EndListBox();
 			}
-			ImGui::EndListBox();
-		}
-		ImGui::EndGroup();
-		ImGui::SameLine();
-		ImGui::BeginGroup();
-		bool  disable_add = target_input_buf[0] == '\0' || IsTargetDuplicate(target_input_buf, selected_node->targets); // + is all whitespace
-		if ( disable_add )
-		{
-			ImGui::BeginDisabled();
-		}
-		if ( ImGui::Button("Add") )
-		{
-			TZK_LOG(LogLevel::Trace, "Adding target");
+			ImGui::EndGroup();
 
-			workspace_node_target  tgt;
-			tgt.disabled = false;
-			tgt.target = target_input_buf;
-			tgt.uuid.Generate();
-			selected_node->targets.push_back(tgt);
-			selected_node_target = &selected_node->targets.back();
-		}
-		if ( disable_add )
-		{
-			ImGui::EndDisabled();
-		}
-		ImGui::Separator();
+			ImGui::SameLine();
 
-		bool  disable_delete = selected_node_target == nullptr
-			|| selected_node->selected_target == -1;
-		if ( disable_delete )
-		{
-			ImGui::BeginDisabled();
-		}
-		if ( ImGui::Button("Delete") )
-		{
-			TZK_LOG(LogLevel::Trace, "Deleting target");
-
-			auto  iter = std::find_if(selected_node->targets.begin(), selected_node->targets.end(), [this](auto&& t){
-				return t.target == selected_node_target->target;
-			});
-			if ( iter != selected_node->targets.end() )
+			ImGui::BeginGroup();
+			bool  disable_add = target_input_buf[0] == '\0' || IsTargetDuplicate(target_input_buf, selected_node->targets); // + is all whitespace
+			if ( disable_add )
 			{
+				ImGui::BeginDisabled();
+			}
+			if ( ImGui::Button("Add") )
+			{
+				TZK_LOG(LogLevel::Trace, "Adding target");
+
+				workspace_node_target  tgt;
+				tgt.disabled = false;
+				tgt.target = target_input_buf;
+				tgt.uuid.Generate();
+				selected_node->targets.push_back(tgt);
+				selected_node_target = &selected_node->targets.back();
+			}
+			if ( disable_add )
+			{
+				ImGui::EndDisabled();
+			}
+			ImGui::Separator();
+
+			bool  disable_delete = selected_node_target == nullptr
+				|| selected_node->selected_target == -1;
+			if ( disable_delete )
+			{
+				ImGui::BeginDisabled();
+			}
+			if ( ImGui::Button("Delete") )
+			{
+				TZK_LOG(LogLevel::Trace, "Deleting target");
+
+				auto  iter = std::find_if(selected_node->targets.begin(), selected_node->targets.end(), [this](auto&& t){
+					return t.target == selected_node_target->target;
+				});
+				if ( iter != selected_node->targets.end() )
+				{
+					if ( wksp->my_pingmon != nullptr )
+					{
+						// if this is a live ping monitor target, remove it 
+						if ( wksp->my_pingmon->TargetExists(iter->uuid) )
+						{
+							wksp->my_pingmon->RemoveTarget(iter->uuid);
+						}
+					}
+
+					// again, if is the current, reset identifier
+					if ( iter->uuid == selected_node->pingmonitor_target_uuid )
+					{
+						selected_node->pingmonitor_target_uuid = blank_uuid;
+					}
+
+					selected_node->targets.erase(iter);
+				}
+				selected_node_target = nullptr;
+			}
+			if ( disable_delete )
+			{
+				ImGui::EndDisabled();
+			}
+
+			/// @todo no target removal ability, unless we delete the target entirely
+			
+			auto  tgt_id = selected_node->pingmonitor_target_uuid;
+			bool  disable_pmon = selected_node_target == nullptr
+				|| selected_node->selected_target == -1
+				|| selected_node->pingmonitor_target_uuid == selected_node->targets[selected_node->selected_target].uuid;
+			if ( disable_pmon )
+			{
+				ImGui::BeginDisabled();
+			}
+			if ( ImGui::Button("Set PingMonitor target") )
+			{
+				TZK_LOG(LogLevel::Trace, "Assigning target");
+
+				auto  target = selected_node->targets.at(selected_node->selected_target);
+
 				if ( wksp->my_pingmon != nullptr )
 				{
-					// if this is a live ping monitor target, remove it 
-					if ( wksp->my_pingmon->TargetExists(iter->uuid) )
+#if 0 // can't exist, these are add/delete options only in this dialog
+					if ( wksp->my_pingmon->TargetExists(selected_node->pingmonitor_target_uuid) )
 					{
-						wksp->my_pingmon->RemoveTarget(iter->uuid);
+						wksp->my_pingmon->ChangeTarget(tgt_id, &target);
+					}
+#endif
+					if ( selected_node->has_component(cth_cmpt_online_track) )
+					{
+						wksp->my_pingmon->AddTarget(&target);
 					}
 				}
-
-				// again, if is the current, reset identifier
-				if ( iter->uuid == selected_node->pingmonitor_target_uuid )
-				{
-					selected_node->pingmonitor_target_uuid = blank_uuid;
-				}
-
-				selected_node->targets.erase(iter);
+	
+				selected_node->pingmonitor_target_uuid = target.uuid;
 			}
-			selected_node_target = nullptr;
-		}
-		if ( disable_delete )
-		{
-			ImGui::EndDisabled();
-		}
-
-		/// @todo no target removal ability, unless we delete the target entirely
-		
-		auto  tgt_id = selected_node->pingmonitor_target_uuid;
-		bool  disable_pmon = selected_node_target == nullptr
-			|| selected_node->selected_target == -1
-			|| selected_node->pingmonitor_target_uuid == selected_node->targets[selected_node->selected_target].uuid;
-		if ( disable_pmon )
-		{
-			ImGui::BeginDisabled();
-		}
-		if ( ImGui::Button("Set PingMonitor target") )
-		{
-			TZK_LOG(LogLevel::Trace, "Assigning target");
-
-			auto  target = selected_node->targets.at(selected_node->selected_target);
-
-			if ( wksp->my_pingmon != nullptr )
+			if ( disable_pmon )
 			{
-#if 0 // can't exist, these are add/delete options only in this dialog
-				if ( wksp->my_pingmon->TargetExists(selected_node->pingmonitor_target_uuid) )
-				{
-					wksp->my_pingmon->ChangeTarget(tgt_id, &target);
-				}
+				ImGui::EndDisabled();
+			}
+
+			// optimize! will do away with this eventually anyway, just make list text bold or a different colour
+			auto  res = std::find_if(selected_node->targets.begin(), selected_node->targets.end(), [&tgt_id](auto&& i)
+			{
+				return tgt_id == i.uuid;
+			});
+			if ( res != selected_node->targets.end() )
+			{
+#if TZK_IS_DEBUG_BUILD
+				ImGui::Text("PingMonitor Target: %s (%s)", res->target.c_str(), selected_node->pingmonitor_target_uuid.GetCanonical());
+#else
+				ImGui::Text("PingMonitor Target: %s", res->target.c_str());
 #endif
-				if ( selected_node->has_component(cth_cmpt_online_track) )
+			}
+
+			ImGui::EndGroup();
+			ImGui::EndTabItem();
+		}
+		if ( ImGui::BeginTabItem("Hardware") )
+		{
+			// if no hardware component, create
+			if ( !selected_node->has_component(cth_cmpt_sysinfo) )
+			{
+				auto  sysinf = std::make_unique<node_component_systeminfo>();
+				selected_node->components.push_back(std::move(sysinf));
+			}
+
+			auto  nc_sysinf = dynamic_cast<node_component_systeminfo*>(selected_node->get_component(cth_cmpt_sysinfo));
+			if ( nc_sysinf == nullptr )
+			{
+				// should be unreachable
+				TZK_DEBUG_BREAK;
+				ImGui::CloseCurrentPopup();
+				ImGui::EndPopup();
+				return;
+			}
+
+			// hardware dialog content
+			wksp->DrawHardwareEditor(nc_sysinf->system_info);
+
+			ImGui::EndTabItem();
+		}
+		if ( ImGui::BeginTabItem("Components") )
+		{
+			// singular items use checkboxes, use component existence as boolean state
+			bool  creds = selected_node->has_component(cth_cmpt_credentials);
+			bool  track = selected_node->has_component(cth_cmpt_online_track);
+			bool  sinfo = selected_node->has_component(cth_cmpt_sysinfo);
+#if 0
+			bool  hdr = selected_node->has_component(cth_cmpt_header);
+#endif
+
+			/// @todo consider putting these into a table, if all will suit the structure
+			
+			if ( ImGui::Checkbox("Credentials", &creds) )
+			{
+				if ( !creds )
 				{
-					wksp->my_pingmon->AddTarget(&target);
+					selected_node->destroy_component(cth_cmpt_credentials);
+				}
+			}
+			if ( creds )
+			{
+				ImGui::SameLine();
+
+				/// @todo optimize
+				std::vector<std::string>  values{ "" }; // ensure blank permitted
+				int  index = -1;
+				int  count = static_cast<int>(values.size());
+				/*
+				 * Have to get the component for specific type, so if this is
+				 * a fresh creation then just exploit the existing getter flow
+				 * and create it if it wasn't present
+				 */
+				auto  cmpt = selected_node->get_component(cth_cmpt_credentials);
+				if ( cmpt == nullptr )
+				{
+					auto  cc = std::make_unique<node_component_credentials>();
+					selected_node->components.push_back(std::move(cc));
+					cmpt = selected_node->get_component(cth_cmpt_credentials);
+				}
+				auto  ncc = dynamic_cast<node_component_credentials*>(cmpt);
+				assert(ncc != nullptr);
+
+				for ( auto& c : wksp->my_wksp_data.configs.credentials )
+				{
+					if ( count == INT_MAX )
+					{
+						// shouldn't ever permit this to get to this stage with our access
+						break;
+					}
+
+					values.push_back(c->name);
+					if ( c->id == ncc->id )
+					{
+						index = count;
+					}
+
+					// increment post, index is zero-based, count isn't
+					count++;
+				}
+
+				// Add and Delete options - identical to Component Editor? Can we reuse functionality?
+
+				if ( ImGui::Combo("Selection", &index, values) )
+				{
+					count = 0;
+					for ( auto& c : wksp->my_wksp_data.configs.credentials )
+					{
+						/*
+						 * Have to look up on indexing as the names may not
+						 * be unique
+						 */
+						count++;
+						if ( count == index )
+						{
+							ncc->id = c->id;
+							break;
+						}
+					}
 				}
 			}
 
-			selected_node->pingmonitor_target_uuid = target.uuid;
-		}
-		if ( disable_pmon )
-		{
+#if 0  // Code Disabled: This is now purely settings-based, and node flags. No component usage - purge?
+			// this is tied to topology settings, do not permit modification
+			ImGui::BeginDisabled();
+			ImGui::Checkbox("Topology Header", &hdr);
 			ImGui::EndDisabled();
-		}
+#endif
 
-		ImGui::EndGroup();
-		// optimize!
-		auto  res = std::find_if(selected_node->targets.begin(), selected_node->targets.end(), [&tgt_id](auto&& i) {
-			return tgt_id == i.uuid;
-		});
-		if ( res != selected_node->targets.end() )
+			if ( ImGui::Checkbox("System Info", &sinfo) )
+			{
+				if ( !sinfo )
+				{
+					selected_node->destroy_component(cth_cmpt_sysinfo);
+				}
+			}
+			if ( sinfo )
+			{
+				ImGui::SameLine();
+
+				auto  cmpt = selected_node->get_component(cth_cmpt_sysinfo);
+				if ( cmpt == nullptr )
+				{
+					auto  cs = std::make_unique<node_component_systeminfo>();
+					selected_node->components.push_back(std::move(cs));
+					cmpt = selected_node->get_component(cth_cmpt_sysinfo);
+				}
+				auto  ncs = dynamic_cast<node_component_systeminfo*>(cmpt);
+				assert(ncs != nullptr);
+
+				ImGui::TextUnformatted("Present");
+			}
+
+			if ( ImGui::Checkbox("Online Track", &track) )
+			{
+				if ( !track )
+				{
+					selected_node->destroy_component(cth_cmpt_online_track);
+				}
+			}
+			if ( track )
+			{
+				ImGui::SameLine();
+
+				auto  cmpt = selected_node->get_component(cth_cmpt_online_track);
+				if ( cmpt == nullptr )
+				{
+					auto  ct = std::make_unique<node_component_online_tracker>();
+					selected_node->components.push_back(std::move(ct));
+					cmpt = selected_node->get_component(cth_cmpt_online_track);
+				}
+				auto  nct = dynamic_cast<node_component_online_tracker*>(cmpt);
+				assert(nct != nullptr);
+
+				ImGui::TextUnformatted("Present");
+			}
+
+			ImGui::EndTabItem();
+		}
+		if ( ImGui::BeginTabItem("Properties") )
 		{
-			ImGui::Text("PingMonitor Target: %s (%s)", res->target.c_str(), selected_node->pingmonitor_target_uuid.GetCanonical());
+			/// @todo consider the full propview in here, if appropriate
+
+			static std::string  os_unspecified = TConverter<OperatingSystem>::ToString(OperatingSystem::Invalid);
+			static std::string  os_windows = TConverter<OperatingSystem>::ToString(OperatingSystem::Windows);
+			static std::string  os_linux = TConverter<OperatingSystem>::ToString(OperatingSystem::Linux);
+			const char  fmt_str[] = "Operating System changed: %s";
+			int&  os_radio = reinterpret_cast<int&>(selected_node->operating_system);
+			
+			/*
+			 * I'm still not 100% how I want these to be interacted with or
+			 * specified at all, but for now while we have explicit functionality
+			 * it's OS selection to enable a code flow
+			 */
+			ImGui::BeginGroup();
+			ImGui::Text("Operating System:");
+			if ( ImGui::RadioButton(os_unspecified.c_str(), &os_radio, static_cast<int>(OperatingSystem::Invalid)) )
+			{
+				TZK_LOG_FORMAT(LogLevel::Trace, fmt_str, os_unspecified.c_str());
+			}
+			ImGui::SameLine();
+			if ( ImGui::RadioButton(os_windows.c_str(), &os_radio, static_cast<int>(OperatingSystem::Windows)) )
+			{
+				TZK_LOG_FORMAT(LogLevel::Trace, fmt_str, os_windows.c_str());
+			}
+			ImGui::SameLine();
+			if ( ImGui::RadioButton(os_linux.c_str(), &os_radio, static_cast<int>(OperatingSystem::Linux)) )
+			{
+				TZK_LOG_FORMAT(LogLevel::Trace, fmt_str, os_linux.c_str());
+			}
+			ImGui::EndGroup();
+
+			ImGui::EndTabItem();
+		}
+		if ( ImGui::BeginTabItem("Data") )
+		{
+			static time_t  last_refresh = 0;
+			int  column_count = 2;
+			ImGuiTableFlags  table_flags
+				= ImGuiTableFlags_BordersV
+				| ImGuiTableFlags_BordersOuterH
+				| ImGuiTableFlags_Resizable
+				| ImGuiTableFlags_RowBg
+				| ImGuiTableFlags_NoBordersInBody;
+
+			time_t  cur_time = time(nullptr);
+			time_t  refresh_rate = 5;
+			std::shared_ptr<fdata>  selected_dat;
+			static FDataPrinter  printer;
+			//static std::string  preview_str = "";
+
+			auto  reset_selection = [this, &selected_dat]() {
+				wksp->my_selected_dataentry_index = -1;
+				selected_dat = nullptr;
+			};
+
+			ImGui::BeginGroup();
+			{
+				auto  avail = ImGui::GetContentRegionAvail();
+				avail.x /= 2;  // 50:50 for table and preview
+				avail.y -= ImGui::GetTextLineHeightWithSpacing() * 3; // lower button, main button, separator
+
+				if ( ImGui::BeginTable("DataList", column_count, table_flags, avail) )
+				{
+					ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_NoHide);
+					ImGui::TableSetupColumn("Timestamp", ImGuiTableColumnFlags_NoHide);
+					ImGui::TableHeadersRow();
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+
+					static std::vector<std::shared_ptr<fdata>>  data_entries; // held longer only for type access
+					static std::vector<std::string>  display_names;
+					static std::vector<std::string>  display_times;
+
+					if ( cur_time > (last_refresh + refresh_rate) )
+					{
+						char  display_time[32];
+
+						data_entries = wksp->_gui_interactions.forensic_data.GetAllNodeData(wksp->my_wksp_data.id, node->id);
+						// build out display names here so it's not done every frame
+						display_names.clear();
+						display_times.clear();
+						for ( auto& entry : data_entries )
+						{
+							std::string  dname;
+							switch ( entry->type )
+							{
+							case cth_software_inventory:     dname = "softinv##"; break;
+							case cth_windows_prefetch:       dname = "winprefetch##"; break;
+							case cth_windows_reg_autostarts: dname = "winregauto##"; break;
+							default: dname = "unknown##"; break;
+							}
+							dname += std::to_string(entry->acquired);
+							display_names.emplace_back(dname);
+							core::aux::get_time_format(entry->acquired, display_time, sizeof(display_time), "%F %T");
+							display_times.emplace_back(display_time);
+						}
+					}
+
+					int  pos = -1;
+
+					// ensure index always points towards a valid entry
+					if ( wksp->my_selected_dataentry_index > static_cast<int>(display_names.size()) )
+					{
+						reset_selection();
+					}
+
+					for ( auto& entry : display_names )
+					{
+						const bool  is_selected = (++pos == wksp->my_selected_dataentry_index);
+
+						if ( ImGui::Selectable(entry.c_str(), is_selected, ImGuiSelectableFlags_SpanAllColumns) )
+						{
+							// since there's no trivial 'deselect', re-selection will clear
+							if ( wksp->my_selected_dataentry_index == pos )
+							{
+								TZK_LOG_FORMAT(LogLevel::Trace, "Unselected %s: %d (%s)", "Data Entry", pos, entry.c_str());
+								reset_selection();
+							}
+							else
+							{
+								TZK_LOG_FORMAT(LogLevel::Trace, "Selected %s: %d (%s)", "Data Entry", pos, entry.c_str());
+								wksp->my_selected_dataentry_index = pos;
+								selected_dat = wksp->_gui_interactions.forensic_data.Access(
+									wksp->my_wksp_data.id, node->id, data_entries[pos]->type, data_entries[pos]->acquired
+								);
+								printer.Clear();
+
+								if ( selected_dat != nullptr )
+								{
+									switch ( selected_dat->type )
+									{
+									case cth_software_inventory:      printer.Visit((software_inventory*)selected_dat.get()); break;
+									case cth_windows_reg_autostarts:  printer.Visit((registry_autostarts*)selected_dat.get()); break;
+									case cth_windows_file_autostarts: printer.Visit((file_autostarts*)selected_dat.get()); break;
+									case cth_folder_content:          printer.Visit((folder_contents*)selected_dat.get()); break;
+									default:
+										break;
+									}
+								}
+							}
+						}
+						if ( is_selected )
+						{
+							ImGui::SetItemDefaultFocus();
+						}
+
+						ImGui::TableNextColumn();
+						ImGui::Text("%s", display_times[pos].c_str());
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+					}
+
+					ImGui::EndTable();
+				}
+
+				bool  disabled = selected_dat == nullptr;
+				if ( disabled ) ImGui::BeginDisabled();
+				if ( ImGui::Button("Delete") )
+				{
+					TZK_LOG_FORMAT(LogLevel::Info, "Deleting datafile: %s", selected_dat->fpath.c_str());
+
+					if ( selected_dat->fp != nullptr )
+					{
+						core::aux::file::close(selected_dat->fp);
+						selected_dat->fp = nullptr;
+					}
+					// do deletion
+					//core::aux::file::remove(selected_dat->fpath.c_str());
+					reset_selection();
+				}
+				if ( disabled ) ImGui::EndDisabled();
+			}
+			ImGui::EndGroup();
+			
+
+			ImGui::SameLine();
+
+			ImGui::TextWrapped("Preview:\n\n%s", printer.Print().c_str());
+
+			ImGui::EndTabItem();
 		}
 
+		ImGui::EndTabBar();
+		ImGui::Separator();
 
 		if ( ImGui::Button("Close") )
 		{
@@ -1063,6 +1436,7 @@ ImGuiWorkspace::ImGuiWorkspace(
 , my_selected_service_group_service_index(-1)
 , my_selected_service_group_index(-1)
 , my_selected_service_index(-1)
+, my_selected_dataentry_index(-1)
 {
 	using namespace trezanik::core;
 
@@ -1517,6 +1891,1186 @@ ImGuiWorkspace::Draw()
 	{
 		DrawServiceManagement();
 	}
+	if ( _gui_interactions.show_component_editor )
+	{
+		DrawComponentEditor();
+	}
+}
+
+
+void
+ImGuiWorkspace::DrawComponentEditor()
+{
+	static ComponentConfigType  selected_category = ComponentConfigType::Invalid;
+	static trezanik::core::UUID  selected_id = core::blank_uuid;
+	static std::shared_ptr<credentials_config>  creds_config = nullptr;
+	static std::shared_ptr<node_header_config>  header_config = nullptr;
+	static std::shared_ptr<online_state_track_config>  onlinetrack_config = nullptr;
+	//static std::shared_ptr<system_information_config>  sysinfo_config = nullptr;
+
+	const ImVec2  minor_min_section_size = ImVec2(125.f, 240.f); // LineHeight with spacing * 2
+	const ImVec2  main_min_section_size = ImVec2(500.f, 240.f);
+	const ImVec2  min_wnd_size = ImVec2(750.f, 300.f); // cover 2*125+500
+
+	//if ( !is_draw_client )
+	{
+		ImGui::SetNextWindowPosCenter(ImGuiCond_Appearing); // not always, permit to move
+		ImGui::SetNextWindowSizeConstraints(min_wnd_size, ImVec2(FLT_MAX, FLT_MAX));
+		ImGui::SetNextWindowSize(min_wnd_size, ImGuiCond_Appearing);
+
+		if ( !ImGui::Begin("Component Editor", &_gui_interactions.show_component_editor, ImGuiWindowFlags_NoScrollbar) )
+		{
+			ImGui::End();
+			return;
+		}
+	}
+
+	if ( ImGui::Button("Close") )
+	{
+		_gui_interactions.show_component_editor = false;
+		selected_id = core::blank_uuid;
+		// optional - reset selected category
+	}
+	if ( selected_category != ComponentConfigType::Invalid )
+	{
+		ImGui::SameLine();
+
+		auto  p1 = TConverter<ComponentConfigType>::ToString(selected_category);
+
+		switch ( selected_category )
+		{
+		case ComponentConfigType::Credentials:
+			if ( creds_config != nullptr )
+			{
+				ImGui::Text(" | %s > %s", p1.c_str(), creds_config->name.c_str());
+			}
+			else
+			{
+				ImGui::Text(" | %s", p1.c_str());
+			}
+			break;
+		case ComponentConfigType::Header:
+		case ComponentConfigType::OnlineTrack:
+		case ComponentConfigType::SystemInfo:
+			// for updating with each as implemented
+			ImGui::Text(" | %s", p1.c_str());
+			break;
+		default:
+			ImGui::Text(" | %s", p1.c_str());
+			break;
+		}
+	}
+
+	ImGui::Separator();
+
+	ImVec2  wnd_size = ImGui::GetContentRegionAvail();
+	ImVec2  minor_section_size = minor_min_section_size;
+	ImVec2  nav_button_size(minor_section_size.x, 40.f);
+
+
+	auto push_style_color = [this](bool is_selected)
+	{
+		ImGui::PushStyleColor(ImGuiCol_Button, is_selected ? ImGui::GetStyle().Colors[ImGuiCol_ButtonActive] : ImGui::GetStyle().Colors[ImGuiCol_Button]);//IM_COL32(0, 255, 0, 255) : IM_COL32(0, 200, 0, 255));
+	};
+
+	// main components
+	ImGui::SetNextWindowSizeConstraints(minor_min_section_size, ImVec2(FLT_MAX, FLT_MAX));
+	ImGui::BeginChild("###ComponentType", minor_section_size);
+	{
+		push_style_color(selected_category == ComponentConfigType::Credentials);
+		if ( ImGui::Button("Credentials", nav_button_size) )
+		{
+			selected_category = ComponentConfigType::Credentials;
+			selected_id = core::blank_uuid;
+		}
+		ImGui::PopStyleColor();
+		push_style_color(selected_category == ComponentConfigType::Header);
+		if ( ImGui::Button("Node Headers", nav_button_size) )
+		{
+			selected_category = ComponentConfigType::Header;
+			selected_id = core::blank_uuid;
+		}
+		ImGui::PopStyleColor();
+		push_style_color(selected_category == ComponentConfigType::OnlineTrack);
+		if ( ImGui::Button("Online State Tracks", nav_button_size) )
+		{
+			selected_category = ComponentConfigType::OnlineTrack;
+			selected_id = core::blank_uuid;
+		}
+		ImGui::PopStyleColor();
+		push_style_color(selected_category == ComponentConfigType::SystemInfo);
+		if ( ImGui::Button("System Information", nav_button_size) )
+		{
+			selected_category = ComponentConfigType::SystemInfo;
+			selected_id = core::blank_uuid;
+		}
+		ImGui::PopStyleColor();
+	}
+	ImGui::EndChild();
+
+	// reuse the existing checks
+	bool  add_disabled = selected_category == ComponentConfigType::Invalid;
+	bool  delete_disabled = selected_id == core::blank_uuid;
+
+	// can't lambda these as statics, so some logic checks
+	if ( selected_category != ComponentConfigType::Credentials )
+	{
+		creds_config = nullptr;
+	}
+	if ( selected_category != ComponentConfigType::Header )
+	{
+		header_config = nullptr;
+	}
+	if ( selected_category != ComponentConfigType::OnlineTrack )
+	{
+		onlinetrack_config = nullptr;
+	}
+	if ( selected_category != ComponentConfigType::SystemInfo )
+	{
+		//sysinfo_config = nullptr;
+	}
+	// etc.
+
+	ImGui::SameLine();
+	ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+	ImGui::SameLine();
+
+	struct display_item
+	{
+		std::string  idstr;
+		std::string  name;
+	};
+	std::vector<display_item>  display_items;
+	
+	ImGui::SetNextWindowSizeConstraints(minor_min_section_size, ImVec2(FLT_MAX, FLT_MAX));
+	ImGui::BeginChild("###ComponentRelevance", minor_section_size);
+	{
+		// even split width within section
+		ImVec2  add_del_button_size((minor_section_size.x - 10.f) * 0.5f, 0.f);
+
+		if ( add_disabled )
+		{
+			ImGui::BeginDisabled();
+		}
+		if ( ImGui::Button("Add", add_del_button_size) )
+		{
+			switch ( selected_category )
+			{
+			case ComponentConfigType::Credentials:
+				{
+					auto cfg = std::make_shared<credentials_config>();
+					cfg->id.Generate();
+					cfg->name = "New Credentials";
+					my_wksp_data.configs.credentials.push_back(cfg);
+				}
+				break;
+			case ComponentConfigType::OnlineTrack:
+				{
+					auto cfg = std::make_shared<online_state_track_config>();
+					cfg->id.Generate();
+					cfg->name = "New Configuration";
+					my_wksp_data.configs.online_track_states.push_back(cfg);
+				}
+				break;
+			case ComponentConfigType::Header:
+				{
+					auto cfg = std::make_shared<node_header_config>();
+					cfg->id.Generate();
+					cfg->name = "New Configuration";
+					my_wksp_data.configs.headers.push_back(cfg);
+				}
+				break;
+			default:
+				break;
+			}
+		}
+		if ( add_disabled )
+		{
+			ImGui::EndDisabled();
+		}
+		ImGui::SameLine();
+		if ( delete_disabled )
+		{
+			ImGui::BeginDisabled();
+		}
+		if ( ImGui::Button("Delete", add_del_button_size) )
+		{
+			switch ( selected_category )
+			{
+			case ComponentConfigType::Credentials:
+				{
+					auto  res = std::find(my_wksp_data.configs.credentials.begin(), my_wksp_data.configs.credentials.end(), creds_config);
+					if ( res == my_wksp_data.configs.credentials.end() )
+					{
+					}
+					else
+					{
+						my_wksp_data.configs.credentials.erase(res);
+						creds_config.reset();
+					}
+				}
+				break;
+			case ComponentConfigType::OnlineTrack:
+				{
+					auto  res = std::find(my_wksp_data.configs.online_track_states.begin(), my_wksp_data.configs.online_track_states.end(), onlinetrack_config);
+					if ( res == my_wksp_data.configs.online_track_states.end() )
+					{
+					}
+					else
+					{
+						my_wksp_data.configs.online_track_states.erase(res);
+						onlinetrack_config.reset();
+					}
+				}
+				break;
+			case ComponentConfigType::Header:
+				{
+					auto  res = std::find(my_wksp_data.configs.headers.begin(), my_wksp_data.configs.headers.end(), header_config);
+					if ( res == my_wksp_data.configs.headers.end() )
+					{
+					}
+					else
+					{
+						my_wksp_data.configs.headers.erase(res);
+						header_config.reset();
+					}
+				}
+				break;
+			default:
+				break;
+			}
+
+			selected_id = core::blank_uuid;
+		}
+		if ( delete_disabled )
+		{
+			ImGui::EndDisabled();
+		}
+
+		ImGui::Separator();
+
+		ImVec2  element_button_size(minor_section_size.x, 32.f);
+
+
+		switch ( selected_category )
+		{
+		case ComponentConfigType::Credentials:
+			for ( auto& c : my_wksp_data.configs.credentials )
+			{
+				push_style_color(selected_id == c->id);
+				ImGui::PushID(c.get());
+				if ( ImGui::Button(c->name.c_str(), element_button_size) )
+				{
+					selected_id = c->id;
+					creds_config = c;
+				}
+				ImGui::PopID();
+				ImGui::PopStyleColor();
+			}
+			break;
+		default:
+			break;
+		}
+	}
+	ImGui::EndChild();
+
+	ImGui::SameLine();
+	ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+	ImGui::SameLine();
+
+	float  rem = wnd_size.x - main_min_section_size.x - (minor_section_size.x * 2); // doesn't cover separator, padding
+	ImVec2  main_section_size = main_min_section_size;
+	if ( rem > 0.f )
+		main_section_size.x += rem;
+
+	ImGui::SetNextWindowSizeConstraints(main_min_section_size, ImVec2(FLT_MAX, FLT_MAX));
+	ImGui::BeginChild("###ComponentOperations", main_section_size);
+	{
+		if ( creds_config != nullptr )
+		{
+			ImGui::TextDisabled("ID");
+			ImGui::SameLine();
+			ImGui::Text("%s", creds_config->id.GetCanonical());
+
+			ImGui::InputText("Display Name##component_name", &creds_config->name);
+
+			if ( ImGui::CollapsingHeader("Username and Password") )
+			{
+				ImGui::Indent();
+
+				ImGui::InputText("Username##component_username", &creds_config->username);
+				ImGui::InputText("Password##component_password", &creds_config->password); // ImGuiInputTextFlags_Password
+
+				ImGui::Unindent();
+			}
+			if ( ImGui::CollapsingHeader("Certificate") )
+			{
+				ImGui::Indent();
+
+				ImGui::TextDisabled("To be added in future update");
+
+				ImGui::Unindent();
+			}
+
+			// This is only for picking up the active users
+			for ( auto& n : my_wksp_data.nodes )
+			{
+				if ( n->has_component(cth_cmpt_credentials) )
+				{
+					auto  cmpt = n->get_component(cth_cmpt_credentials);
+					auto  creds = dynamic_cast<node_component_credentials*>(cmpt);
+					assert(creds != nullptr);
+
+					if ( creds_config->id == creds->id )
+					{
+						// needs tracking for the table
+						display_items.push_back({ n->id.GetCanonical(), n->name });
+					}
+				}
+			}
+		}
+		else if ( onlinetrack_config != nullptr )
+		{
+		}
+		else if ( header_config != nullptr )
+		{
+		}
+		/*else if ( sysinfo_config != nullptr )
+		{
+		}*/
+		
+		if ( !display_items.empty() )
+		{
+			ImGui::Separator();
+
+			ImGui::TextUnformatted("Used by:");
+
+			int  column_count = 2;
+			ImGuiTableFlags  table_flags
+				= ImGuiTableFlags_BordersV
+				| ImGuiTableFlags_BordersOuterH
+				| ImGuiTableFlags_Resizable
+				| ImGuiTableFlags_RowBg
+				| ImGuiTableFlags_NoBordersInBody;
+
+			if ( ImGui::BeginTable("UsedBy", column_count, table_flags) )
+			{
+				ImGui::TableSetupColumn("Node##column_node", ImGuiTableColumnFlags_NoHide);
+				ImGui::TableSetupColumn("Name##column_name", ImGuiTableColumnFlags_NoHide);
+				ImGui::TableHeadersRow();
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+
+				for ( auto& entry : display_items )
+				{
+					ImGui::Text("%s", entry.idstr.c_str());
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", entry.name.c_str());
+					ImGui::TableNextColumn();
+					ImGui::TableNextRow();
+				}
+
+				ImGui::EndTable();
+			}
+		}
+	}
+	ImGui::EndChild();
+
+	//if ( !is_draw_client )
+	{
+		ImGui::End();
+	}
+}
+
+
+void
+ImGuiWorkspace::DrawHardwareEditor(
+	node_component_systeminfo::system& sysinf
+)
+{
+	using namespace trezanik::core;
+
+	int   idinc = 0;
+	bool  disable_elem = false;
+	static std::string  label;
+
+	/// @todo hardcoded for now, decide on layout and optimize
+
+	bool  tree_open = false;
+	bool  subtree_open = false;
+	int   column_count = 2;
+	ImGuiTreeNodeFlags  all_treeflags = ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_DefaultOpen;
+	ImGuiTableFlags  table_flags
+		= ImGuiTableFlags_BordersV
+		| ImGuiTableFlags_BordersOuterH
+		| ImGuiTableFlags_Resizable
+		| ImGuiTableFlags_RowBg
+		| ImGuiTableFlags_NoBordersInBody;
+
+	if ( ImGui::BeginTable("Hardware", column_count, table_flags) )
+	{
+		ImGui::TableSetupColumn("Property##column_prop", ImGuiTableColumnFlags_NoHide);
+		ImGui::TableSetupColumn("Value##column_value", ImGuiTableColumnFlags_NoHide);
+		ImGui::TableHeadersRow();
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+
+		int  delete_entry_unset = -1;
+		int  delete_entry = delete_entry_unset;
+		int  delete_subentry = delete_entry_unset;
+
+		if ( ImGui::Button("Add##cpu") )
+		{
+			TZK_LOG_FORMAT(LogLevel::Debug, "Adding CPU %zu", sysinf.cpus.size() + 1);
+			sysinf.cpus.emplace_back();
+		}
+		ImGui::SameLine();
+		label = "CPUs : " + std::to_string(sysinf.cpus.size());
+		if ( ImGui::TreeNodeEx(label.c_str(), all_treeflags) )
+		{
+			idinc = 0;
+			ImGui::PushID("cpu");
+
+			for ( auto& e : sysinf.cpus )
+			{
+				ImGui::PushID(++idinc);
+				label = "CPU " + std::to_string(idinc);
+
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+
+				tree_open = ImGui::TreeNodeEx(label.c_str());
+				ImGui::TableNextColumn();
+				if ( ImGui::SmallButton("Delete") )
+				{
+					TZK_LOG_FORMAT(LogLevel::Debug, "Deleting %s", label.c_str());
+					delete_entry = idinc - 1; // 0-based index
+				}
+				if ( tree_open )
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Vendor");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Vendor", &e.vendor);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Model");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Model", &e.model);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Serial");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Serial", &e.serial);
+
+					ImGui::TreePop();
+				}
+
+				ImGui::PopID();
+			}
+
+			if ( delete_entry != delete_entry_unset )
+			{
+				sysinf.cpus.erase(sysinf.cpus.begin() + delete_entry);
+				delete_entry = delete_entry_unset;
+			}
+
+			ImGui::PopID();
+			ImGui::TreePop();
+		}
+
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+
+
+		if ( ImGui::Button("Add##dimm") )
+		{
+			TZK_LOG_FORMAT(LogLevel::Debug, "Adding DIMM %zu", sysinf.dimms.size() + 1);
+			sysinf.dimms.emplace_back();
+		}
+		ImGui::SameLine();
+		label = "RAM : " + std::to_string(sysinf.dimms.size()) + " DIMMs";
+		if ( ImGui::TreeNodeEx(label.c_str(), all_treeflags) )
+		{
+			idinc = 0;
+			ImGui::PushID("ram");
+
+			for ( auto& e : sysinf.dimms )
+			{
+				ImGui::PushID(++idinc);
+				label = "DIMM " + std::to_string(idinc);
+
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+
+				tree_open = ImGui::TreeNodeEx(label.c_str());
+				ImGui::TableNextColumn();
+				if ( ImGui::SmallButton("Delete") )
+				{
+					TZK_LOG_FORMAT(LogLevel::Debug, "Deleting %s", label.c_str());
+					delete_entry = idinc - 1;
+				}
+				if ( tree_open )
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Vendor");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Vendor", &e.vendor);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Model");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Model", &e.model);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Serial");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Serial", &e.serial);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Capacity");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Capacity", &e.capacity);
+
+					ImGui::TreePop();
+				}
+
+				ImGui::PopID();
+			}
+
+			if ( delete_entry != delete_entry_unset )
+			{
+				sysinf.dimms.erase(sysinf.dimms.begin() + delete_entry);
+				delete_entry = delete_entry_unset;
+			}
+
+			ImGui::PopID();
+			ImGui::TreePop();
+		}
+
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+
+		if ( ImGui::Button("Add##disk") )
+		{
+			TZK_LOG_FORMAT(LogLevel::Debug, "Adding Disk %zu", sysinf.disks.size() + 1);
+			sysinf.disks.emplace_back();
+		}
+		ImGui::SameLine();
+		label = "Disks : " + std::to_string(sysinf.disks.size());
+		if ( ImGui::TreeNodeEx(label.c_str(), all_treeflags) )
+		{
+			idinc = 0;
+			ImGui::PushID("disk");
+
+			for ( auto& e : sysinf.disks )
+			{
+				ImGui::PushID(++idinc);
+				label = "Disk " + std::to_string(idinc);
+
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+
+				tree_open = ImGui::TreeNodeEx(label.c_str());
+				ImGui::TableNextColumn();
+				if ( ImGui::SmallButton("Delete") )
+				{
+					TZK_LOG_FORMAT(LogLevel::Debug, "Deleting %s", label.c_str());
+					delete_entry = idinc - 1;
+				}
+				if ( tree_open )
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Vendor");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Vendor", &e.vendor);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Model");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Model", &e.model);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Serial");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Serial", &e.serial);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Capacity");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Capacity", &e.capacity);
+
+					ImGui::TreePop();
+				}
+
+				ImGui::PopID();
+			}
+
+			if ( delete_entry != delete_entry_unset )
+			{
+				sysinf.disks.erase(sysinf.disks.begin() + delete_entry);
+				delete_entry = delete_entry_unset;
+			}
+
+			ImGui::PopID();
+			ImGui::TreePop();
+		}
+
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+
+		if ( ImGui::Button("Add##gpu") )
+		{
+			TZK_LOG_FORMAT(LogLevel::Debug, "Adding GPU %zu", sysinf.gpus.size() + 1);
+			sysinf.gpus.emplace_back();
+		}
+		ImGui::SameLine();
+		label = "GPUs : " + std::to_string(sysinf.gpus.size());
+		if ( ImGui::TreeNodeEx(label.c_str(), all_treeflags) )
+		{
+			idinc = 0;
+			ImGui::PushID("gpu");
+
+			for ( auto& e : sysinf.gpus )
+			{
+				ImGui::PushID(++idinc);
+				label = "GPU " + std::to_string(idinc);
+
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+
+				tree_open = ImGui::TreeNodeEx(label.c_str());
+				ImGui::TableNextColumn();
+				if ( ImGui::SmallButton("Delete") )
+				{
+					TZK_LOG_FORMAT(LogLevel::Debug, "Deleting %s", label.c_str());
+					delete_entry = idinc - 1;
+				}
+				if ( tree_open )
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Vendor");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Vendor", &e.vendor);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Model");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Model", &e.model);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Serial");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Serial", &e.serial);
+
+					ImGui::TreePop();
+				}
+
+				ImGui::PopID();
+			}
+
+			if ( delete_entry != delete_entry_unset )
+			{
+				sysinf.gpus.erase(sysinf.gpus.begin() + delete_entry);
+				delete_entry = delete_entry_unset;
+			}
+
+			ImGui::PopID();
+			ImGui::TreePop();
+		}
+
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+
+		if ( !sysinf.mobo.empty() )
+		{
+			disable_elem = true;
+			ImGui::BeginDisabled();
+		}
+		if ( ImGui::Button("Add##mobo") )
+		{
+			TZK_LOG(LogLevel::Debug, "Adding Motherboard");
+			sysinf.mobo.emplace_back();
+		}
+		if ( disable_elem )
+		{
+			ImGui::EndDisabled();
+			disable_elem = false;
+		}
+		ImGui::SameLine();
+		label = "Motherboard : " + std::to_string(sysinf.mobo.size());
+		// maximum 1 instance
+		if ( sysinf.mobo.empty() )
+		{
+			ImGui::Text("%s", label.c_str());
+		}
+		else if ( ImGui::TreeNodeEx(label.c_str(), all_treeflags) )
+		{
+			idinc = 0;
+			ImGui::PushID("mobo");
+
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+
+			label = "Motherboard##elem";
+			tree_open = ImGui::TreeNodeEx(label.c_str());
+			ImGui::TableNextColumn();
+			if ( ImGui::SmallButton("Delete") )
+			{
+				TZK_LOG_FORMAT(LogLevel::Debug, "Deleting %s", label.c_str());
+				sysinf.mobo.clear();
+			}
+			if ( tree_open )
+			{
+				for ( auto& e : sysinf.mobo )
+				{
+					ImGui::PushID(++idinc);
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Vendor");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Vendor", &e.vendor);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Model");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Model", &e.model);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Serial");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Serial", &e.serial);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("BIOS");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##BIOS", &e.bios);
+
+					ImGui::PopID();
+				}
+
+				ImGui::TreePop();
+			}
+
+			ImGui::PopID();
+			ImGui::TreePop();
+		}
+
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+
+		if ( ImGui::Button("Add##psu") )
+		{
+			TZK_LOG_FORMAT(LogLevel::Debug, "Adding PSU %zu", sysinf.psus.size() + 1);
+			sysinf.psus.emplace_back();
+		}
+		ImGui::SameLine();
+		label = "PSUs : " + std::to_string(sysinf.psus.size());
+		if ( ImGui::TreeNodeEx(label.c_str(), all_treeflags) )
+		{
+			idinc = 0;
+			ImGui::PushID("psu");
+
+			for ( auto& e : sysinf.psus )
+			{
+				ImGui::PushID(++idinc);
+				label = "PSU " + std::to_string(idinc);
+
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+
+				tree_open = ImGui::TreeNodeEx(label.c_str());
+				ImGui::TableNextColumn();
+				if ( ImGui::SmallButton("Delete") )
+				{
+					TZK_LOG_FORMAT(LogLevel::Debug, "Deleting %s", label.c_str());
+					delete_entry = idinc - 1;
+				}
+				if ( tree_open )
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Vendor");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Vendor", &e.vendor);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Model");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Model", &e.model);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Serial");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Serial", &e.serial);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Wattage");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Wattage", &e.wattage);
+
+					ImGui::TreePop();
+				}
+
+				ImGui::PopID();
+			}
+
+			if ( delete_entry != delete_entry_unset )
+			{
+				sysinf.psus.erase(sysinf.psus.begin() + delete_entry);
+				delete_entry = delete_entry_unset;
+			}
+
+			ImGui::PopID();
+			ImGui::TreePop();
+		}
+
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+
+		if ( ImGui::Button("Add##nic") )
+		{
+			TZK_LOG_FORMAT(LogLevel::Debug, "Adding NIC %zu", sysinf.interfaces.size() + 1);
+			sysinf.interfaces.emplace_back();
+		}
+		ImGui::SameLine();
+		label = "Network Interfaces : " + std::to_string(sysinf.interfaces.size());
+		if ( ImGui::TreeNodeEx(label.c_str(), all_treeflags) )
+		{
+			idinc = 0;
+			ImGui::PushID("nic");
+
+			for ( auto& e : sysinf.interfaces )
+			{
+				ImGui::PushID(++idinc);
+				label = "NIC " + std::to_string(idinc);
+
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+
+				tree_open = ImGui::TreeNodeEx(label.c_str());
+				ImGui::TableNextColumn();
+				if ( ImGui::SmallButton("Delete") )
+				{
+					TZK_LOG_FORMAT(LogLevel::Debug, "Deleting %s", label.c_str());
+					delete_entry = idinc - 1;
+				}
+				if ( tree_open )
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Alias");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Alias", &e.alias);
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Model");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Model", &e.model);
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("MAC Address");
+					ImGui::TableNextColumn();
+					if ( ImGui::InputText("##MACAddress", &e.mac) )
+					{
+						trezanik::core::aux::mac_address  macaddr;
+						if ( trezanik::core::aux::string_to_macaddr(e.mac.c_str(), macaddr) == 1 )
+						{
+							e.valid_mac = true;
+						}
+						else
+						{
+							e.valid_mac = false;
+						}
+					}
+					if ( !e.valid_mac )
+					{
+						ImGui::TextColored(ImVec4(200, 0, 0, 200), "Invalid format");
+					}
+
+					int  secid = 0;
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+
+					if ( ImGui::Button("Add##nameserver") )
+					{
+						TZK_LOG_FORMAT(LogLevel::Debug, "Adding nameserver %zu for interface %i", e.nameservers.size() + 1, idinc);
+						e.nameservers.emplace_back();
+					}
+					ImGui::SameLine();
+					label = "Nameservers : " + std::to_string(e.nameservers.size());
+					if ( ImGui::TreeNodeEx(label.c_str(), all_treeflags) )
+					{
+						for ( auto& ens : e.nameservers )
+						{
+							ImGui::PushID(++secid);
+							label = "Nameserver " + std::to_string(secid);
+
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+
+							subtree_open = ImGui::TreeNodeEx(label.c_str());
+							ImGui::TableNextColumn();
+							if ( ImGui::SmallButton("Delete") )
+							{
+								TZK_LOG_FORMAT(LogLevel::Debug, "Deleting %s", label.c_str());
+								delete_subentry = secid - 1;
+							}
+							if ( subtree_open )
+							{
+								// would be great to update label based on IPv4/IPv6
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::TextUnformatted("IP Address");
+								ImGui::TableNextColumn();
+								if ( ImGui::InputText("##IPAddr", &ens.nameserver) )
+								{
+									trezanik::core::aux::ip_address  ipaddr;
+									if ( trezanik::core::aux::string_to_ipaddr(ens.nameserver.c_str(), ipaddr) > 0 )
+									{
+										ens.valid_nameserver = true;
+									}
+									else
+									{
+										ens.valid_nameserver = false;
+									}
+								}
+								if ( !ens.valid_nameserver )
+								{
+									ImGui::TextColored(ImVec4(200, 0, 0, 200), "Invalid format");
+								}
+
+								ImGui::TreePop();
+							}
+
+							ImGui::PopID();
+						}
+
+						if ( delete_subentry != delete_entry_unset )
+						{
+							e.nameservers.erase(e.nameservers.begin() + delete_subentry);
+							delete_subentry = delete_entry_unset;
+						}
+
+						ImGui::TreePop();
+					}
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+
+					secid = 0;
+					if ( ImGui::Button("Add##address") )
+					{
+						TZK_LOG_FORMAT(LogLevel::Debug, "Adding address %zu for interface %zu", e.addresses.size() + 1, idinc);
+						e.addresses.emplace_back();
+					}
+					ImGui::SameLine();
+					label = "Addresses : " + std::to_string(e.addresses.size());
+					if ( ImGui::TreeNodeEx(label.c_str(), all_treeflags) )
+					{
+						for ( auto& eaddr : e.addresses )
+						{
+							ImGui::PushID(++secid);
+							label = "Address " + std::to_string(secid);
+
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+
+							subtree_open = ImGui::TreeNodeEx(label.c_str());
+							ImGui::TableNextColumn();
+							if ( ImGui::SmallButton("Delete") )
+							{
+								TZK_LOG_FORMAT(LogLevel::Debug, "Deleting %s", label.c_str());
+								delete_subentry = secid - 1;
+							}
+							if ( subtree_open )
+							{
+								// would be great to update label based on IPv4/IPv6
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::TextUnformatted("IP Address");
+								ImGui::TableNextColumn();
+								if ( ImGui::InputText("##IPAddr", &eaddr.address) )
+								{
+									trezanik::core::aux::ip_address  ipaddr;
+									if ( trezanik::core::aux::string_to_ipaddr(eaddr.address.c_str(), ipaddr) > 0 )
+									{
+										eaddr.valid_address = true;
+									}
+									else
+									{
+										eaddr.valid_address = false;
+									}
+								}
+								if ( !eaddr.valid_address )
+								{
+									ImGui::TextColored(ImVec4(200, 0, 0, 200), "Invalid format");
+								}
+
+								// if IPv6, prefixlen
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::TextUnformatted("Subnet Mask");
+								ImGui::TableNextColumn();
+								if ( ImGui::InputText("##SubnetMask", &eaddr.mask) )
+								{
+									trezanik::core::aux::ip_address  ipaddr;
+									if ( trezanik::core::aux::string_to_ipaddr(eaddr.mask.c_str(), ipaddr) > 0 )
+									{
+										eaddr.valid_mask = true;
+									}
+									else
+									{
+										eaddr.valid_mask = false;
+									}
+								}
+								if ( !eaddr.valid_mask )
+								{
+									ImGui::TextColored(ImVec4(200, 0, 0, 200), "Invalid format");
+								}
+
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGui::TextUnformatted("Gateway");
+								ImGui::TableNextColumn();
+								if ( ImGui::InputText("##Gateway", &eaddr.gateway) )
+								{
+									trezanik::core::aux::ip_address  ipaddr;
+									if ( trezanik::core::aux::string_to_ipaddr(eaddr.gateway.c_str(), ipaddr) > 0 )
+									{
+										eaddr.valid_gateway = true;
+									}
+									else
+									{
+										eaddr.valid_gateway = false;
+									}
+								}
+								if ( !eaddr.valid_gateway )
+								{
+									ImGui::TextColored(ImVec4(200, 0, 0, 200), "Invalid format");
+								}
+
+								ImGui::TreePop();
+							}
+
+							ImGui::PopID();
+						}
+
+						if ( delete_subentry != delete_entry_unset )
+						{
+							e.addresses.erase(e.addresses.begin() + delete_subentry);
+							delete_subentry = delete_entry_unset;
+						}
+
+						ImGui::TreePop();
+					}
+
+					ImGui::TreePop();
+				}
+
+				if ( delete_entry != delete_entry_unset )
+				{
+					sysinf.interfaces.erase(sysinf.interfaces.begin() + delete_entry);
+					delete_entry = delete_entry_unset;
+				}
+
+				ImGui::PopID();
+			}
+
+			ImGui::PopID();
+			ImGui::TreePop();
+		}
+
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+
+		if ( !sysinf.os.empty() )
+		{
+			disable_elem = true;
+			ImGui::BeginDisabled();
+		}
+		if ( ImGui::Button("Add##os") )
+		{
+			TZK_LOG(LogLevel::Debug, "Adding Operating System");
+			sysinf.os.emplace_back();
+		}
+		if ( disable_elem )
+		{
+			ImGui::EndDisabled();
+			disable_elem = false;
+		}
+		ImGui::SameLine();
+		label = "Operating System : " + std::to_string(sysinf.os.size());
+
+		// maximum 1 instance
+		if ( sysinf.os.empty() )
+		{
+			ImGui::Text("%s", label.c_str());
+		}
+		else if ( ImGui::TreeNodeEx(label.c_str(), all_treeflags) )
+		{
+			idinc = 0;
+			ImGui::PushID("os");
+
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+
+			label = "Operating System##elem";
+			tree_open = ImGui::TreeNodeEx(label.c_str());
+			ImGui::TableNextColumn();
+			if ( ImGui::SmallButton("Delete") )
+			{
+				TZK_LOG_FORMAT(LogLevel::Debug, "Deleting %s", label.c_str());
+				sysinf.os.clear();
+			}
+			if ( tree_open )
+			{
+				for ( auto& e : sysinf.os )
+				{
+					ImGui::PushID(++idinc);
+
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Architecture");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Arch", &e.arch);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Kernel");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Kernel", &e.kernel);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Version");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Version", &e.version);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted("Name");
+					ImGui::TableNextColumn();
+					ImGui::InputText("##Name", &e.name);
+
+					ImGui::PopID();
+				}
+
+				ImGui::TreePop();
+
+			}
+
+			ImGui::PopID();
+			ImGui::TreePop();
+		}
+
+		ImGui::EndTable();
+	}
 }
 
 
@@ -1603,15 +3157,15 @@ ImGuiWorkspace::DrawServiceManagement()
 
 	//if ( !is_draw_client )
 	{
-	ImGui::SetNextWindowPosCenter(ImGuiCond_Appearing); // not always, permit to move
-	ImGui::SetNextWindowSizeConstraints(min_wnd_size, ImVec2(FLT_MAX, FLT_MAX));
-	ImGui::SetNextWindowSize(min_wnd_size, ImGuiCond_Appearing);
+		ImGui::SetNextWindowPosCenter(ImGuiCond_Appearing); // not always, permit to move
+		ImGui::SetNextWindowSizeConstraints(min_wnd_size, ImVec2(FLT_MAX, FLT_MAX));
+		ImGui::SetNextWindowSize(min_wnd_size, ImGuiCond_Appearing);
 
-	if ( !ImGui::Begin("Service Management", &_gui_interactions.show_service_management, ImGuiWindowFlags_NoScrollbar) )
-	{
-		ImGui::End();
-		return;
-	}
+		if ( !ImGui::Begin("Service Management", &_gui_interactions.show_service_management, ImGuiWindowFlags_NoScrollbar) )
+		{
+			ImGui::End();
+			return;
+		}
 	}
 
 	ImVec2  wnd_size = ImGui::GetContentRegionAvail();

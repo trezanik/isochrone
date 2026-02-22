@@ -238,6 +238,9 @@ private:
 	/** Service Management: The services listbox selection */
 	int   my_selected_service_index;
 
+	/**  */
+	int   my_selected_dataentry_index;
+
 
 	/**
 	 * Updates or creates a setting of the supplied values
