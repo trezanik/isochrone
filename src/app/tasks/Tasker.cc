@@ -54,14 +54,25 @@ Tasker::~Tasker()
 		my_tasks_condvar.notify_all();
 		ServiceLocator::Threading()->SyncEventSet(my_sync_event.get());
 
+		int  waitval = 10;
+
 		// tell all running tasks to stop
 		for ( auto& task : my_all_tasks )
 		{
 			while ( task->IsRunning() )
 			{
+				int  timeout = 1000; // number of milliseconds
+
 				// temporary, needs proper sync
 				task->Stop();
-				std::this_thread::sleep_for(std::chrono::milliseconds(10));
+				std::this_thread::sleep_for(std::chrono::milliseconds(waitval));
+
+				if ( (timeout -= waitval) <= 0 )
+				{
+					TZK_LOG(LogLevel::Warning, "Timeout waiting for task to stop; attempting deletion");
+					task.reset();
+					break;
+				}
 			}
 		}
 
