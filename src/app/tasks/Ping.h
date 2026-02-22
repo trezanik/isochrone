@@ -265,10 +265,6 @@ public:
 	 * Standard destructor
 	 */
 	~Ping();
-
-
-	virtual std::string
-	TaskDetail() const override;
 };
 
 

@@ -218,8 +218,20 @@ public:
 	void
 	Stop();
 
+
+	/**
+	 * Obtains details around the task execution as a string
+	 * 
+	 * This is free-form; it could contain an SSH process command line, a simple
+	 * text field not representative of a command - anything that is suitable
+	 * for feeding back state to the user if they look into what this task is
+	 * and/or what it's doing.
+	 * 
+	 * @return
+	 *  A string suitable for displaying to the user
+	 */
 	virtual std::string
-	TaskDetail() const = 0;
+	TaskDetail() { return _detail; }
 };
 
 

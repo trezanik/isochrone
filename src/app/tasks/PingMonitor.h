@@ -742,13 +742,6 @@ public:
 
 
 	/**
-	 * Implementation of Task::TaskDetail
-	 */
-	virtual std::string
-	TaskDetail() const override;
-
-
-	/**
 	 * Determines if the supplied target exists in the monitor list
 	 *
 	 * @param[in] uuid

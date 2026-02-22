@@ -495,7 +495,8 @@ Ping::Ping(
 
 	TZK_LOG(LogLevel::Trace, "Constructor starting");
 	{
-
+		_detail = "ping against ";
+		_detail += aux::ipaddr_to_string(target_addr);
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
@@ -547,13 +548,6 @@ Ping::Invoke()
 		// valid response
 		return ErrNONE;
 	}
-}
-
-
-std::string
-Ping::TaskDetail() const
-{
-	return "ping: ";
 }
 
 

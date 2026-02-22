@@ -825,6 +825,11 @@ PingMonitor::RemoveTarget(
 
 	my_monitored.erase(iter);
 
+	// update detail with each target removal
+	_detail = "Monitoring ";
+	_detail += std::to_string(my_monitored.size());
+	_detail += " systems";
+
 	return retval;
 }
 
@@ -1175,16 +1180,6 @@ PingMonitor::TargetExists(
 }
 
 
-std::string
-PingMonitor::TaskDetail() const
-{
-	std::string  retval = "Monitoring ";
-	retval += std::to_string(my_monitored.size());
-	retval += " systems";
-	return retval;
-}
-
-
 int
 PingMonitor::UpdateTarget(
 	std::vector<monitored_system>::iterator iter,
@@ -1249,6 +1244,11 @@ PingMonitor::UpdateTarget(
 	default:
 		return ErrIMPL;
 	}
+
+	// update detail with each target update
+	_detail = "Monitoring ";
+	_detail += std::to_string(my_monitored.size());
+	_detail += " systems";
 
 #if !TZK_IS_WIN32
 	/*
