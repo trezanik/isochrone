@@ -27,6 +27,7 @@ static bool  testing_oggvorbis = false;
 static bool  testing_openalsoft = true;
 static bool  testing_openssl = false;
 static bool  testing_pugixml = false;
+static bool  testing_python = false;
 static bool  testing_sdl = false;
 static bool  testing_sqlite = false;
 static bool  testing_stb = false;
@@ -62,6 +63,9 @@ static bool  testing_stb = false;
 #	endif
 #	if TZK_USING_PUGIXML
 #		pragma comment ( lib, "pugixml.lib" )
+#	endif
+#	if TZK_USING_PYTHON
+#		pragma comment ( lib, "python3.lib" )  // this is release-mode only if installing from binary!
 #	endif
 #	if TZK_USING_SDL
 #		pragma comment ( lib, "SDL2d.lib" )
@@ -128,6 +132,11 @@ CheckOpenAL(
 	uint32_t data_size,
 	void* audio_data
 );
+#endif
+
+#if TZK_USING_PYTHON
+// Dependency: python (dynamic library)
+#include <Python.h>
 #endif
 
 #if TZK_USING_SDL
@@ -1317,7 +1326,7 @@ main(
 			//ImGuiIO& io = ImGui::GetIO();
 			//SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
 			SDL_RenderClear(renderer);
-			ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
+			ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer);
 			SDL_RenderPresent(renderer);
 		}
 
@@ -1458,6 +1467,43 @@ main(
 				free(buf);
 			}
 		}
+	}
+#endif
+
+#if TZK_USING_PYTHON
+	if ( testing_python )
+	{
+		Py_Initialize();
+		PySys_SetPath(L"assets/scripts");
+
+		// 1) execute python
+		PyRun_SimpleString("print('Inbuilt string exec')");
+
+		// 2) call external script
+		FILE*  fp = fopen("assets/scripts/python_test.py", "r");
+		PyRun_SimpleFile(fp, "python_test.py");
+		fclose(fp);
+
+		// 3) call external script function, extract data
+		PyObject* name;
+		PyObject* load_module;
+		PyObject* func;
+		PyObject* callfunc;
+		PyObject* args;
+
+		name = PyUnicode_FromString("test");
+		load_module = PyImport_Import(name);
+		func = PyObject_GetAttrString(load_module, (char*)"func1");
+		callfunc = PyObject_CallObject(func, NULL);
+		double  func1_retval = PyFloat_AsDouble(callfunc);
+
+		func = PyObject_GetAttrString(load_module, (char*)"func2");
+		args = PyTuple_Pack(1, PyFloat_FromDouble(42));
+		callfunc = PyObject_CallObject(func, NULL);
+		double  func2_retval = PyFloat_AsDouble(callfunc);
+
+
+		Py_Finalize();
 	}
 #endif
 
