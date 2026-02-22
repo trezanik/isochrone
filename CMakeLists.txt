@@ -46,17 +46,18 @@ endif()
 option(USE_CATCH2 "Use Catch2 for unit testing" OFF) # Application integrated, no 'install' on system
 option(USE_DEARIMGUI "Use Dear ImGui for GUI [MANDATORY]" ON) # Application integrated, no 'install' on system
 option(USE_FREETYPE2 "Use FreeType2 for fonts" OFF)
-option(USE_LIBPNG "Use libpng for images [TEMP:MANDATORY]" ON) # per TypeLoader_Image, needed to determine alpha even if using STBI
+option(USE_LIBPNG "Use libpng for images [TEMP:MANDATORY]" OFF) # per TypeLoader_Image, needed to determine alpha even if using STBI
 option(USE_OGGOPUS "Use Ogg-Opus as an available audio type" ON)
 option(USE_OGGVORBIS "Use Ogg-Vorbis as an available audio type" ON)
 option(USE_OPENAL "Use OpenAL for audio [MANDATORY]" ON)
 option(USE_OPENSSL "Use OpenSSL for encrypted network operations" ON)
 option(USE_PUGIXML "Use pugixml for XML handling [MANDATORY]" ON)
 option(USE_SDL2 "Use SDL2 for windowing [MANDATORY]" ON)
-option(USE_SDL2_TTF "Use SDL2_ttf for TrueType fonts" ON)
+option(USE_SDL2_IMAGE "Use SDL2_image for images [requires SDL2]" ON)
+option(USE_SDL2_TTF "Use SDL2_ttf for TrueType fonts [requires SDL2]" ON)
 option(USE_SQLITE3 "Use SQLite for Database functionality" ON)
 option(USE_STB_FONT "Use STB for TrueType fonts" OFF)
-option(USE_STB_IMAGE "Use STB for images" ON)
+option(USE_STB_IMAGE "Use STB for images" OFF)
 
 # these calls create special `PkgConfig::<MODULE>` variables
 if ( USE_FREETYPE2 )
@@ -85,6 +86,9 @@ if ( USE_PUGIXML )
 endif()
 if ( USE_SDL2 )
 	set(SDL2_IMPORT_TARGETS sdl2)
+	if ( USE_SDL2_IMAGE )
+		set(SDL2_IMPORT_TARGETS ${SDL2_IMPORT_TARGETS} SDL2_image)
+	endif()
 	if ( USE_SDL2_TTF )
 		set(SDL2_IMPORT_TARGETS ${SDL2_IMPORT_TARGETS} SDL2_ttf)
 	endif()
@@ -158,6 +162,7 @@ file(GLOB_RECURSE source_app src/app/*.cc src/app/*.h)
 file(GLOB_RECURSE source_core src/core/*.cc src/core/*.h)
 file(GLOB_RECURSE source_engine src/engine/*.cc src/engine/*.cpp src/engine/*.h)
 file(GLOB_RECURSE source_imgui src/imgui/*.cc src/imgui/*.cpp src/imgui/*.h) # imgui integration, uses .cpp
+file(GLOB_RECURSE source_standalone src/Standalone/*.cc)
 
 file(GLOB_RECURSE linux_source_core sys/linux/src/core/*.cc sys/linux/src/core/*.h)
 file(GLOB_RECURSE linux_source_engine sys/linux/src/engine/*.cc sys/linux/src/engine/*.h)
@@ -199,11 +204,11 @@ endif()
 #################
 if ( ISOCHRONE_IS_LINUX )
 	include_directories(/usr/local/include) # locally installed headers, for those not brought in by pkg-config
-	    include_directories(PkgConfig::freetype2 PkgConfig::libpng PkgConfig::ogg PkgConfig::openal PkgConfig::opus PkgConfig::openssl PkgConfig::pugixml PkgConfig::sdl2 PkgConfig::sqlite3 PkgConfig::vorbis PkgConfig::Crypto PkgConfig::SSL)
+		include_directories(PkgConfig::freetype2 PkgConfig::libpng PkgConfig::ogg PkgConfig::openal PkgConfig::opus PkgConfig::openssl PkgConfig::pugixml PkgConfig::sdl2 PkgConfig::sqlite3 PkgConfig::vorbis PkgConfig::Crypto PkgConfig::SSL)
         include_directories(${sdl2_INCLUDE_DIRS} ${ogg_INCLUDE_DIRS} ${opus_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS}) # PkgConfig:: ones aren't working
 	# is using local system install SDL rather than that presented by pkg-config, workaround - at least for my local system
 	# give priority in pathing to non-system paths to allow greater user override/custom capability
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -idirafter /usr/include")
+	#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -idirafter /usr/include")
 endif()
 
 
@@ -299,15 +304,20 @@ if ( USE_SDL2 )
 else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTZK_USING_SDL=0")
 endif()
-if ( USE_SQLITE3 )
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTZK_USING_SQLITE=1")
+if ( USE_SDL2_IMAGE )
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTZK_USING_SDLIMAGE=1")
 else()
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTZK_USING_SQLITE=0")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTZK_USING_SDLIMAGE=0")
 endif()
 if ( USE_SDL2_TTF )
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTZK_USING_SDL_TTF=1")
 else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTZK_USING_SDL_TTF=0")
+endif()
+if ( USE_SQLITE3 )
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTZK_USING_SQLITE=1")
+else()
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTZK_USING_SQLITE=0")
 endif()
 if ( USE_STB_FONT )
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTZK_USING_STBF=1")
@@ -443,4 +453,58 @@ target_link_libraries(imgui PUBLIC core)
 set_target_properties(imgui PROPERTIES DEBUG_POSTFIX ${BINARY_DEBUG_POSTFIX})
 
 ##############
+# Standalone
 ##############
+add_executable(standalone ${source_standalone})
+add_dependencies(standalone version_generator)
+# -I flags for compiler, for standalone
+target_include_directories(standalone PUBLIC src/Standalone)
+if ( ISOCHRONE_FORCE_INCLUDE_CONFIGURE )
+	target_include_directories(standalone PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
+target_compile_options(standalone PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_CXX_FLAGS}>")
+target_compile_options(standalone PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_CXX_FLAGS}>")
+target_link_libraries(
+	standalone
+	PUBLIC
+		core imgui engine
+	PRIVATE
+		pthread uuid
+)
+if ( USE_FREETYPE2 )
+	target_link_libraries(standalone PUBLIC PkgConfig::freetype2)
+endif()
+if ( USE_LIBPNG )
+	target_link_libraries(standalone PUBLIC PkgConfig::libpng)
+endif()
+if ( USE_OGGOPUS )
+	target_link_libraries(standalone PUBLIC PkgConfig::ogg PkgConfig::opus)
+endif()
+if ( USE_OGGVORBIS )
+	target_link_libraries(standalone PUBLIC PkgConfig::ogg PkgConfig::vorbis)
+endif()
+if ( USE_OPENAL )
+	target_link_libraries(standalone PUBLIC PkgConfig::openal)
+endif()
+if ( USE_OPENSSL )
+	if ( openssl_LIBRARIES STREQUAL "" )
+		# use local build
+		target_link_libraries(standalone PUBLIC libcrypto libssl)
+	else()
+		# use pkg-config build
+		target_link_libraries(standalone PUBLIC ${openssl_LIBRARIES})
+	endif()
+endif()
+if ( USE_PUGIXML )
+	target_link_libraries(standalone PUBLIC PkgConfig::pugixml)
+endif()
+if ( USE_SDL2 )
+	target_link_libraries(standalone PUBLIC PkgConfig::sdl2)
+endif()
+if ( USE_SQLITE3 )
+	target_link_libraries(standalone PUBLIC PkgConfig::sqlite3)
+endif()
+
+if ( ISOCHRONE_IS_LINUX )
+	target_link_options(standalone PUBLIC "-rdynamic")
+endif()
