@@ -21,6 +21,13 @@ std::string  g_command_line;
 std::map<std::string, std::string>  g_cli_args;
 
 
+#if !TZK_IS_WIN32
+#include <cstring>
+#include <strings.h>
+#define stricmp strcasecmp
+#endif
+
+
 int
 interpret_command_line(
 	int argc,
@@ -273,16 +280,23 @@ main(
 
 
 #include <SDL.h>
+#include <SDL_image.h>
 #include <SDL_version.h>
 #include "imgui/dear_imgui/imgui.h"
 #include "imgui/dear_imgui/imgui_impl_sdl2.h"
 #include "imgui/dear_imgui/imgui_impl_sdlrenderer2.h"
 #include "imgui/ImGuiImpl_SDL2.h"
+#include "engine/resources/tga/tga.h"
 
 #include <thread>
 
+
+#if TZK_IS_WIN32
 #pragma comment ( lib, "imgui.lib" )
 #pragma comment ( lib, "SDL2d.lib" )
+#pragma comment ( lib, "SDL2_imaged.lib" )
+#endif
+
 
 /*
  * Minimal, reproducible instance of imgui within SDL window and renderer
@@ -297,7 +311,7 @@ main(
  */
 
 
-#define THREADED_RENDER  1  // have imgui + sdl present render in a dedicated thread
+#define THREADED_RENDER  0  // have imgui + sdl present render in a dedicated thread
 
 #define FOREGROUND 0
 #define BACKGROUND 1
@@ -713,6 +727,221 @@ draw()
 	static ImVec4  custom_filled_rect_colour(200,20,200,255);
 	//static ImVec2  custom_group_size();
 
+	static SDL_Surface*  sfc = nullptr;
+	static SDL_Texture*  tex = nullptr;
+	static int  img_w = 0;
+	static int  img_h = 0;
+
+	if ( tex == nullptr )
+	{
+#if 0
+		if ( (sfc = IMG_Load("assets/images/isochrone-banner-tiny.tga")) != nullptr )
+		{
+			std::printf("creating tex\n");
+			if ( (tex = SDL_CreateTextureFromSurface(sdl_renderer, sfc)) == nullptr )
+			{
+				std::printf("SDL_CreateTextureFromSurface failed\n");
+			}
+			else
+			{
+				SDL_FreeSurface(sfc);
+			}
+		}
+#endif
+
+		//FILE*  fp = fopen("assets/images/isochrone-banner-tiny.tga", "r");
+		FILE*  fp = fopen("assets/images/utc32.tga", "r");
+		tga::StdioFileInterface file(fp);
+		tga::Decoder decoder(&file);
+		tga::Header header;
+		if ( !decoder.readHeader(header) )
+		{
+		}
+
+		tga::Image image;
+		image.bytesPerPixel = header.bytesPerPixel();
+		if ( image.bytesPerPixel == 1)
+		{
+			// grayscale not an option on modern hardware that has minimum colour expectations
+			std::printf("1 byte per pixel! Unsupportable!\n");
+		}
+		image.rowstride = header.width * header.bytesPerPixel();
+
+		image.pixels = static_cast<unsigned char*>(malloc(image.rowstride * header.height));
+
+		if ( !decoder.readImage(header, image, nullptr) )
+		{
+		}
+
+
+		std::printf("Width: %d\n", header.width);
+		std::printf("Height: %d\n", header.height);
+		std::printf("Bits per Pixel: %d\n", header.bitsPerPixel);  // 24 if RGB, 32 if RGBA (little endian, so always after the R byte)
+		bool  has_alpha = header.bitsPerPixel == 32 || header.bitsPerPixel == 16;
+		std::printf("Alpha channel: %s\n", has_alpha ? "present" : "not present");
+
+		uint8_t  dtc = 0;
+		/*
+		 0  -  No image data included.
+		 1  -  Uncompressed, color-mapped images.
+		 2  -  Uncompressed, RGB images.
+		 3  -  Uncompressed, black and white images.
+		 9  -  Runlength encoded color-mapped images.
+		 10  -  Runlength encoded RGB images.
+		 11  -  Compressed, black and white images.
+		 32  -  Compressed color-mapped data, using Huffman, Delta, and
+		 runlength encoding.
+		 33  -  Compressed color-mapped data, using Huffman, Delta, and
+		 runlength encoding.  4-pass quadtree-type process.
+		 */
+		dtc = header.imageType;
+		switch ( dtc )
+		{
+		case 33: // Compressed colour-mapped, 4-pass quadtree
+			std::printf("Data Type Code: %d - Compressed colour-mapped, 4-pass quadtree\n", dtc); break;
+		case 32: // Compressed colour-mapped
+			std::printf("Data Type Code: %d - Compressed colour-mapped\n", dtc); break;
+		case 11: // Compressed black+white
+			std::printf("Data Type Code: %d - Compressed black+white\n", dtc); break;
+		case 10: // Run Length Encoded, RGB
+			std::printf("Data Type Code: %d - Run Length Encoded, RGB\n", dtc); break;
+		case 9: // Run Length Encoded, colour-mapped
+			std::printf("Data Type Code: %d - Run Length Encoded, colour-mapped\n", dtc); break;
+		case 3: // Uncompressed black+white
+			std::printf("Data Type Code: %d - Uncompressed black+white\n", dtc); break;
+		case 2: // Uncompressed RGB
+			std::printf("Data Type Code: %d - Uncompressed RGB\n", dtc); break;
+		case 1: // Uncompressed, colour-mapped
+			std::printf("Data Type Code: %d - Uncompressed, colour-mapped\n", dtc); break;
+		default:
+			std::printf("Data Type Code: %d - Unknown/No image data\n", dtc); break;
+			break;
+		}
+
+
+		// bits 3–0 give the alpha channel depth in the image descriptor
+
+		// Optional post-process to fix the alpha channel in
+		// some TGA files where alpha=0 for all pixels when
+		// it shouldn't.
+		decoder.postProcessImage(header, image);
+
+#if 1
+		//sfc = SDL_CreateRGBSurfaceFrom((void*)image.pixels, header.width, header.height, image.bytesPerPixel, image.rowstride, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+
+		// good: ctc24, utc32, utc24, utc16
+		// incapable: cbw8, ccm8, utc8, ucm8
+		uint32_t  pformat = SDL_PIXELFORMAT_UNKNOWN;
+		switch ( header.bitsPerPixel )
+		{
+		case 32:  pformat = SDL_PIXELFORMAT_ARGB8888; break;
+		case 24:  pformat = SDL_PIXELFORMAT_RGB888; break;
+		case 16:  pformat = SDL_PIXELFORMAT_ARGB8888; break;  // SDL_PIXELFORMAT_RGB565 if no alpha. I'd expect this to be ARGB4444/ARGB1555, but only ARGB8888 displays properly?
+		case 8:   pformat = SDL_PIXELFORMAT_UNKNOWN; break;   // generally no support for black+white only, so we'll have to limit to 16/24/32-bit images
+		default:  break;
+		}
+		std::printf("Using pixel format: %u\n", pformat);
+		sfc = SDL_CreateRGBSurfaceWithFormatFrom((void*)image.pixels, header.width, header.height, image.bytesPerPixel, image.rowstride, pformat);
+		if ( sfc == nullptr )
+		{
+			std::printf("SDL_CreateRGBSurfaceWithFormatFrom failed: %s\n", SDL_GetError());
+		}
+		/*tex = SDL_CreateTextureFromSurface(sdl_renderer, sfc);
+		if ( tex == nullptr )
+		{
+			std::printf("SDL_CreateTextureFromSurface failed: %s\n", SDL_GetError());
+		}*/
+#else
+		// perfectly functional code beyond the IMG_Load* not working
+		fseek(fp, 0, SEEK_END);
+		size_t  size = ftell(fp);
+		fseek(fp, 0, SEEK_SET);
+		unsigned char*  img_data = (unsigned char*)malloc(size);
+		fread(img_data, 1, size, fp);
+		SDL_RWops*  rw = SDL_RWFromMem(img_data, size);
+		if ( rw == nullptr )
+		{
+			std::printf("SDL_RWFromMem failed: %s\n", SDL_GetError());
+		}
+		else
+		{
+			int  free_rwsrc = 0;
+			if ( (tex = IMG_LoadTexture_RW(sdl_renderer, rw, free_rwsrc)) == nullptr )
+			{
+				std::printf("IMG_LoadTexture_RW failed: %s\n", SDL_GetError());
+
+				if ( (sfc = IMG_Load_RW(rw, free_rwsrc)) == nullptr )
+				{
+					std::printf("IMG_Load_RW failed: %s\n", SDL_GetError());
+
+					if ( (sfc = IMG_LoadTGA_RW(rw)) == nullptr )
+					{
+						std::printf("IMG_LoadTGA_RW failed: %s\n", SDL_GetError());
+					}
+					else
+					{
+						/*
+						 * So we're hitting this. Why are none of the prior two
+						 * working?
+						 * IMG_Load also works but we've already loaded it
+						 * We do know the mediatype so can call them directly,
+						 * but seems really poor and unneccessary
+						 */
+						std::printf("Valid texture from IMG_LoadTGA_RW\n");
+					}
+				}
+				else
+				{
+					std::printf("Valid texture from IMG_Load_RW\n");
+				}
+			}
+			else
+			{
+				std::printf("Valid texture from IMG_LoadTexture_RW\n");
+			}
+			SDL_RWclose(rw);
+		}
+		free(img_data);
+#endif
+
+		img_w = header.width;
+		img_h = header.height;
+		if ( sfc != nullptr )
+		{
+			if ( (tex = SDL_CreateTextureFromSurface(sdl_renderer, sfc)) == nullptr )
+			{
+				std::printf("SDL_CreateTextureFromSurface failed: %s\n", SDL_GetError());
+			}
+			else
+			{
+				uint32_t  format;
+				int  w;
+				int  h;
+				if ( SDL_QueryTexture(tex, &format, nullptr, &w, &h) != 0 )
+				{
+					std::printf("SDL_QueryTexture failed: %s\n", SDL_GetError());
+				}
+				else
+				{
+					std::printf("Pixel format: %u, Dimensions: %dx%d\n", format, w, h);
+					// from IMG_LoadTGA_RW = 372645892 (correct display = SDL_PIXELFORMAT_ARGB8888)
+					// from SDL_CreateRGBSurfaceFrom = 370546692 (blank white rect = SDL_PIXELFORMAT_XRGB8888)
+				}
+			}
+			SDL_FreeSurface(sfc);
+			sfc = nullptr;
+		}
+
+		free(image.pixels);
+		fclose(fp);
+	}
+	else
+	{
+		ImGui::TextDisabled("Image Below: %dx%d", img_w, img_h);
+		ImGui::Image((ImTextureID)(uintptr_t)tex, ImVec2(static_cast<float>(img_w), static_cast<float>(img_h)));
+		ImGui::TextDisabled("Image Above");
+	}
+
 	ImVec2  pos;
 	ImVec2  pos2;
 
@@ -738,6 +967,11 @@ draw()
 		ImGui::InputFloat("FilledRect.BR.X", &custom_filled_rect_br.x);
 		ImGui::InputFloat("FilledRect.BR.Y", &custom_filled_rect_br.y);
 		ImGui::ColorEdit4("FilledRect.Colour", &custom_filled_rect_colour.w);
+
+		if ( tex != nullptr )
+		{
+			ImGui::Image((ImTextureID)(uintptr_t)tex, ImVec2(212, 37));
+		}
 	}
 	ImGui::End();
 
@@ -877,9 +1111,7 @@ render()
 	SDL_SetRenderDrawColor(sdl_renderer, 110, 140, 170, SDL_ALPHA_OPAQUE);
 	SDL_RenderClear(sdl_renderer);
 
-	// this still doesn't work, so not related to threading
-	//imgui_sdl2->RenderDrawData(ImGui::GetDrawData());
-	ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
+	imgui_sdl2->RenderDrawData(ImGui::GetDrawData());
 
 	SDL_RenderPresent(sdl_renderer);
 
@@ -937,10 +1169,12 @@ message_loop()
 
 int
 main(
-	int argc,
-	char** argv
+	int TZK_UNUSED(argc),
+	char** TZK_UNUSED(argv)
 )
 {
+	std::printf("starting\n");
+
 	// init
 	{
 		SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO);
@@ -977,12 +1211,14 @@ main(
 		// this is undesired when docking, but we don't have that yet
 		io.ConfigWindowsMoveFromTitleBarOnly = true;
 
+		// ensure logging is commented out to avoid crashes, as we have no servicelocator here
 		imgui_sdl2 = new trezanik::imgui::ImGuiImpl_SDL2(imgui_context, sdl_renderer, sdl_window);
 		imgui_sdl2->Init();
 
 		ImGui::StyleColorsDark();
 	}
-	
+
+	std::printf("init complete\n");
 
 	quit = false;
 
@@ -991,6 +1227,7 @@ main(
 #if THREADED_RENDER
 	opt_thread = std::thread(&render);
 #endif
+
 
 	for ( ;; )
 	{
@@ -1009,6 +1246,7 @@ main(
 
 	SDL_StopTextInput();
 
+	std::printf("stopping\n");
 
 	// cleanup
 	{
@@ -1025,6 +1263,8 @@ main(
 		SDL_DestroyWindow(sdl_window);
 		SDL_Quit();
 	}
+
+	std::printf("terminated\n");
 
 	return EXIT_SUCCESS;
 }
