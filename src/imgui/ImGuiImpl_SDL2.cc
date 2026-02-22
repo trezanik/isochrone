@@ -628,6 +628,7 @@ ImGuiImpl_SDL2::ProcessSDLEvent(
 				return false;
 			}
 		}
+		return false;
 	case SDL_TEXTINPUT:
 		{
 			if ( GetViewportForWindowID(event->text.windowID) == nullptr )
