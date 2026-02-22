@@ -17,10 +17,8 @@
 
 #if TZK_USING_SDL
 struct SDL_Texture;
-#endif
-//#if TZK_USING_SDLIMAGE  // mandatory parameter, may become optional in future
 struct SDL_Surface;
-//#endif
+#endif
 
 
 namespace trezanik {
@@ -28,33 +26,58 @@ namespace engine {
 
 
 /**
- * Holds a PNG image key data variables
+ * The method used for loading the image
+ * 
+ * If the load failed, or was never attempted, will remain Unset
  */
-struct png_container
+enum class LoaderMethod : uint8_t
+{
+	Unset = 0,
+	Internal,
+	STBI,
+	SDLImage
+};
+
+
+/**
+ * Holds a key image data variables
+ */
+struct image_container
 {
 	int  width = 0;  //< image width
 	int  height = 0;  //< image height
-	int  channels = 0;  //< image channels (grayscale, colour, alpha)
+	int  bits_per_pixel = 0;  //< number of bits per pixel in the image
+	uint32_t  pixel_format = 0;  //< pixel format, i.e. SDL_PIXELFORMAT_xxx
 
-	// can probably just cast around unsigned char to SDL_Surface...
 	/**
-	 * Raw image data, if loaded explicitly via libpng or stbi. Cannot be empty
-	 * or a nullptr unless using SDL_Image
+	 * Raw image data, if retained and used by the loader.
+	 * SDL_Image will bypass usage, and otherwise expected to be used as a
+	 * temporary for loading until it is mapped to a texture, where it can then
+	 * be freed.
 	 */
 	unsigned char*  data = nullptr;
 
+	/** The method used to load this image; relevant for cleanup actions/info */
+	LoaderMethod  method = LoaderMethod::Unset;
+
 #if TZK_USING_SDL
 	/**
-	 * Will be a nullptr unless using SDL_Image, in which case it must be a
-	 * valid surface
+	 * A temporary surface object for CPU-based setup and modifications, used
+	 * to create a texture. Not all loaders require this
 	 */
 	SDL_Surface*  surface = nullptr;
+
+	/**
+	 * The actual texture object passed into the graphics APIs, and stored in
+	 * GPU memory
+	 */
+	SDL_Texture*  texture = nullptr;
 #endif
 };
 
 
 /**
- * Image resource; presently only png supported
+ * Image resource
  */
 class TZK_ENGINE_API Resource_Image : public Resource
 {
@@ -65,16 +88,8 @@ class TZK_ENGINE_API Resource_Image : public Resource
 
 private:
 
-	/// The assigned png data
-	std::unique_ptr<png_container>  my_png;
-
-#if TZK_USING_SDL
-	/// The SDL Texture created from the png data
-	SDL_Texture*    my_sdl_texture;
-#endif
-#if TZK_USING_SDLIMAGE
-	
-#endif
+	/// The loaded image data
+	image_container  my_container;
 
 protected:
 public:
@@ -83,6 +98,7 @@ public:
 	 * Standard constructor
 	 *
 	 * @param[in] fpath
+	 *  Path to the file on disk
 	 */
 	Resource_Image(
 		std::string fpath
@@ -97,48 +113,17 @@ public:
 
 #if TZK_USING_SDL
 	/**
-	 * Converts the image data to an SDL Texture
+	 * Acquires the image data as an SDL Texture
 	 * 
 	 * If the SDL texture has already been created, this performs no action
-	 * beyond returning the structure previously created.
+	 * beyond returning the object previously created.
 	 * 
-	 * Return value will be freed in our destructor, or on a replacement
-	 * png via AssignPNG().
-	 * 
-	 * @param[in] surface
-	 *  (Optional) Existing surface to adapt to texture. Caller must free if
-	 *  supplied, otherwise one will be created via the my_png container content.
-	 *  Expected to be a nullptr when using this as a getter
 	 * @return
-	 *  A pointer to the SDL Texture generated from the raw image data previously
-	 *  assigned on success, or nullptr on failure
+	 *  A pointer to the SDL Texture generated from the raw image data
 	 */
 	SDL_Texture*
-	AsSDLTexture(
-		SDL_Surface* surface = nullptr
-	);
+	AsSDLTexture();
 #endif
-
-	/**
-	 * Assigns the PNG container that future operations will base on
-	 *
-	 * Do not invoke yourself; already handled as part of typeloading.
-	 * Consider making this private implementation.
-	 * 
-	 * SDL_Image:
-	 * Must have the SDL_Surface populated
-	 * libpng/stbi:
-	 * Must have the data populated
-	 * 
-	 * @param[in] pngcon
-	 *  The populated png container
-	 * @return
-	 *  ErrNONE on success, or ErrEXTERN if AsSDLTexture() fails
-	 */
-	int
-	AssignPNG(
-		std::unique_ptr<png_container> pngcon
-	);
 
 
 	/**
@@ -149,6 +134,32 @@ public:
 	 */
 	int
 	Height() const;
+
+
+	/**
+	 * Gets the image container object
+	 * 
+	 * Primarily used by the TypeLoader_Image for population. It should not be
+	 * modified otherwise, and will consider making this private/proxy
+	 *
+	 * @return
+	 *  Raw pointer to the structure held within this class. Lifetime valid in
+	 *  tandem with this object.
+	 */
+	image_container*
+	ImageContainer();
+
+
+	/**
+	 * Gets the image pixel format
+	 *
+	 * With SDL, this will be a SDL_PixelFormatEnum value
+	 *
+	 * @return
+	 *  0 if indeterminate, otherwise the pixel format
+	 */
+	uint32_t
+	PixelFormat() const;
 
 
 	/**

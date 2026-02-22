@@ -12,11 +12,17 @@
 
 #include "engine/resources/IResourceLoader.h"
 #include "engine/resources/TypeLoader.h"
+#include "engine/resources/Resource_Image.h"  // LoaderMethod
 #include "core/util/SingularInstance.h"
+
+#include <queue>
 
 
 namespace trezanik {
 namespace engine {
+
+
+struct image_container;
 
 
 /**
@@ -33,6 +39,9 @@ class TypeLoader_Image
 
 private:
 
+	/** Loader methods in order of attempted usage */
+	std::queue<LoaderMethod>  my_mpri;
+
 	/**
 	 * Implementation of IResourceLoader::Load
 	 */
@@ -42,24 +51,33 @@ private:
 	) override;
 
 
-#if 0  // Code Disabled: at present only open pngs in Load(), add this with other filetypes
 	/**
-	 * Loads a png file
-	 * 
-	 * In place ready for additional filetypes beyond PNG being supported, so
-	 * the load function returns the appropriate method
+	 * Loads a png file - internal handler
 	 *
 	 * @param[in] fp
 	 *  The file pointer containing a PNG stream
-	 * @param[in] pngcon
-	 *  A pointer to the png container to hold the data
+	 * @return
+	 *  An error code on failure, otherwise ErrNONE
 	 */
 	int
 	LoadPNG(
 		FILE* fp,
-		png_container* pngcon
+		image_container* con
 	);
-#endif
+
+	/**
+	 * Loads a tga file - internal handler
+	 *
+	 * @param[in] fp
+	 *  The file pointer containing a truevision tga v2 stream
+	 * @return
+	 *  An error code on failure, otherwise ErrNONE
+	 */
+	int
+	LoadTGA(
+		FILE* fp,
+		image_container* con
+	);
 
 protected:
 public:

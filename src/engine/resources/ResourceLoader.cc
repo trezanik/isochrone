@@ -287,6 +287,10 @@ ResourceLoader::GetMediaTypeFromFileInfo(
 	{
 		return MediaType::image_png;
 	}
+	else if ( EndsWith(filepath, fileext_tga) )
+	{
+		return MediaType::image_tga;
+	}
 	else if ( EndsWith(filepath, fileext_ttf) )
 	{
 		return MediaType::font_ttf;

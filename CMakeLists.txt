@@ -156,7 +156,7 @@ option(ISOCHRONE_FORCE_INCLUDE_CONFIGURE "Force include configure.h; run 'genera
 ###########
 file(GLOB_RECURSE source_app src/app/*.cc src/app/*.h)
 file(GLOB_RECURSE source_core src/core/*.cc src/core/*.h)
-file(GLOB_RECURSE source_engine src/engine/*.cc src/engine/*.h)
+file(GLOB_RECURSE source_engine src/engine/*.cc src/engine/*.cpp src/engine/*.h)
 file(GLOB_RECURSE source_imgui src/imgui/*.cc src/imgui/*.cpp src/imgui/*.h) # imgui integration, uses .cpp
 
 file(GLOB_RECURSE linux_source_core sys/linux/src/core/*.cc sys/linux/src/core/*.h)

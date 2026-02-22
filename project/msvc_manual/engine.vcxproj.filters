@@ -52,6 +52,12 @@
     <Filter Include="Header Files\resources\stb">
       <UniqueIdentifier>{a4857151-febe-4feb-80c0-5c246432cdfe}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\resources\tga">
+      <UniqueIdentifier>{ca4b6efe-82bc-4828-a6d0-662a02d6d9c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\resources\tga">
+      <UniqueIdentifier>{16bc3a7e-8b72-44e0-8d52-d99b27eb2c73}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\engine\services\audio\AudioFile.cc">
@@ -149,6 +155,18 @@
     </ClCompile>
     <ClCompile Include="..\..\src\engine\services\audio\ALAudio.cc">
       <Filter>Source Files\services\audio</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\tga\encoder.cpp">
+      <Filter>Source Files\resources\tga</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\tga\image_iterator.cpp">
+      <Filter>Source Files\resources\tga</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\tga\stdio.cpp">
+      <Filter>Source Files\resources\tga</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\engine\resources\tga\decoder.cpp">
+      <Filter>Source Files\resources\tga</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -367,6 +385,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\engine\services\net\INet.h">
       <Filter>Header Files\services\net</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\engine\resources\tga\tga.h">
+      <Filter>Header Files\resources\tga</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\engine\resources\stb\stb_image.h">
       <Filter>Header Files\resources\stb</Filter>

@@ -34,6 +34,7 @@ TConverter<MediaType>::ToString(
 	case MediaType::audio_wave:        return mediatype_audio_wave;
 	case MediaType::font_ttf:          return mediatype_font_ttf;
 	case MediaType::image_png:         return mediatype_image_png;
+	case MediaType::image_tga:         return mediatype_image_tga;
 	case MediaType::text_plain:        return "";// mediatype_text_plain;
 	case MediaType::text_xml:          return mediatype_text_xml;
 	default:

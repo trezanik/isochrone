@@ -54,6 +54,7 @@ enum class MediaType : uint16_t
 	audio_wave,
 	font_ttf,
 	image_png,
+	image_tga,
 	text_plain,
 	text_xml,
 	// --- end real values, begin custom values
@@ -83,6 +84,7 @@ constexpr char  fileext_flac[] = "flac";
 constexpr char  fileext_ogg[]  = "ogg";
 constexpr char  fileext_opus[] = "opus";
 constexpr char  fileext_png[]  = "png";
+constexpr char  fileext_tga[]  = "tga";
 constexpr char  fileext_ttf[]  = "ttf";
 constexpr char  fileext_wave[] = "wav";
 constexpr char  fileext_xml[]  = "xml";
@@ -95,6 +97,7 @@ constexpr char  mediatype_audio_wave[]        = "audio/wave";
 constexpr char  mediatype_font_ttf[]          = "font/ttf";
 constexpr char  mediatype_image_png[]         = "image/png";
 constexpr char  mediatype_image_spritesheet[] = "image/spritesheet";
+constexpr char  mediatype_image_tga[]         = "image/tga";
 constexpr char  mediatype_text_xml[]          = "text/xml";
 
 constexpr char  resstate_declared[] = "Declared";

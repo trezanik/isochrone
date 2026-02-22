@@ -68,7 +68,7 @@ ImGuiAboutDialog::ImGuiAboutDialog(
 #if 0  // Code Disabled: AppIcon vs Banner
 		std::string  fpath = aux::BuildPath(ctx.AssetPath() + assetdir_images, "app_icon-128x128.png");
 #else
-		std::string  fpath = aux::BuildPath(ctx.AssetPath() + assetdir_images, "isochrone-banner-tiny.png");
+		std::string  fpath = aux::BuildPath(ctx.AssetPath() + assetdir_images, "isochrone-banner-tiny.tga");
 #endif
 		auto         id = ctx.GetResourceCache().GetResourceID(fpath.c_str());
 
@@ -283,6 +283,13 @@ ImGuiAboutDialog::DrawAcknowledgements() const
 		ImGui::Text("OpenAL general usage and streaming"); // https://ffainelli.github.io/openal-example/
 		ImGui::TableNextColumn();
 		ImGui::Text("https://indiegamedev.net/2020/01/16/how-to-stream-ogg-files-with-openal-in-c/");
+		ImGui::TableNextColumn();
+
+		ImGui::Text("David Capello");
+		ImGui::TableNextColumn();
+		ImGui::Text("Aseprite TGA Library");
+		ImGui::TableNextColumn();
+		ImGui::Text("https://github.com/aseprite/tga/");
 		ImGui::TableNextColumn();
 
 		// more to come!
