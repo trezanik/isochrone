@@ -11,6 +11,7 @@
 
 #include "core/util/winerror.h"
 #include "core/util/winops.h"
+#include "core/util/DllWrapper.h"
 #include "core/services/log/Log.h"
 #include "core/services/memory/Memory.h"
 #include "core/services/ServiceLocator.h"
@@ -84,7 +85,16 @@ running_elevated(
 	bool& result
 )
 {
-#if !TZK_ENABLE_XP2003_SUPPORT
+	Module_ntdll     ntdll;
+	OSVERSIONINFOEX  osvi = { 0 };
+	osvi.dwOSVersionInfoSize = sizeof(osvi);
+
+	ntdll.RtlGetVersion(&osvi);
+	if ( osvi.dwMajorVersion < 6 )
+	{
+		return ErrIMPL;
+	}
+
 	HANDLE  token = nullptr;
 
 	if ( ::OpenProcessToken(::GetCurrentProcess(), TOKEN_QUERY, &token) )
@@ -101,9 +111,6 @@ running_elevated(
 	}
 	
 	return ErrSYSAPI;
-#else
-	return ErrIMPL;
-#endif
 }
 
 
