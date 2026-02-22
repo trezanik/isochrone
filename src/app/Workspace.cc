@@ -19,6 +19,7 @@
 #include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/util/filesystem/file.h"
+#include "core/util/filesystem/folder.h"
 #include "core/util/string/string.h"
 #include "core/util/string/STR_funcs.h"
 #include "core/util/time.h"
@@ -448,6 +449,61 @@ Workspace::CheckServiceName(
 			TZK_LOG_FORMAT(LogLevel::Warning, "'%c' is not a permitted character in service names; replacing with '%c'", notallowed, replacement);
 		}
 	}
+}
+
+
+std::string
+Workspace::GenerateDataFileName(
+	const trezanik::core::UUID& node_id,
+	const trezanik::core::UUID& type_id
+) const
+{
+	using namespace trezanik::core;
+
+	std::string  retval = my_save_dir;
+
+	retval += TZK_PATH_CHARSTR;
+	retval += my_id.GetCanonical();
+
+	/*
+	 * Create the folder if this is our first data item, or if the user has
+	 * wiped the dataset by hand on the filesystem
+	 */
+	if ( aux::folder::exists(retval.c_str()) == ENOENT )
+	{
+		aux::folder::make_path(retval.c_str());
+	}
+	if ( aux::folder::exists(retval.c_str()) == ENOENT )
+	{
+		return "";
+	}
+
+	retval += TZK_PATH_CHARSTR;
+	retval += node_id.GetCanonical();
+	retval += ".";
+	retval += type_id.GetCanonical();
+	retval += ".";
+	retval += std::to_string(time(nullptr));
+	retval += ".dat";
+
+	/*
+	 * While we can easily generate a non-conflicting name, we'd have to handle
+	 * that in the directory scanning and loading code, which I don't want to
+	 * do. Return failure instead
+	 */
+	if ( aux::file::exists(retval.c_str()) != ENOENT )
+	{
+		return "";
+	}
+
+	return retval;
+}
+
+
+trezanik::core::aux::Path
+Workspace::GetSaveDirectory() const
+{
+	return my_save_dir;
 }
 
 

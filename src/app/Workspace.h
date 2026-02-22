@@ -1833,6 +1833,40 @@ public:
 
 
 	/**
+	 * Obtains the path for a data file used by task output
+	 * 
+	 * Creates the workspace data folder if it doesn't already exist, so each
+	 * task doesn't have to worry about it as long as they use this method to
+	 * determine the filename
+	 * 
+	 * @param[in] node_id
+	 *  Reference to the nodes unique identifier
+	 * @param[in] type_id
+	 *  Reference to the data type unique identifier
+	 * @return
+	 *  A formatted string of a non-existent file within the workspace data
+	 *  folder **at the time of generation** (TOCTOU).
+	 *  If the folder is inaccessible or a file of the generated name already
+	 *  exists, then a blank string is returned
+	 */
+	std::string
+	GenerateDataFileName(
+		const trezanik::core::UUID& node_id,
+		const trezanik::core::UUID& type_id
+	) const;
+
+
+	/**
+	 * Gets a copy of the directory this workspace saves its data to
+	 *
+	 * @return
+	 *  The absolute path to the save directory for this workspace
+	 */
+	trezanik::core::aux::Path
+	GetSaveDirectory() const;
+
+
+	/**
 	 * Saves the workspace data to file
 	 * 
 	 * Calling this with its own GetPath() is supported and intended.
