@@ -16,6 +16,7 @@
 #include "engine/resources/TypeLoader_Sprite.h"
 #include "engine/TConverter.h"
 
+#include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/services/threading/Threading.h"
 #include "core/error.h"
@@ -509,6 +510,16 @@ ResourceLoader::Run()
 					"%s caught unhandled exception: %s",
 					prefix.c_str(), e.what()
 				);
+
+				/*
+				 * This won't have the normal TypeLoader failure notification
+				 * invoked, so add an additional callout
+				 */
+				EventData::resource_state  state_data;
+				state_data.resource = resource;
+				state_data.state = ResourceState::Failed;
+
+				core::ServiceLocator::EventDispatcher()->DispatchEvent(uuid_resourcestate, state_data);
 			}
 
 			TZK_LOG(LogLevel::Debug, "Task execution complete");
