@@ -21,8 +21,10 @@
 #include "app/TConverter.h"
 #include "app/Command.h"
 #include "app/tasks/Tasker.h"
+#include "app/tasks/Persistence.h"
 #include "app/tasks/Ping.h"
 #include "app/tasks/PingMonitor.h"
+#include "app/tasks/SoftwareInventory.h"
 #include "app/event/AppEvent.h"
 
 #include "engine/resources/ResourceCache.h"
@@ -32,6 +34,7 @@
 #include "core/services/event/EventDispatcher.h"
 #include "core/services/memory/Memory.h"
 #include "core/services/log/Log.h"
+#include "core/util/filesystem/file.h"
 #include "core/util/net/net.h"
 #include "core/util/net/net_structs.h"
 #include "core/util/string/typeconv.h"
@@ -90,6 +93,73 @@ enum class SvcMgmtSwitch : uint8_t
 	Unselect_ServiceGroupService,
 	Unselect_Service,
 	Exclude
+};
+
+
+/**
+ * Dedicated class for simple 'preview printing' of forensic data content
+ */
+class FDataPrinter : public fdata_visitor
+{
+private:
+	std::string  my_str;
+public:
+	virtual void Visit(registry_autostarts* ra) override
+	{
+		for ( auto& c : ra->collection )
+		{
+			my_str += c->key; my_str += "\n\t";
+			my_str += c->value; my_str += " : ";
+			my_str += c->data; my_str += "\n";
+		}
+	}
+
+	virtual void Visit(software_inventory* si) override
+	{
+		for ( auto& p : si->products )
+		{
+			if ( si->target_os == OperatingSystem::Windows )
+			{
+				my_str += p.name; my_str += "\n\t";
+				if ( !p.install_date.empty() )   { my_str += p.install_date; my_str += "\n\t"; }
+				if ( !p.install_source.empty() ) { my_str += p.install_source; my_str += "\n\t"; }
+				if ( !p.install_target.empty() ) { my_str += p.install_target; my_str += "\n\t"; }
+				if ( !p.version.empty() )        { my_str += p.version; my_str += "\n"; }
+			}
+			else
+			{
+				my_str += p.name; my_str += "\n";
+			}
+		}
+	}
+
+	virtual void Visit(file_autostarts* fa) override
+	{
+		for ( auto& f : fa->collection )
+		{
+			
+		}
+	}
+
+	virtual void Visit(folder_contents* fc) override
+	{
+		for ( auto& e : fc->collection )
+		{
+
+		}
+	}
+
+	void
+	Clear()
+	{
+		my_str.clear();
+	}
+
+	const std::string&
+	Print()
+	{
+		return my_str;
+	}
 };
 
 
@@ -643,6 +713,41 @@ public:
 			}
 		}
 		// testing for tasks
+		ImGui::SameLine();
+		if ( ImGui::SmallButton("SoftwareInventory") )
+		{
+			// !node->targets.empty()
+
+			/// @todo no functionality; t.target_is_single_item equivalent
+			core::aux::ip_address  ipaddr;
+
+			/// @todo use node->selected_target, or always state it's the first that gets used?
+			if ( core::aux::string_to_ipaddr(node->targets.front().target.c_str(), ipaddr) > 0 )
+			{
+				software_inventory_task_params  params;
+				params.wksp = wksp->GetWorkspace();
+				params.node_uuid = node->id;
+				params.target_addr = ipaddr;
+				params.os = OperatingSystem::Windows;  // grab from node, hardcoded for now
+				
+				for ( auto& c : node->components )
+				{
+					if ( c->component_id == cth_cmpt_credentials )
+					{
+						auto  cc = dynamic_cast<node_component_credentials*>(c.get());
+						params.creds = cc->id;
+						break;
+					}
+				}
+				// optional : deem no credentials a failure?
+
+				auto  inv = std::make_shared<SoftwareInventoryTask>(params);
+				task_runner.AddTask(inv);
+				task_runner.Sync();
+			}
+		}
+		// testing for tasks
+		ImGui::SameLine();
 		bool  pingmon = node->has_component(cth_cmpt_online_track);
 		ImGui::PushID(node.get());
 		if ( ImGui::Checkbox("PingMonitor", &pingmon) )
@@ -4784,6 +4889,10 @@ ImGuiWorkspace::SetWorkspace(
 		}
 
 		my_workspace = wksp;
+
+		// if forensicdata
+		_gui_interactions.forensic_data.Preload(wksp);
+
 		return retval;
 	}
 
@@ -4839,6 +4948,9 @@ ImGuiWorkspace::SetWorkspace(
 	}
 
 	my_topology->SortNodes();
+
+	// if forensicdata
+	_gui_interactions.forensic_data.Preload(wksp);
 
 	/*
 	 * any modifications within the nodegraph (those that dispatch events) will

@@ -47,6 +47,7 @@ namespace app {
 
 
 class Application;
+class ForensicData;
 class IImGui;
 namespace pong {
 class Pong;
@@ -312,6 +313,9 @@ struct GuiInteractions
 	trezanik::engine::Context&  context;
 	trezanik::engine::ResourceCache&  resource_cache;
 	trezanik::engine::ResourceLoader&  resource_loader;
+#if 1//TZK_USING_FORENSICDATA || HAS_SECOPS
+	ForensicData&  forensic_data;
+#endif
 
 	/** Thread-safety mutex reference; is the Application class workspace_mutex */
 	std::mutex&  mutex;

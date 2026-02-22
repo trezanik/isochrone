@@ -29,6 +29,7 @@ namespace app {
 
 
 class ImGuiWorkspace;
+struct fdata;
 struct workspace_data;
 struct workspace_node;
 
@@ -54,6 +55,12 @@ private:
 
 	/** Pointer to the ImGuiWorkspace workspace_data, used for ImGui operations */
 	workspace_data*  my_wksp_data;
+
+	/** . */
+	int  my_selected_dataentry_index;
+
+	/** . */
+	std::shared_ptr<fdata>  my_selected_fdata;
 
 	/*
 	 * For now, one set of options to apply on each execution.

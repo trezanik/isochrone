@@ -11,15 +11,165 @@
 
 #include "app/ImGuiWkspForensics.h"
 #include "app/ImGuiWorkspace.h"
+#include "app/tasks/Persistence.h"
+#include "app/tasks/SoftwareInventory.h"
 #include "app/Workspace.h"
+#include "app/ForensicData.h"
 
 #include "imgui/CustomImGui.h"
 
 #include "core/services/log/Log.h"
+#include "core/util/time.h"
 
 
 namespace trezanik {
 namespace app {
+
+
+/**
+ * Dedicated class for populating the forensic data table content
+ */
+class FDataPrinter : public fdata_visitor
+{
+public:
+	virtual void Visit(registry_autostarts* ra) override
+	{
+		std::string  key;
+		std::string  last_key;
+		bool  key_open = false;
+
+		ImGuiTreeNodeFlags  key_tree_node_flags = ImGuiTreeNodeFlags_SpanAllColumns| ImGuiTreeNodeFlags_LabelSpanAllColumns;
+		ImGuiTreeNodeFlags  viewer_tree_node_flags = ImGuiTreeNodeFlags_Leaf
+			| ImGuiTreeNodeFlags_FramePadding
+			| ImGuiTreeNodeFlags_NoTreePushOnOpen;
+		
+		for ( auto& c : ra->collection )
+		{
+			key = "Key: ";
+			key += c->key;
+
+			// better hope these are organized by key!
+			if ( last_key != key )
+			{
+				if ( key_open )
+				{
+					ImGui::TreePop();
+					key_open = false;
+				}
+				if ( ImGui::TreeNodeEx(c->key.c_str(), key_tree_node_flags) )
+				{
+					key_open = true;
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+				}
+			}
+			if ( key_open )
+			{
+				ImGui::PushID(c->value.c_str());
+				ImGui::TreeNodeEx(c->value.c_str(), viewer_tree_node_flags);
+				ImGui::TableNextColumn();
+				ImGui::TreeNodeEx(c->type.c_str(), viewer_tree_node_flags);
+				ImGui::TableNextColumn();
+				ImGui::TreeNodeEx(c->data.c_str(), viewer_tree_node_flags);
+				ImGui::TableNextColumn();
+				ImGui::PopID();
+			}
+
+			last_key = key;
+		}
+
+		if ( key_open )
+			ImGui::TreePop();
+	}
+
+	virtual void Visit(software_inventory* si) override
+	{
+		ImGuiTreeNodeFlags  viewer_tree_node_flags = ImGuiTreeNodeFlags_Leaf
+			| ImGuiTreeNodeFlags_SpanFullWidth
+			| ImGuiTreeNodeFlags_FramePadding
+			| ImGuiTreeNodeFlags_NoTreePushOnOpen;
+		int  i = 0;
+
+		for ( auto& p : si->products )
+		{
+			ImGui::PushID(++i);
+			ImGui::TreeNodeEx(p.name.c_str(), viewer_tree_node_flags);
+			ImGui::TableNextColumn();
+
+			/* enable once we have target_os actually being set
+			if ( si->target_os != OperatingSystem::Windows )
+			{
+				ImGui::PopID();
+				continue;
+			}*/
+
+			ImGui::TreeNodeEx(p.version.c_str(), viewer_tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx(p.install_date.c_str(), viewer_tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx(p.install_target.c_str(), viewer_tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx(p.install_source.c_str(), viewer_tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::PopID();
+		}
+	}
+
+	virtual void Visit(file_autostarts* fa) override
+	{
+		ImGuiTreeNodeFlags  viewer_tree_node_flags = ImGuiTreeNodeFlags_Leaf
+			| ImGuiTreeNodeFlags_SpanFullWidth
+			| ImGuiTreeNodeFlags_FramePadding
+			| ImGuiTreeNodeFlags_NoTreePushOnOpen;
+		int  i = 0;
+
+		for ( auto& p : fa->collection )
+		{
+			ImGui::PushID(++i);
+#if 0
+			ImGui::TreeNodeEx(p.name.c_str(), viewer_tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx(p.version.c_str(), viewer_tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx(p.install_date.c_str(), viewer_tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx(p.install_target.c_str(), viewer_tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx(p.install_source.c_str(), viewer_tree_node_flags);
+			ImGui::TableNextColumn();
+#endif
+			ImGui::PopID();
+		}
+	}
+
+	virtual void Visit(folder_contents* fc) override
+	{
+		ImGuiTreeNodeFlags  viewer_tree_node_flags = ImGuiTreeNodeFlags_Leaf
+			| ImGuiTreeNodeFlags_SpanFullWidth
+			| ImGuiTreeNodeFlags_FramePadding
+			| ImGuiTreeNodeFlags_NoTreePushOnOpen;
+		int  i = 0;
+
+		for ( auto& p : fc->collection )
+		{
+			ImGui::PushID(++i);
+#if 0
+			ImGui::TreeNodeEx(p.name.c_str(), viewer_tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx(p.version.c_str(), viewer_tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx(p.install_date.c_str(), viewer_tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx(p.install_target.c_str(), viewer_tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx(p.install_source.c_str(), viewer_tree_node_flags);
+			ImGui::TableNextColumn();
+#endif
+			ImGui::PopID();
+		}
+	}
+};
+
 
 
 ImGuiWkspForensics::ImGuiWkspForensics(
@@ -30,6 +180,7 @@ ImGuiWkspForensics::ImGuiWkspForensics(
 , my_evtmgr(*core::ServiceLocator::EventDispatcher())
 , my_wksp(wksp)
 , my_wksp_data(&wksp->my_wksp_data)
+, my_selected_dataentry_index(-1)
 {
 	using namespace trezanik::core;
 
@@ -98,6 +249,19 @@ ImGuiWkspForensics::Draw()
 		return;
 	}
 
+	// not tested if extending this object lifetime impacts anything
+	static std::shared_ptr<workspace_node>  last_node = selected_node;
+
+	/*
+	 * Use this for detection of node changes, so we can invalidate shared_ptrs
+	 * pointing to external data
+	 */
+	if ( selected_node != last_node )
+	{
+		my_selected_dataentry_index = -1;
+		my_selected_fdata.reset();
+	}
+
 	/*
 	 * Option to restrict execution against only a single target, rather than all?
 	 * Does bring into question why it wouldn't be a dedicated single target node
@@ -117,6 +281,285 @@ ImGuiWkspForensics::DrawNodeOps(
 {
 	using namespace trezanik::core;
 
+
+	/*
+	 * For now, this will be split into two sections:
+	 * 1) Impacket
+	 *    This is the impacket tooling, which is limited in functionality and
+	 *    requires us to custom parse the output for integration - but does have
+	 *    a substantial amount of support across desired targets and saves us
+	 *    six months of dedicated dev time, using their own source as reference
+	 * 2) Internal
+	 *    Our own C/C++ implementation with direct usage, able to operate in
+	 *    memory for acquisition. Recreation of SMB1/2/3 and all other associated
+	 *    protocol support, to remove all external dependencies and allowing us
+	 *    to say, target Windows 10 from Windows XP - hypothetically!
+	 * 
+	 * I don't realistically expect to have internal available at v1.0 release,
+	 * instead seeking it as a long-term future state.
+	 * I'll still retain the headers and original scope indentation though.
+	 */
+
+	if ( ImGui::CollapsingHeader("Impacket") )
+	{
+	ImGui::BeginGroup();
+	{
+		auto  avail = ImGui::GetContentRegionAvail();
+		static ImVec2  lb_size(200.f, 250.f);
+		static int   sel_lb_pos = -1;
+		static bool  cb_include_user = false;
+		static char  user_spec[64];
+
+		if ( ImGui::BeginListBox("##AvailableMethods", lb_size) )
+		{
+			std::vector<std::string>  available_methods = {
+				"Registry Autostarts [Windows]",
+				"Prefetch [Windows]",
+				"File Autostarts",
+				"Software Inventory"
+			};
+			int   pos = -1;
+
+			for ( auto& t : available_methods )
+			{
+				const bool  is_selected = (++pos == sel_lb_pos);
+
+				if ( ImGui::Selectable(t.c_str(), is_selected) )
+				{
+					sel_lb_pos = pos;
+				}
+				if ( is_selected )
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+
+			ImGui::EndListBox();
+		}
+
+		ImGui::SameLine();
+		ImGui::BeginGroup();
+		{
+			float  midsec_width = 150.f;
+			
+			if ( sel_lb_pos != -1 )
+				ImGui::BeginDisabled();
+			ImGui::PushItemWidth(midsec_width);
+			if ( ImGui::Button("Execute") )
+			{
+				// spawn
+			}
+			ImGui::PopItemWidth();
+			if ( sel_lb_pos != -1 )
+				ImGui::EndDisabled();
+
+			if ( ImGui::Checkbox("Include User", &cb_include_user) )
+			{
+			}
+			ImGui::PushItemWidth(midsec_width);
+			ImGui::InputText("##user", user_spec, sizeof(user_spec));//, flags);
+			ImGui::PopItemWidth();
+		}
+		ImGui::EndGroup();
+		ImGui::SameLine();
+
+
+		static time_t  last_refresh = 0;
+		int  column_count = 2;
+		ImGuiTableFlags  table_flags
+			= ImGuiTableFlags_BordersV
+			| ImGuiTableFlags_BordersOuterH
+			| ImGuiTableFlags_Resizable
+			| ImGuiTableFlags_RowBg
+			| ImGuiTableFlags_NoBordersInBody;
+
+		time_t  cur_time = time(nullptr);
+		time_t  refresh_rate = 5;
+		std::string  unused_str = "";
+
+		auto  reset_selection = [this]() {
+			my_selected_dataentry_index = -1;
+			my_selected_fdata = nullptr;
+		};
+
+		auto  table_size = ImVec2(300.f, 300.f);
+		//table_size.x /= 2;  // 50:50 for table and preview
+		//table_size.y -= ImGui::GetTextLineHeightWithSpacing() * 3; // lower button, main button, separator
+
+		if ( ImGui::BeginTable("DataList", column_count, table_flags, table_size) )
+		{
+			ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_NoHide);
+			ImGui::TableSetupColumn("Timestamp", ImGuiTableColumnFlags_NoHide);
+			ImGui::TableHeadersRow();
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+
+			static std::vector<std::shared_ptr<fdata>>  data_entries; // held longer only for type access
+			static std::vector<std::string>  display_names;
+			static std::vector<std::string>  display_times;
+
+			if ( cur_time > (last_refresh + refresh_rate) )
+			{
+				char  display_time[32];
+
+				data_entries = my_wksp->_gui_interactions.forensic_data.GetAllNodeData(my_wksp->my_wksp_data.id, node->id);
+				// build out display names here so it's not done every frame
+				display_names.clear();
+				display_times.clear();
+				for ( auto& entry : data_entries )
+				{
+					std::string  dname;
+					switch ( entry->type )
+					{
+					case cth_software_inventory:      dname = "softinv##"; break;
+					case cth_windows_prefetch:        dname = "winprefetch##"; break;
+					case cth_windows_reg_autostarts:  dname = "winregauto##"; break;
+					case cth_windows_file_autostarts: dname = "winfileauto##"; break;
+					case cth_folder_content:          dname = "fldrcontent##"; break;
+					default: dname = "unknown##"; break;
+					}
+					dname += std::to_string(entry->acquired);
+					display_names.emplace_back(dname);
+					core::aux::get_time_format(entry->acquired, display_time, sizeof(display_time), "%F %T");
+					display_times.emplace_back(display_time);
+				}
+			}
+
+			int  pos = -1;
+
+			// ensure index always points towards a valid entry
+			if ( my_selected_dataentry_index > static_cast<int>(display_names.size()) )
+			{
+				reset_selection();
+			}
+
+			for ( auto& entry : display_names )
+			{
+				const bool  is_selected = (++pos == my_selected_dataentry_index);
+
+				if ( ImGui::Selectable(entry.c_str(), is_selected, ImGuiSelectableFlags_SpanAllColumns) )
+				{
+					// since there's no trivial 'deselect', re-selection will clear
+					if ( my_selected_dataentry_index == pos )
+					{
+						TZK_LOG_FORMAT(LogLevel::Trace, "Unselected %s: %d (%s)", "Data Entry", pos, entry.c_str());
+						reset_selection();
+					}
+					else
+					{
+						TZK_LOG_FORMAT(LogLevel::Trace, "Selected %s: %d (%s)", "Data Entry", pos, entry.c_str());
+						my_selected_dataentry_index = pos;
+						my_selected_fdata = my_wksp->_gui_interactions.forensic_data.Access(
+							my_wksp->my_wksp_data.id, node->id, data_entries[pos]->type, data_entries[pos]->acquired
+						);
+					}
+				}
+				if ( is_selected )
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", display_times[pos].c_str());
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+			}
+
+			ImGui::EndTable();
+		}
+
+		
+		// viewer of content - add old data selectable too
+		
+		enum class DataView : uint8_t
+		{
+			Plaintext = 0,  //< output as-is
+			Registry,       //< Registry, 3 column table
+			Table3Col,
+			Prefetch,       //< 
+			Table5Col,      //< Windows software output, 5 column table
+		};
+		DataView  dv;
+		FDataPrinter  printer;
+		std::vector<std::string>  table_cols;
+
+
+		if ( my_selected_fdata != nullptr )
+		{
+			ImGuiTableFlags  viewer_table_flags = ImGuiTableFlags_NoSavedSettings
+				| ImGuiTableFlags_SizingFixedSame//FixedFit
+				| ImGuiTableFlags_BordersV
+				| ImGuiTableFlags_BordersOuterH
+				| ImGuiTableFlags_Resizable
+				| ImGuiTableFlags_RowBg
+				| ImGuiTableFlags_NoBordersInBody
+				| ImGuiTableFlags_ScrollX
+				| ImGuiTableFlags_ScrollY;
+
+			ImVec2  viewer_table_size(avail.x, 400.f); // full width, needed height
+			int  num_columns = 1;
+			// argh, I hate this! only because we must know the column count in advance
+			switch ( my_selected_fdata->type )
+			{
+			case cth_windows_reg_autostarts: num_columns = 3; break;
+			case cth_windows_prefetch: num_columns = 3; break;
+			case cth_software_inventory: num_columns = 5; break; // !if linux, 1!
+			default:
+				break;
+			}
+
+			if ( ImGui::BeginTable("DataViewer##", num_columns, viewer_table_flags, viewer_table_size) )
+			{
+				ImGuiTableColumnFlags  col_flags = ImGuiTableColumnFlags_WidthStretch
+					| ImGuiTableColumnFlags_NoSort
+					| ImGuiTableColumnFlags_NoHide;
+
+				switch ( my_selected_fdata->type )
+				{
+				case cth_windows_reg_autostarts:
+					//dv = DataView::Registry;
+					dv = DataView::Table3Col;
+					ImGui::TableSetupColumn("Value", col_flags);
+					ImGui::TableSetupColumn("Type", col_flags);
+					ImGui::TableSetupColumn("Data", col_flags);
+					ImGui::TableHeadersRow();
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					printer.Visit((registry_autostarts*)my_selected_fdata.get());
+					break;
+				case cth_windows_prefetch:
+					break;
+				case cth_software_inventory:
+					// target windows - table, x columns
+					// target linux - listbox or 1 column table
+					dv = DataView::Table5Col;
+					ImGui::TableSetupColumn("Name", col_flags);
+					ImGui::TableSetupColumn("Version", col_flags);
+					ImGui::TableSetupColumn("InstallDate", col_flags);
+					ImGui::TableSetupColumn("InstallDir", col_flags);
+					ImGui::TableSetupColumn("InstallSrc", col_flags);
+					ImGui::TableHeadersRow();
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					printer.Visit((software_inventory*)my_selected_fdata.get());
+					break;
+				case cth_file_autostarts:
+					break;
+				case cth_folder_content:
+					break;
+				default:
+					dv = DataView::Plaintext;
+					break;
+				}
+
+				ImGui::EndTable();
+			}
+		}
+		
+	}
+	ImGui::EndGroup();
+	}
+
 	/*
 	 * Would like all these group-based left-to-right adjacent.
 	 * Obviously there's likely to be too many to fit on all screens, so those
@@ -126,6 +569,9 @@ ImGuiWkspForensics::DrawNodeOps(
 	 * Not yet looked into it, purely a note for now.
 	 */
 	
+	
+	if ( ImGui::CollapsingHeader("Internal (future only)") )
+	{
 	ImGui::BeginGroup();
 	{
 		// want a Win32-style group box, text integrated
@@ -328,6 +774,7 @@ ImGuiWkspForensics::DrawNodeOps(
 
 
 		// validation, stuff like if !all users for browser, that a user is specified - sanity checks
+	}
 	}
 }
 

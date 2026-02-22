@@ -57,6 +57,7 @@ namespace imgui {
 namespace app {
 	class AppConfigServer;
 	class AppImGui;
+	class ForensicData;  // this is likely to end up in a secops namespace, and possibly separate module
 	enum class WindowLocation;
 	struct GuiInteractions;
 	class Workspace;
@@ -141,6 +142,12 @@ private:
 	 * the pong game, basic integration for overlay rendering & event validation
 	 */
 	std::shared_ptr<pong::Pong>  my_pong;
+
+
+	/**
+	 * Storage and interaction for the forensic data
+	 */
+	std::unique_ptr<ForensicData>  my_forensic_data;
 
 
 	/**

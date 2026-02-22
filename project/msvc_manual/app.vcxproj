@@ -23,6 +23,7 @@
     <ClCompile Include="..\..\src\app\AppImGui.cc" />
     <ClCompile Include="..\..\src\app\Application.cc" />
     <ClCompile Include="..\..\src\app\Command.cc" />
+    <ClCompile Include="..\..\src\app\ForensicData.cc" />
     <ClCompile Include="..\..\src\app\ImGuiAboutDialog.cc" />
     <ClCompile Include="..\..\src\app\ImGuiActiveTasks.cc" />
     <ClCompile Include="..\..\src\app\ImGuiConsole.cc" />
@@ -47,8 +48,10 @@
     <ClCompile Include="..\..\src\app\private\Workspace_cc47a409_fbfe_49fc_846a_c36045257a00.cc" />
     <ClCompile Include="..\..\src\app\resources\Resource_Workspace.cc" />
     <ClCompile Include="..\..\src\app\resources\TypeLoader_Workspace.cc" />
+    <ClCompile Include="..\..\src\app\tasks\Persistence.cc" />
     <ClCompile Include="..\..\src\app\tasks\Ping.cc" />
     <ClCompile Include="..\..\src\app\tasks\PingMonitor.cc" />
+    <ClCompile Include="..\..\src\app\tasks\SoftwareInventory.cc" />
     <ClCompile Include="..\..\src\app\tasks\Task.cc" />
     <ClCompile Include="..\..\src\app\tasks\Tasker.cc" />
     <ClCompile Include="..\..\src\app\TConverter.cc" />
@@ -63,6 +66,7 @@
     <ClInclude Include="..\..\src\app\Command.h" />
     <ClInclude Include="..\..\src\app\definitions.h" />
     <ClInclude Include="..\..\src\app\event\AppEvent.h" />
+    <ClInclude Include="..\..\src\app\ForensicData.h" />
     <ClInclude Include="..\..\src\app\IImGui.h" />
     <ClInclude Include="..\..\src\app\ImGuiAboutDialog.h" />
     <ClInclude Include="..\..\src\app\ImGuiActiveTasks.h" />
@@ -96,8 +100,10 @@
     <ClInclude Include="..\..\src\app\resources\proggyclean.h" />
     <ClInclude Include="..\..\src\app\resources\Resource_Workspace.h" />
     <ClInclude Include="..\..\src\app\resources\TypeLoader_Workspace.h" />
+    <ClInclude Include="..\..\src\app\tasks\Persistence.h" />
     <ClInclude Include="..\..\src\app\tasks\Ping.h" />
     <ClInclude Include="..\..\src\app\tasks\PingMonitor.h" />
+    <ClInclude Include="..\..\src\app\tasks\SoftwareInventory.h" />
     <ClInclude Include="..\..\src\app\tasks\Task.h" />
     <ClInclude Include="..\..\src\app\tasks\Tasker.h" />
     <ClInclude Include="..\..\src\app\TConverter.h" />

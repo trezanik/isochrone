@@ -147,6 +147,15 @@
     <ClCompile Include="..\..\src\app\ImGuiPingMonitor.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\app\tasks\SoftwareInventory.cc">
+      <Filter>Source Files\tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\ForensicData.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\tasks\Persistence.cc">
+      <Filter>Source Files\tasks</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\app\definitions.h">
@@ -286,6 +295,15 @@
     </ClInclude>
     <ClInclude Include="..\..\src\app\resources\FiraCode-Regular.h">
       <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\tasks\SoftwareInventory.h">
+      <Filter>Header Files\tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\ForensicData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\tasks\Persistence.h">
+      <Filter>Header Files\tasks</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

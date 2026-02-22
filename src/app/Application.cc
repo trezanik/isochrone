@@ -11,6 +11,7 @@
 #include "app/AppConfigDefs.h"
 #include "app/AppConfigServer.h"
 #include "app/AppImGui.h"
+#include "app/ForensicData.h"
 #include "app/ImGuiSemiFixedDock.h" // GuiInteractions initializer
 #include "app/Pong.h"
 #include "app/TConverter.h"
@@ -311,6 +312,11 @@ Application::Cleanup()
 	{
 		my_context->RemoveFrameListener(my_pong);
 		my_pong.reset();
+	}
+
+	if ( my_forensic_data != nullptr )
+	{
+		my_forensic_data.reset();
 	}
 
 	/*
@@ -1456,6 +1462,10 @@ Application::Initialize(
 	// with essential resources defined/available, enter loading state
 	my_context->SetEngineState(trezanik::engine::State::Loading);
 
+	// required for imgui init passdown, otherwise could be last
+	// if TZK_USING_SECOPS?
+	my_forensic_data = std::make_unique<ForensicData>();
+
 #if TZK_USING_SDL
 	// SDL initialization
 	{
@@ -1603,6 +1613,7 @@ TZK_CC_DISABLE_WARNING(-Wmissing-field-initializers)
 	my_gui_interactions = std::unique_ptr<GuiInteractions>(new GuiInteractions{ 
 		*this, *my_context.get(),
 		my_context->GetResourceCache(), my_context->GetResourceLoader(),
+		*my_forensic_data.get(),
 		my_workspaces_mutex
 		// no need for other initializers
 	});
