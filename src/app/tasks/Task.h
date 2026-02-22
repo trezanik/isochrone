@@ -12,6 +12,11 @@
 
 #include "core/UUID.h"
 
+#if TZK_IS_WIN32
+#	include <Windows.h>
+#else
+#endif
+
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -44,6 +49,53 @@ enum class TaskType : uint8_t
 typedef std::function<int()>  async_task;
 
 
+class Task;
+
+
+class CommonExec
+{
+private:
+	Task*  my_t;
+public:
+	/**
+	 * .
+	 */
+	CommonExec(
+		std::string& outfile_path,
+		Task* t
+	);
+
+	~CommonExec();
+
+	int
+	Exec(
+		std::string executable
+	);
+	
+
+	std::string  args;
+
+#if TZK_IS_WIN32
+	DWORD  exit_code;
+
+	// createfile arguments
+	DWORD  desired_access = GENERIC_READ | GENERIC_WRITE;
+	DWORD  shared_mode = FILE_SHARE_READ;
+	SECURITY_ATTRIBUTES  sa;
+	
+	DWORD  create_disp = CREATE_ALWAYS;
+	DWORD  flagsattr = FILE_ATTRIBUTE_NORMAL;
+	HANDLE  template_file = nullptr;
+	HANDLE  entry_file;
+#else
+	FILE* fp = nullptr;
+	int  pipe_fds[2] = { -1 };
+	std::string  fpath;
+#endif
+};
+
+
+
 /**
  * Base class for tasks
  * 
@@ -52,6 +104,8 @@ typedef std::function<int()>  async_task;
  */
 class Task
 {
+	friend class CommonExec;
+
 	//TZK_NO_CLASS_ASSIGNMENT(Task);
 	TZK_NO_CLASS_COPY(Task);
 	//TZK_NO_CLASS_MOVEASSIGNMENT(Task);
@@ -87,6 +141,20 @@ protected:
 
 	/** Blocker for timeout or shared variable access (minimum of _stop) */
 	std::condition_variable   _condvar;
+
+	/** String returned to the TaskDetail function */
+	std::string  _detail;
+
+	/**
+	 * Generates the command arguments
+	 * 
+	 * Called by the CommonExec
+	 * 
+	 * @return
+	 *  The command arguments, empty unless set
+	 */
+	virtual std::string
+	GenerateCommandArgs() const;
 
 public:
 	/**
