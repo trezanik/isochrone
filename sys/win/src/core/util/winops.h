@@ -10,6 +10,8 @@
 
 #include "core/definitions.h"
 
+#include <Windows.h>  // just for datatypes, can be reduced down
+
 
 namespace trezanik {
 namespace core {
@@ -85,6 +87,58 @@ int
 set_privilege(
 	const wchar_t* name,
 	bool enable
+);
+
+
+/*struct spawn_args
+{
+	DWORD  wait;
+	DWORD  exit_code;
+	HANDLE  h_stdout;
+	HANDLE  h_stderr;
+};*/
+/**
+ * Spawns a process, geared towards task execution and not general use
+ * 
+ * Calls CreateProcess internally, so be aware of limitations as advised:
+ * https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-createprocessw
+ * 
+ * Recommend invoking this via a separate thread to not hang the application in
+ * case the main UI or other critical thread did the creation.
+ * 
+ * @param[in] wait
+ *  Time to wait for the process to exit in milliseconds. If zero, will return
+ *  immediately. To wait indefinitely (so no return until process exit) set this
+ *  to INFINITE.
+ * @param[out] exit_code
+ *  Result of the process exit. If the timeout has been reached, 
+ *  this will contain WAIT_TIMEOUT, otherwise it is the return code of the
+ *  process executed. Will not be modified unless a child process spawned
+ * @param[in] stdout_file
+ *  The process output will be redirected to this handle if not 0 or
+ *  INVALID_HANDLE_VALUE, enabling output capture for later operations. Script
+ *  invocation can make this redundant, mostly useful for native execution.
+ *  Input handle is always obtained from GetStdHandle(STD_INPUT_HANDLE)
+ * @param[in] binary
+ *  The binary path to execute. If just the name, this file will be searched for
+ *  as per Windows automatic resolution (e.g. current dir, system, path).
+ *  It is strongly recommended to always provide a full path, so instead of:
+ *  'myprocess.exe' you should instead supply: 'D:\Directory\myprocess.exe'
+ * @param[in] args
+ *  (Optional) The process command line to provide. If a nullptr, the process
+ *  will simply have no arguments
+ * @return
+ *  The errno code indicating the process successful start. Use the exit_code to
+ *  determine if the child failed.
+ */
+TZK_CORE_API
+int
+spawn(
+	DWORD wait,
+	DWORD& exit_code,
+	HANDLE stdout_file,
+	const wchar_t* binary,
+	wchar_t* args = nullptr
 );
 
 

@@ -9,12 +9,12 @@
 
 #if TZK_IS_WIN32
 
+#include "core/util/winerror.h"
 #include "core/util/winops.h"
+#include "core/services/log/Log.h"
 #include "core/services/memory/Memory.h"
 #include "core/services/ServiceLocator.h"
 #include "core/error.h"
-
-#include <Windows.h>
 
 
 namespace trezanik {
@@ -185,6 +185,109 @@ set_privilege(
 	::CloseHandle(token);
 
 	return ErrNONE;
+}
+
+
+int
+spawn(
+	DWORD wait,
+	DWORD& exit_code,
+	HANDLE stdout_file,
+	const wchar_t* binary,
+	wchar_t* args
+)
+{
+	int     retval = ErrNONE;
+	LPVOID  env = nullptr;
+	BOOL    inherit_handles = TRUE;
+	DWORD   creation_flags = NORMAL_PRIORITY_CLASS;
+	STARTUPINFO  si{ 0 };
+	PROCESS_INFORMATION  pi{ 0 };
+	wchar_t*  curdir = nullptr;
+
+	if ( binary == nullptr )
+	{
+		TZK_LOG(LogLevel::Warning, "No binary provided");
+		return EINVAL;
+	}
+
+	if ( stdout_file == INVALID_HANDLE_VALUE )
+		stdout_file = 0;
+
+	si.cb = sizeof(STARTUPINFO);
+	si.hStdOutput = stdout_file == 0 ? ::GetStdHandle(STD_OUTPUT_HANDLE) : stdout_file;
+	si.hStdInput  = ::GetStdHandle(STD_INPUT_HANDLE);
+	si.hStdError  = stdout_file == 0 ? ::GetStdHandle(STD_ERROR_HANDLE) : stdout_file;
+	si.dwFlags |= STARTF_USESTDHANDLES;
+
+	SECURITY_ATTRIBUTES  sa;
+	sa.nLength = sizeof(sa);
+	sa.lpSecurityDescriptor = NULL;
+	sa.bInheritHandle = TRUE;
+
+	/// @todo change to dynbuf if input exceeds
+	wchar_t  bin[1024];
+
+	wcscpy_s(bin, _countof(bin), binary);
+	if ( args != nullptr )
+	{
+		wcscat_s(bin, _countof(bin), L" ");
+		wcscat_s(bin, _countof(bin), args);
+	}
+
+	/**
+	 * @warning
+	 *  If the command-line has credentials passed to it, this will log the
+	 *  content in plaintext for all the world to see!
+	 *  We could add a parameter for no_cl_log and skip the args inclusion
+	 */
+	TZK_LOG_FORMAT(LogLevel::Info, "Starting process (wait %u): %ws", wait, bin);
+
+	// since we're not specifying the app, module name portion is limited to MAX_PATH
+	if ( ::CreateProcess(nullptr, bin,
+		&sa, nullptr, inherit_handles, creation_flags,
+		env, curdir, &si, &pi) == 0 )
+	{
+		DWORD  le = ::GetLastError();
+		TZK_LOG_FORMAT(LogLevel::Warning, "CreateProcess failed (%u : %s) with input: %ws",
+			le, error_code_as_string(le).c_str(), bin
+		);
+		return ErrEXTERN;
+	}
+
+	exit_code = 0;
+
+	switch ( ::WaitForSingleObject(pi.hProcess, wait) )
+	{
+	case WAIT_OBJECT_0:
+		TZK_LOG_FORMAT(LogLevel::Debug, "Process handle signalled completion");
+		break;
+	case WAIT_ABANDONED:
+		TZK_LOG_FORMAT(LogLevel::Warning, "WaitForSingleObject - Wait Abandoned");
+		break;
+	case WAIT_FAILED:
+		TZK_LOG_FORMAT(LogLevel::Warning, "WaitForSingleObject - Wait Failed: %u", ::GetLastError());
+		break;
+	default:
+		TZK_LOG_FORMAT(LogLevel::Warning, "WaitForSingleObject - Unhandled");
+	}
+
+	if ( ::GetExitCodeProcess(pi.hProcess, &exit_code) == 0 )
+	{
+		DWORD  le = ::GetLastError();
+		TZK_LOG_FORMAT(LogLevel::Warning, "GetExitCodeProcess failed: %u (%s)", le, error_code_as_string(le).c_str());
+		retval = ErrEXTERN;
+	}
+
+	if ( exit_code != 0 )
+	{
+		TZK_LOG_FORMAT(LogLevel::Warning, "Process exited with error code: %u", exit_code);
+	}
+
+	::CloseHandle(pi.hProcess);
+	::CloseHandle(pi.hThread);
+
+	return retval;
 }
 
 
