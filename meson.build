@@ -21,16 +21,26 @@ endif
 
 
 # configure args. Must be supplied via e.g. 'meson configure -Doption=value'
-
+#
 # not finding a way to make these optional, unless we double-up with extra options or hacky workarounds with compiler.has_define() type stuff
 # maybe a method with configuration_data()?
 # anything not a boolean we can't do an if-check against get_option
+#
+# Would desire to pull these from the generated configure.h to save the editing here, at least as an option
+
 #if get_option('LogEvent-Pool')
 	add_project_arguments(['-DTZK_LOGEVENT_POOL=' + get_option('LogEvent-Pool').to_string()], language: 'cpp')
 #endif
 #if get_option('LogEvent-Pool-InitialSize')
 	add_project_arguments(['-DTZK_LOG_POOL_INITIAL_SIZE=' + get_option('LogEvent-Pool-InitialSize').to_string()], language: 'cpp')
 #endif
+#if get_option('LogEvent-Pool-ExpansionCount')
+	add_project_arguments(['-DTZK_LOG_POOL_EXPANSION_COUNT=' + get_option('LogEvent-Pool-ExpansionCount').to_string()], language: 'cpp')
+#endif
+#if get_option('Log-StackBufSize')
+	add_project_arguments(['-DTZK_LOG_STACKBUF_SIZE=' + get_option('Log-StackBufSize').to_string()], language: 'cpp')
+#endif
+
 #if get_option('Audio-VerboseTraceLogs')
 	add_project_arguments(['-DTZK_AUDIO_LOG_TRACING=' + get_option('Audio-VerboseTraceLogs').to_string()], language: 'cpp')
 #endif
@@ -70,6 +80,16 @@ endif
 #if get_option('ThreadedRender')
 	add_project_arguments(['-DTZK_THREADED_RENDER=' + get_option('ThreadedRender').to_string()], language: 'cpp')
 #endif
+#if get_option('HTTP-MaxResponseSize')
+	add_project_arguments(['-DTZK_HTTP_MAX_RESPONSE=' + get_option('HTTP-MaxResponseSize').to_string()], language: 'cpp')
+#endif
+#if get_option('HTTP-MaxSendSize')
+	add_project_arguments(['-DTZK_HTTP_MAX_SEND=' + get_option('HTTP-MaxSendSize').to_string()], language: 'cpp')
+#endif
+#if get_option('Userdata-Filename')
+	add_project_arguments(['-DTZK_USERDATA_FILE_NAME="' + get_option('Userdata-Filename') + '"'], language: 'cpp')
+#endif
+
 #if get_option('Window-MinimumHeight')
 	add_project_arguments(['-DTZK_WINDOW_MINIMUM_HEIGHT=' + get_option('Window-MinimumHeight').to_string()], language: 'cpp')
 #endif
@@ -82,11 +102,29 @@ endif
 #if get_option('DefaultNewNode-Width')
 	add_project_arguments(['-DTZK_WINDOW_DEFAULT_NEWNODE_WIDTH=' + get_option('DefaultNewNode-Width').to_string()], language: 'cpp')
 #endif
-#if get_option('HTTP-MaxResponseSize')
-	add_project_arguments(['-DTZK_HTTP_MAX_RESPONSE=' + get_option('HTTP-MaxResponseSize').to_string()], language: 'cpp')
+#if get_option('App-ConfigFilename')
+	add_project_arguments(['-DTZK_CONFIG_FILENAME="' + get_option('App-ConfigFilename') + '"'], language: 'cpp')
 #endif
-#if get_option('HTTP-MaxSendSize')
-	add_project_arguments(['-DTZK_HTTP_MAX_SEND=' + get_option('HTTP-MaxSendSize').to_string()], language: 'cpp')
+#if get_option('FileDialog-AutoRefreshMs')
+	add_project_arguments(['-DTZK_FILEDIALOG_AUTO_REFRESH_MS=' + get_option('FileDialog-AutoRefreshMs').to_string()], language: 'cpp')
+#endif
+#if get_option('FileDialog-InputBufSize')
+	add_project_arguments(['-DTZK_FILEDIALOG_INPUTBUF_SIZE=' + get_option('FileDialog-InputBufSize').to_string()], language: 'cpp')
+#endif
+#if get_option('Nodes-Max')
+	add_project_arguments(['-DTZK_MAX_NODES=' + get_option('Nodes-Max').to_string()], language: 'cpp')
+#endif
+#if get_option('Styles-Max')
+	add_project_arguments(['-DTZK_MAX_NUM_STYLES=' + get_option('Styles-Max').to_string()], language: 'cpp')
+#endif
+#if get_option('XML-AttributeSeparator')
+	add_project_arguments(['-DTZK_XML_ATTRIBUTE_SEPARATOR="' + get_option('XML-AttributeSeparator') + '"'], language: 'cpp')
+#endif
+#if get_option('DefaultWkspListNode-Height')
+	add_project_arguments(['-DTZK_WKSPLISTNODE_HEIGHT=' + get_option('DefaultWkspListNode-Height').to_string()], language: 'cpp')
+#endif
+#if get_option('DefaultWkspListNode-Width')
+	add_project_arguments(['-DTZK_WKSPLISTNODE_WIDTH=' + get_option('DefaultWkspListNode-Width').to_string()], language: 'cpp')
 #endif
 
 
@@ -104,11 +142,13 @@ engine_src_cmd = run_command('meson_src_list.sh', 'engine', check: true)
 engine_src = engine_src_cmd.stdout().strip().split('\n')
 imgui_src_cmd = run_command('meson_src_list.sh', 'imgui', check: true)
 imgui_src = imgui_src_cmd.stdout().strip().split('\n')
+standalone_src = 'src/Standalone/main.cc'
 
 app_inc = include_directories(['src', 'sys/linux/src'])
 core_inc = include_directories(['src', 'sys/linux/src'])
 engine_inc = include_directories(['src', 'sys/linux/src'])
 imgui_inc = include_directories(['src', 'sys/linux/src'])
+standalone_inc = include_directories(['src', 'sys/linux/src'])
 
 
 
@@ -129,6 +169,7 @@ opt_audio_oggvorbis = get_option('Use-vorbis').enabled()
 opt_audio_openal = get_option('Use-OpenAL').enabled()
 opt_networking = get_option('Enable-Networking')
 opt_sqlite = get_option('Use-sqlite3').enabled()
+opt_stbi = get_option('Use-stbi').enabled()
 
 
 #################
@@ -184,6 +225,7 @@ dep_freetype = dependency('freetype2', required : get_option('Use-freetype'))
 dep_png = dependency('libpng', required : get_option('Use-libpng'))
 dep_pugixml = dependency('pugixml', required : get_option('Use-pugixml'))
 dep_sdl2 = dependency('SDL2', required : get_option('Use-SDL2'))
+dep_sdl2_image = dependency('SDL2_image', required : get_option('Use-SDL2_image'))
 dep_sdl2_ttf = dependency('SDL2_ttf', required : get_option('Use-SDL2_ttf'))
 dep_zlib = dependency('zlib')  # required by freetype and png
 
@@ -207,12 +249,17 @@ if dep_sdl2.found()
 else
 	add_project_arguments(['-DTZK_USING_SDL=0'], language: 'cpp')
 endif
+if dep_sdl2_image.found()
+	add_project_arguments(['-DTZK_USING_SDLIMAGE=1'], language: 'cpp')
+else
+	add_project_arguments(['-DTZK_USING_SDLIMAGE=0'], language: 'cpp')
+endif
 if dep_sdl2_ttf.found()
 	add_project_arguments(['-DTZK_USING_SDL_TTF=1'], language: 'cpp')
 else
 	add_project_arguments(['-DTZK_USING_SDL_TTF=0'], language: 'cpp')
 endif
-# We don't actually use this, so not approprate for the inclusion
+# We don't actually use this (third-party dependency only), so not approprate for the inclusion
 #if dep_zlib.found()
 #	add_project_arguments(['-DTZK_USING_ZLIB=1'], language: 'cpp')
 #else
@@ -229,9 +276,13 @@ dep_uuid = dependency('uuid')
 # integrated, cannot turn off
 if get_option('Use-dearimgui').enabled()
 	add_project_arguments(['-DTZK_USING_IMGUI=1'], language: 'cpp') # imgui/dear_imgui
+else
+	add_project_arguments(['-DTZK_USING_IMGUI=0'], language: 'cpp')
 endif
-if get_option('Use-STB-Image').enabled()
-	add_project_arguments(['-DTZK_USING_STBI=1'], language: 'cpp') # engine/resources/stb_image
+if get_option('Use-stbi').enabled()
+	add_project_arguments(['-DTZK_USING_STBI=1'], language: 'cpp') # engine/resources/stb
+else
+	add_project_arguments(['-DTZK_USING_STBI=0'], language: 'cpp')
 endif
 
 buildtype = get_option('buildtype')
@@ -261,8 +312,9 @@ add_project_arguments(['-rdynamic'], language: 'cpp')
 # dependency specification
 core_deps = [dep_sdl2, dep_pugixml, dep_uuid]
 imgui_deps = [dep_sdl2]
-engine_deps = [dep_sdl2, dep_freetype, dep_pugixml, dep_png]
-app_deps = [dep_zlib, dep_freetype, dep_png, dep_pugixml, dep_sdl2, dep_sdl2_ttf]
+engine_deps = [dep_sdl2, dep_sdl2_image, dep_freetype, dep_pugixml, dep_png]
+app_deps = [dep_zlib, dep_freetype, dep_png, dep_pugixml, dep_sdl2, dep_sdl2_image, dep_sdl2_ttf]
+standalone_deps = [dep_zlib, dep_freetype, dep_png, dep_pugixml, dep_sdl2, dep_sdl2_image, dep_sdl2_ttf]
 
 if opt_audio
 	engine_deps += [dep_openal]
@@ -285,7 +337,7 @@ endif
 
 core = library('core',
   core_src,
-  version : '1.0', # pull from generator
+  version : '1.0', # TODO: pull from generator
   soversion : '1',
   include_directories : core_inc,
   dependencies : core_deps
@@ -316,6 +368,11 @@ executable('app',
   include_directories : app_inc
 )
 
+executable('standalone',
+  sources : standalone_src,
+  dependencies : standalone_deps,
+  link_with : [core, engine, imgui],
+  include_directories : standalone_inc
+)
+
 #project('install', 'cpp')
-
-
