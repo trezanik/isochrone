@@ -47,3 +47,8 @@
 	// number of bytes for the stack buffer, exceeding this will result in dynamic memory allocation
 #	define TZK_LOG_STACKBUF_SIZE  256
 #endif
+
+#if !defined(TZK_ALLOCINFO_MAX_SIZE)
+	// number of bytes for the buffer holding function/file name in mem alloc info
+#	define TZK_ALLOCINFO_MAX_SIZE  64 // 64 is sufficient except for Visual Studio lambdas
+#endif

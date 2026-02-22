@@ -27,7 +27,7 @@ namespace core {
 
 
 // this is the maximum length of a file/function in the allocinfo struct
-const uint8_t  max_allocinfo_var_buf = 64;  // candidate for definitions.h override
+const uint8_t  max_allocinfo_var_buf = TZK_ALLOCINFO_MAX_SIZE;
 const uint8_t  max_allocinfo_var_len = (max_allocinfo_var_buf - 1);
 
 
@@ -122,7 +122,32 @@ struct mem_alloc_info
 		if ( strlen(alloc_file) >= sizeof(file) )
 			throw std::runtime_error("file name too long");
 		if ( strlen(alloc_func) >= sizeof(func) )
+		{
+#if TZK_IS_VISUAL_STUDIO
+			const char*  p;
+			/*
+			 * Special handling for lambdas since they result in ridiculous lengths
+			 * and I don't want to double the allocation for everything just to
+			 * cover real edge cases
+			 */
+			if ( (p = strstr(alloc_func, "<lambda_")) == nullptr )
+			{
+				throw std::runtime_error("function name too long");
+			}
+			else
+			{
+				block = alloc_block;
+				cur_size = alloc_size;
+				memcpy(func, alloc_func, sizeof(func) - 1);
+				func[sizeof(func)-1] = '\0';
+				memcpy(file, alloc_file, strlen(alloc_file) + 1);
+				line = alloc_line;
+				return;
+			}
+#else
 			throw std::runtime_error("function name too long");
+#endif
+		}
 
 		block = alloc_block;
 		cur_size = alloc_size;
