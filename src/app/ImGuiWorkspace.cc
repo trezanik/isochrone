@@ -2760,7 +2760,7 @@ ImGuiWorkspace::HandleNodegraphUpdate(
 				return;
 			}
 
-			if ( (*res)->has_component(cth_cmpt_online_track) )
+			if ( my_pingmon != nullptr && (*res)->has_component(cth_cmpt_online_track) )
 			{
 				if ( my_pingmon->TargetExists((*res)->pingmonitor_target_uuid) )
 				{
