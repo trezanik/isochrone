@@ -775,12 +775,12 @@ Application::ExtractEmbeddedAssets()
 	}
 //#endif
 //#if TZK_EMBED_OPENSANS
-    auto  opensans_res = std::find(font_list.begin(), font_list.end(), opensans_name);
-    if ( opensans_res == font_list.end() )
-    {
-        resources.push_back({ my_assets_fonts_path, opensans_name, opensans, opensans_size });
-        resources.push_back({ my_assets_fonts_path, opensans_license_name, opensans_license, opensans_license_size });
-    }
+	auto  opensans_res = std::find(font_list.begin(), font_list.end(), opensans_name);
+	if ( opensans_res == font_list.end() )
+	{
+		resources.push_back({ my_assets_fonts_path, opensans_name, opensans, opensans_size });
+		resources.push_back({ my_assets_fonts_path, opensans_license_name, opensans_license, opensans_license_size });
+	}
 //#endif
 //#if TZK_EMBED_PROGGYCLEAN
 	auto  progclean_res = std::find(font_list.begin(), font_list.end(), proggyclean_name);

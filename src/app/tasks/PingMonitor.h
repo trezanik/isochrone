@@ -291,10 +291,17 @@ struct monitored_system
  *  different method for datagram-based ones. No choice but to adjust all the
  *  member variables to move away from single-state concepts - although Windows
  *  doesn't need it.
+ * 
+ * @bug for NT5
+ *  NT5-based builds (i.e. legacy build running on WinXP/7/10) does not work as
+ *  the host, but may be ok as a receiving client. Further testing needed.
+ *  Win7 needs to be run as admin (Vista/8 untested), but XP and 10 execute ok.
+ *  It looks like custom ID assignment is being done but I've not investigated
+ *  this in depth, I've spent long enough on this as it is.
  */
 class PingMonitor
 	: public Task
-#if 0 // Code Disabled: removed as breaks task retention
+#if 0 // Code Disabled: removed as breaks task retention, but otherwise should be!
 	, private trezanik::core::SingularInstance<PingMonitor>
 #endif
 {

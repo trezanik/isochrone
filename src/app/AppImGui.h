@@ -296,7 +296,8 @@ struct AppImGuiStyle
  * References have lifetimes exceeding that of the struct.
  *
  * This structure is multi-threaded access and requires locking whenever in
- * use - use the mutex member variable for this.
+ * use for pointers, collections, and non-basics where race conditions would be
+ * a concern - use the mutex member variable for this.
  *
  * Pointers are dynamic and should be checked for nullptr before usage
  *

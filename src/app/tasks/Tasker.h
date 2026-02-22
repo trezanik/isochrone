@@ -139,7 +139,7 @@ private:
 
 
 	/**
-	 * Dedicated thread co-ordinating resource loading
+	 * Dedicated thread co-ordinating task execution
 	 *
 	 * Will pass off loading requests to internal thread pool
 	 */
@@ -171,15 +171,14 @@ public:
 
 	/**
 	 * Adds a task to the execution queue
+	 * 
+	 * This will not be started until the tasker is Sync() is called
 	 *
 	 * @param[in] task
 	 *  The base class task to be loaded
 	 * @return
 	 *  - ErrNONE on successful addition
-	 *  - ENOENT x
-	 *  - EFAULT x
-	 *  - ErrFAILED x
-	 *  - EEXIST x
+	 *  - There is no present ability to fail
 	 */
 	int
 	AddTask(
@@ -188,14 +187,27 @@ public:
 
 
 	/**
+	 * Acquires a new collection of all tasks held within this processor
 	 * 
+	 * @return
+	 *  The collection of all present tasks, including those queued and running.
+	 *  Completed tasks are NOT included here
 	 */
 	std::vector<std::shared_ptr<Task>>
 	GetAllTasks();
 
 
 	/**
+	 * Handler for the Task Update registered event
 	 * 
+	 * Will be received upon the completion of a task - whether success or
+	 * failure.
+	 * 
+	 * Not triggered for new tasks beginning execution yet, but will likely be
+	 * introduced in future
+	 * 
+	 * @param[in] update
+	 *  The event data for the task update
 	 */
 	void
 	HandleTaskUpdate(
@@ -232,12 +244,31 @@ public:
 	Stop();
 
 
+	/**
+	 * Forces a task to stop by its object
+	 * 
+	 * This will be achieved via whatever suitable method applies; e.g. if this
+	 * is running as a dedicated process, it will be terminated. If an internal
+	 * function, then it'll simply be aborted.
+	 * 
+	 * @param[in] task
+	 *  The task object to stop
+	 * @return
+	 *  An error code on failure, otherwise ErrNONE.
+	 *  Failure can include being unable to terminate a process, which is out of
+	 *  our local control
+	 */
 	int
 	StopTask(
 		std::shared_ptr<Task> task
 	);
 
 
+	/**
+	 * Forces a task to stop by its unique identifier
+	 * 
+	 * @copydoc StopTask
+	 */
 	int
 	StopTask(
 		trezanik::core::UUID& task_id

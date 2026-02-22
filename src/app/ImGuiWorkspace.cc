@@ -2860,7 +2860,7 @@ ImGuiWorkspace::HandleNodegraphUpdate(
 				if ( found )
 				{
 					TZK_LOG_FORMAT(LogLevel::Warning, "Pin ID %s notified of deletion, but was found held within node", iter->id.GetCanonical());
-					TZK_LOG_FORMAT(LogLevel::Error, "Potential data corruption or loss if file is saved, deleted pin is still retained");
+					TZK_LOG(LogLevel::Error, "Potential data corruption or loss if file is saved, deleted pin is still retained");
 				}
 				else
 				{

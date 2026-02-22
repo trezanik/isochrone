@@ -1,7 +1,7 @@
 #pragma once
 
 /**
- * @file        src/core/util/winops.h
+ * @file        sys/win/src/core/util/winops.h
  * @brief       Windows NT advanced functionality
  * @license     zlib (view the LICENSE file for details)
  * @copyright   Trezanik Developers, 2014-2025

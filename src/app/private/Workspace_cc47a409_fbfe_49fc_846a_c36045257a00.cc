@@ -237,12 +237,14 @@ LoadComponent_Header(
 void
 LoadComponent_OnlineTracker(
 	pugi::xml_node xml_component,
-	node_component_online_tracker& tracker
+	node_component_online_tracker& TZK_UNUSED(tracker)
 )
 {
 	pugi::xml_node  xmle = xml_component.child(xmlstr_online_track);
 	//tracker.x = xmle.text().as_string();
 	// no present settings, just presence
+
+	// will likely end up like credentials, id mapping to separate config
 }
 
 
@@ -419,7 +421,7 @@ LoadComponent_SysInfo(
 			pugi::xml_attribute  attr_gateway = n_ip4.attribute(xmlstr_attr_gateway);
 			pugi::xml_attribute  attr_netmask = n_ip4.attribute(xmlstr_attr_netmask);
 			node_component_systeminfo::interface_address  dat_addr;
-			if ( attr_addr )  dat_addr.address = attr_addr.value();
+			if ( attr_addr )     dat_addr.address = attr_addr.value();
 			if ( attr_gateway )  dat_addr.gateway = attr_gateway.value();
 			if ( attr_netmask )  dat_addr.mask = attr_netmask.value();
 
@@ -433,9 +435,9 @@ LoadComponent_SysInfo(
 			pugi::xml_attribute  attr_gateway = n_ip6.attribute(xmlstr_attr_gateway);
 			pugi::xml_attribute  attr_prefix = n_ip6.attribute(xmlstr_attr_prefixlen);
 			node_component_systeminfo::interface_address  dat_addr;
-			if ( attr_addr )  dat_addr.address = attr_addr.value();
+			if ( attr_addr )     dat_addr.address = attr_addr.value();
 			if ( attr_gateway )  dat_addr.gateway = attr_gateway.value();
-			if ( attr_prefix )  dat_addr.mask = attr_prefix.value();
+			if ( attr_prefix )   dat_addr.mask = attr_prefix.value();
 
 			dat_interface.addresses.emplace_back(dat_addr);
 		}
@@ -777,12 +779,14 @@ SaveComponent_Header(
 void
 SaveComponent_OnlineTracker(
 	pugi::xml_node xml_component,
-	node_component_online_tracker& tracker
+	node_component_online_tracker& TZK_UNUSED(tracker)
 )
 {
 	pugi::xml_node  xmle = xml_component.append_child(xmlstr_online_track);
 	//xmle.text().set(tracker.text.c_str());
 	// no data for now
+
+	// as above, likely mirror of credentials implementation
 }
 
 
@@ -987,7 +991,7 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::Load(
 					<cpu vendor="" model="" serial="" />
 				</component>
 				<component id="489461532">
-					<credentials username="" password="" /> <!-- explicit -->
+					<credentials id="" name="" username="" password="" /> <!-- explicit -->
 					<credentials mapfrom="" /> <!-- file external, could be encrypted source, password to unlock -->
 				</component>
 			</components>
@@ -1873,6 +1877,7 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadSettings(
 		loader.wksp_data->settings[attr_key.value()] = attr_value.value();
 
 		app::EventData::loaded_setting  evt;
+		// no workspace id here, applies directly
 		evt.name  = attr_key.value();
 		evt.value = attr_value.value();
 		my_evtmgr.DispatchEvent(uuid_loaded_setting, evt);

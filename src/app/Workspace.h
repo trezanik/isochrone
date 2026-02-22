@@ -444,7 +444,9 @@ struct node_component_boundary : public node_component_header
 
 
 /**
- * .
+ * Credentials used to authenticate with a remote system
+ *
+ * References workspace data; one component maps to one credential only
  */
 struct node_component_credentials : public node_component
 {

@@ -91,6 +91,7 @@ ImGuiWkspForensics::Draw()
 		return;
 	}
 	
+	// hmm - no targets and data is unavailable (but will persist). Keep or ignore?
 	if ( selected_node->targets.empty() )
 	{
 		ImGui::Text("Selected node has no targets");

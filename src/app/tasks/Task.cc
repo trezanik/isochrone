@@ -100,7 +100,7 @@ Task::Execute()
 		break;
 	case TaskType::SystemCommand:
 		TZK_LOG_FORMAT(LogLevel::Debug, "Executing command: %s", my_command.c_str());
-		// win32 CreateProcess/Linux fork my_command
+		/// @todo win32 CreateProcess/Linux posix_spawn my_command
 		break;
 	default:
 		retval = EINVAL;

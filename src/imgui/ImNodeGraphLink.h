@@ -25,12 +25,14 @@ class ImNodeGraph;
 class Pin;
 
 
+#if 0  // Code Disabled until used
 static size_t   min_control_points = 2;
 static size_t   max_control_points_direct = 2;
 static size_t   max_control_points_quadbez = 3;
 static size_t   max_control_points_cubbez = 4;
 static size_t   max_control_points_autoline = 6;
 static size_t   max_control_points_autolinehyb = 16;
+#endif
 
 enum class LinkMethod : int
 {

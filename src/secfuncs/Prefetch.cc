@@ -90,8 +90,8 @@ Read_Prefetch_Common(
 	if ( memcmp(&file_data[4], sig, sizeof(sig)) != 0 )
 	{
 		fprintf(stderr, "Invalid signature: expecting '%c %c %c %c', got '%c %c %c %c'\n",
-			file_data[0], file_data[1], file_data[2], file_data[3],
-			sig[0], sig[1], sig[2], sig[3]
+			sig[0], sig[1], sig[2], sig[3],
+			file_data[0], file_data[1], file_data[2], file_data[3]
 		);
 		return -1;
 	}

@@ -315,10 +315,10 @@ TConverter<SortNodeMethod>::FromUint8(
 template<>
 std::string
 TConverter<SortNodeMethod>::ToString(
-	SortNodeMethod proto
+	SortNodeMethod method
 )
 {
-	switch ( proto )
+	switch ( method )
 	{
 	case SortNodeMethod::Alphabetical_Forward:   return str_alpha_fwd;
 	case SortNodeMethod::Alphabetical_Reverse:   return str_alpha_rev;

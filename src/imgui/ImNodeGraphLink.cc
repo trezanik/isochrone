@@ -218,7 +218,8 @@ Link::DrawDirect()
 		my_selected = false;
 	}
 	
-	// again, no IsLineHovered function.. and my maths is crap
+	// again, no IsLineHovered function.. and my maths is crap. This should be piss easy!
+	// vec1->vec2 + hover_scope_radius : GetMousePos - does mouse intersect
 	// determine hover
 	// determine selection
 

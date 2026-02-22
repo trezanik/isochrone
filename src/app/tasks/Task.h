@@ -123,26 +123,84 @@ public:
 	 * Sets the start time, and when finished, the end time.
 	 * 
 	 * @return
-	 *  returns the return value of the async_task function executed
+	 *  The return value of the async_task function executed, or if a command,
+	 *  the return value of the process
 	 */
 	int
 	Execute();
 
+
+	/**
+	 * Gets a copy of the string command this task executes
+	 * 
+	 * @return
+	 *  The command for the task. If this does not execute a command (e.g. it
+	 *  performs an internal function), this will be a blank string
+	 */
 	std::string
 	GetCommand() const;
 
-	trezanik::core::UUID
+
+	/**
+	 * Gets the unique identifier of this task
+	 * 
+	 * @return
+	 *  A reference to this tasks UUID
+	 */
+	const trezanik::core::UUID&
 	GetID() const;
 
+
+	/**
+	 * Gets the task object we will be/are executing
+	 * 
+	 * @return
+	 *  The async_task object
+	 */
 	async_task
 	GetTask() const;
 
+
+	/**
+	 * Gets the type of task this is
+	 * 
+	 * @return
+	 *  One of the enumeration values of the type. Only invalid if the object was
+	 *  incorrectly initialized (currently, this is either a command or function,
+	 *  and cannot be any other value)
+	 */
 	TaskType
 	GetType() const;
 
+
+	/**
+	 * Obtains a copy of the task UUID
+	 * 
+	 * @return
+	 *  A new UUID object, containing this tasks unique identifier
+	 */
+	trezanik::core::UUID
+	ID() const;
+
+
+	/**
+	 * Gets the active running state of this task
+	 * 
+	 * Execution begins upon successful invocation of Execute()
+	 * 
+	 * @return
+	 *  Boolean state; true if the task is running, otherwise false
+	 */
 	bool
 	IsRunning() const;
 
+
+	/**
+	 * Gets the duration the task has been running for, in milliseconds
+	 * 
+	 * @return
+	 *  The task execution duration
+	 */
 	uint64_t
 	RunningTime() const;
 

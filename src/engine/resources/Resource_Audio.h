@@ -32,8 +32,10 @@ class TZK_ENGINE_API Resource_Audio : public Resource
 
 private:
 
+	/** . */
 	trezanik::engine::AudioFileType  my_filetype;
 
+	/** . */
 	std::shared_ptr<trezanik::engine::AudioFile>  my_file;
 
 protected:
@@ -42,7 +44,8 @@ public:
 	/**
 	 * Standard constructor
 	 *
-	 * @param[in] 
+	 * @param[in] fpath
+	 *  .
 	 */
 	Resource_Audio(
 		std::string fpath
@@ -52,8 +55,10 @@ public:
 	/**
 	 * Standard constructor
 	 *
-	 * @param[in]
-	 * @param[in] 
+	 * @param[in] fpath
+	 *  .
+	 * @param[in] media_type
+	 *  .
 	 */
 	Resource_Audio(
 		std::string fpath,

@@ -108,7 +108,7 @@ invoke_syscommand(
 	// create new pipe. pipe_fds[0] to read, pipe_fds[1] to write
 	if ( pipe(pipe_fds) == -1 )
 	{
-		TZK_LOG_FORMAT(LogLevel::Warning, "pipe() failled: %s", err_as_string((errno_ext)errno));
+		TZK_LOG_FORMAT(LogLevel::Warning, "pipe() failed: %s", err_as_string((errno_ext)errno));
 		return ErrFAILED;
 	}
 

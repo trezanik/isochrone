@@ -268,11 +268,11 @@ ImGuiLog::Initialize()
 	uint32_t  warn_colour  = IM_COL32(242, 212,   0, 255);
 	uint32_t  trace_colour = IM_COL32(111, 153, 146, 255);
 #else
-    uint32_t  debug_colour = IM_COL32(154,  59, 187, 255);
-    uint32_t  error_colour = IM_COL32(255,  77,  77, 255);
-    uint32_t  info_colour  = IM_COL32(  0, 153, 255, 255);
-    uint32_t  warn_colour  = IM_COL32(145, 155,  15, 255);
-    uint32_t  trace_colour = IM_COL32(111, 153, 146, 255);
+	uint32_t  debug_colour = IM_COL32(154,  59, 187, 255);
+	uint32_t  error_colour = IM_COL32(255,  77,  77, 255);
+	uint32_t  info_colour  = IM_COL32(  0, 153, 255, 255);
+	uint32_t  warn_colour  = IM_COL32(145, 155,  15, 255);
+	uint32_t  trace_colour = IM_COL32(111, 153, 146, 255);
 #endif
 
 	SetLogLevelColour(LogLevel::Debug, debug_colour);
