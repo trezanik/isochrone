@@ -278,15 +278,30 @@ DataSource_API::Get(
 		getline(str, info);
 		
 		if ( field.substr(0,8) == "siblings" )
-			cur_siblings = Trim(info);
+		{
+			cur_siblings = info;
+			Trim(cur_siblings);
+		}
 		else if ( field.substr(0,9) == "cpu cores" )
-			cur_cores = Trim(info);
+		{
+			cur_cores = info;
+			Trim(cur_cores);
+		}
 		else if ( field.substr(0,10) == "model name" )
-			cur_model = Trim(info);
+		{
+			cur_model = info;
+			Trim(cur_model);
+		}
 		else if ( field.substr(0,11) == "physical id" )
-			cur_physical_id = Trim(info);
+		{
+			cur_physical_id = info;
+			Trim(cur_physical_id);
+		}
 		else if ( field.substr(0,9) == "vendor_id" )
-			cur_vendor_id = Trim(info);
+		{
+			cur_vendor_id = info;
+			Trim(cur_vendor_id);
+		}
 		
 		// check if we have enough info to populate a full cpu item
 		if ( !cur_model.empty() && !cur_physical_id.empty() && !cur_siblings.empty() && !cur_cores.empty() )

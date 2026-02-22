@@ -370,7 +370,6 @@ LPad(
 }
 
 
-
 void
 QuotePath(
 	std::string& path
@@ -383,7 +382,6 @@ QuotePath(
 }
 
 
-
 void
 QuotePathIfNeeded(
 	std::string& path
@@ -394,7 +392,6 @@ QuotePathIfNeeded(
 		QuotePath(path);
 	}
 }
-
 
 
 std::string
@@ -541,6 +538,17 @@ Split(
 }
 
 
+void
+Trim(
+	std::string& str
+)
+{
+	TrimLeft(str);
+	TrimRight(str);
+}
+
+
+#if 0  // Code Disabled: original implementation, only handling spaces (not whitespace)
 std::string
 Trim(
 	std::string& str
@@ -550,6 +558,26 @@ Trim(
 	size_t  last = str.find_last_not_of(' ');
 
 	return str.substr(first, (last - first + 1));
+}
+#endif
+
+
+void
+TrimCrLf(
+	std::string& str
+)
+{
+	if ( !str.empty() )
+	{
+		auto  ch = str.back();
+		while ( ch == '\r' || ch == '\n' )
+		{
+			str.pop_back();
+			if ( str.empty() )
+				break;
+			ch = str.back();
+		}
+	}
 }
 
 

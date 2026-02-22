@@ -474,26 +474,40 @@ Split(
 
 
 /**
- * Removes any prefixing and suffixing spaces from the input string
+ * Removes any prefixing and suffixing whitespace from the input string
  *
- * @param[in] str
- *  The original string to be trimmed
- * @return
- *  The trimmed string
+ * Calls TrimLeft and TrimRight
+ * 
+ * @param[in,out] str
+ *  Reference to the original string to be trimmed
  */
 TZK_CORE_API
-std::string
+void
 Trim(
 	std::string& str
 );
 
 
 /**
- * Removes any prefixing spaces from the input string
+ * Removes any suffixing carriage returns and/or line feeds from the input string
+ *
+ * @param[in,out] str
+ *  Reference to the original string to be trimmed
+ */
+TZK_CORE_API
+void
+TrimCrLf(
+	std::string& str
+);
+
+
+/**
+ * Removes any prefixing whitespace from the input string
  *
  * @param[in,out] str
  *  Reference to the string to be modified
  */
+TZK_CORE_API
 void
 TrimLeft(
 	std::string& str
@@ -501,11 +515,12 @@ TrimLeft(
 
 
 /**
- * Removes any suffixing spaces from the input string
+ * Removes any suffixing whitespace from the input string
  *
  * @param[in,out] str
  *  Reference to the string to be modified
  */
+TZK_CORE_API
 void
 TrimRight(
 	std::string& str
