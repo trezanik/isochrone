@@ -1249,7 +1249,10 @@ ImGuiWkspTopology::DrawContextPopupNodeSelect(
 	// if component - scanners/tools
 	if ( ImGui::BeginMenu("Recon") )
 	{
-		ImGui::MenuItem("nmap");
+		if ( ImGui::MenuItem("nmap") )
+		{
+
+		}
 		ImGui::EndMenu();
 	}
 	if ( ImGui::BeginMenu("Attack") )

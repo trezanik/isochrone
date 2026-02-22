@@ -13,6 +13,7 @@ cat << EOF > configure.h
  *
  * It presents the items that can have an override to the defaults; force the
  * include via the CMakeLists option ISOCHRONE_FORCE_INCLUDE_CONFIGURE.
+ * The meson build system does NOT use this.
  *
  * See the associated headers for descriptions - and only modify if you know
  * what you're doing!
@@ -39,3 +40,4 @@ $engine_lines
 $app_lines
 
 EOF
+

@@ -12,10 +12,11 @@ for i in $src_files; do
 	echo "$i"
 done
 
-# redirection of stderr required as not all scopes have systen-specific sources
+# redirection of stderr required as not all scopes have system-specific sources
 #sys_files=$(find sys/linux/src/$scope -name "*.cc" 2>/dev/null)
 # actually not - meson only reads from stdout, so stderr items won't be included
 sys_files=$(find sys/linux/src/$scope -name "*.cc")
 for i in $sys_files; do
 	echo "$i"
 done
+
