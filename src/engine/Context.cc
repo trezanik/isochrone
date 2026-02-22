@@ -388,6 +388,7 @@ Context::GetSDLRenderer() const
 int
 Context::Initialize()
 {
+	using namespace trezanik::core;
 
 #if TZK_TEMP_BASIC_FACTORIES
 	// register minimal engine class objects
@@ -421,9 +422,21 @@ Context::Initialize()
 #endif
 
 #if TZK_USING_SDLIMAGE
-	if ( IMG_Init(IMG_INIT_PNG) == IMG_INIT_PNG )
+	auto  sdli_ver = IMG_Linked_Version();
+	TZK_LOG_FORMAT(LogLevel::Info, "SDL_image library %d.%d.%d available",
+		sdli_ver->major, sdli_ver->minor, sdli_ver->patch
+	);
+	my_sdlimage_available = true;
+
+	/*
+	 * SDL_image will load any formats that are available inbuilt without any
+	 * form of initialization; those needing IMG_Init with the associated
+	 * IMG_INIT_xxx flags are dynamic libraries.
+	 */
+	int  img_init_flags = IMG_INIT_PNG;
+	if ( IMG_Init(img_init_flags) == img_init_flags )
 	{
-		my_sdlimage_available = true;
+		TZK_LOG_FORMAT(LogLevel::Info, "SDL_image initialized with IMG_INIT_PNG");
 	}
 #endif
 
