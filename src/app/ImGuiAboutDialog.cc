@@ -35,6 +35,8 @@
 #	endif
 #else
 #	include <netdb.h>  // NI_MAXHOST
+#	include <iomanip>
+#	include <sys/utsname.h>
 #endif
 
 
@@ -180,7 +182,7 @@ ImGuiAboutDialog::Draw()
 				DrawAcknowledgements();
 				ImGui::EndTabItem();
 			}
-			if ( ImGui::BeginTabItem("License##") )
+			if ( ImGui::BeginTabItem("License##") ) // if en-US, else Licence!
 			{
 				DrawLicense();
 				ImGui::EndTabItem();
@@ -214,6 +216,7 @@ ImGuiAboutDialog::DrawAcknowledgements() const
 	ImGui::Text("We would like to acknowledge the following projects/people, for their contributions to open-source.");
 	ImGui::Text("Some of their code/ideas are used to create this project, which may not exist otherwise:");
 	ImGui::Indent();
+	ImGui::Spacing();
 
 	/*
 	 * This feels way too complex for what should be a simple thing, but I'm
@@ -432,10 +435,49 @@ ImGuiAboutDialog::DrawRunningSystem()
 {
 	using namespace trezanik::core;
 
+	time_t  now = time(nullptr);
+	static char  buf[256];
+	static char  hostname[NI_MAXHOST] = { '\0' };
+	static time_t  last_sec = now;
+
+	if ( now == (last_sec + 1) )
+	{
+		// refresh every second, not every frame (imperfect, good enough)
+#if TZK_IS_WIN32
+		SYSTEMTIME  systime;
+		SYSTEMTIME  localtime;
+
+		::GetSystemTime(&systime);
+		::GetLocalTime(&localtime);
+
+		STR_format(buf, sizeof(buf), "System Time: %02u:%02u:%02u, Local Time: %02u:%02u:%02u\n\n",
+			systime.wHour, systime.wMinute, systime.wSecond,
+			localtime.wHour, localtime.wMinute, localtime.wSecond
+		);
+#else
+		tm   tm_gm;
+		tm   tm_local;
+		char  tbuf_sys[32];
+		char  tbuf_loc[32];
+		gmtime_r(&now, &tm_gm);
+		localtime_r(&now, &tm_local);
+		strftime(tbuf_sys, sizeof(tbuf_sys), "%T", &tm_gm);
+		strftime(tbuf_loc, sizeof(tbuf_loc), "%T %Z", &tm_local);
+
+		STR_format(buf, sizeof(buf), "System Time: %s, Local Time: %s\n\n", tbuf_sys, tbuf_loc);
+#endif
+
+		::gethostname(hostname, sizeof(hostname));
+
+		last_sec = now;
+	}
+
+
 	// OS-specific
 	ImGui::BeginGroup();
 	{
-		time_t  now = time(nullptr);
+		ImGui::TextWrapped("%s", buf);
+		ImGui::TextWrapped("Hostname: %s", hostname);
 
 		if ( now > (my_last_refresh + my_refresh_schedule) )
 		{
@@ -486,7 +528,7 @@ ImGuiAboutDialog::RefreshSystem()
 	 * streams for correct types
 	 */
 	char  buf[256];
-	char  hostname[NI_MAXHOST];
+
 
 	/*
 	 * We don't use the sysinfo datasource methods as if they fail, logs will
@@ -529,25 +571,6 @@ ImGuiAboutDialog::RefreshSystem()
 	osvi.dwOSVersionInfoSize = sizeof(osvi);
 
 	ntdll.RtlGetVersion(&osvi);
-
-	SYSTEMTIME  systime;
-	SYSTEMTIME  localtime;
-
-	::GetSystemTime(&systime);
-	::GetLocalTime(&localtime);
-
-	STR_format(buf, sizeof(buf), "System Time: %02u:%02u:%02u, Local Time: %02u:%02u:%02u\n\n",
-		systime.wHour, systime.wMinute, systime.wSecond,
-		localtime.wHour, localtime.wMinute, localtime.wSecond
-	);
-	ss << buf;
-
-
-	if ( ::gethostname(hostname, sizeof(hostname)) == 0 )
-	{
-		ss << "Hostname: " << hostname << "\n";
-	}
-
 
 	SYSTEM_INFO  si;
 	const char*  archstr = "";
@@ -700,7 +723,12 @@ ImGuiAboutDialog::RefreshSystem()
 
 #else  // TZK_IS_WIN32
 
+	utsname  un;
 
+	if ( uname(&un) == 0 )
+	{
+		ss << "Kernel: " << un.release << " " << un.machine << "\n";
+	}
 
 #endif  // TZK_IS_WIN32
 
