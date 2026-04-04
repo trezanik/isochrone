@@ -412,7 +412,7 @@ ImGuiAboutDialog::DrawLicense() const
 
 	// RichEdit style here would be preferred
 	ImGui::TextWrapped(
-		"Copyright (C) 2014-2025 James Warren, Trezanik Developers"
+		"Copyright (C) 2014-2026 James Warren, Trezanik Developers"
 		"\n\n"
 		"This software is provided 'as-is', without any express or implied "
 		"warranty. In no event will the authors be held liable for any damages "
