@@ -1610,7 +1610,7 @@ ImGuiPreferencesDialog::Draw_Workspaces()
 	if ( ImGui::Button("Browse...##pythonexec") )
 	{
 		// file browse and selection, file dialog, todo
-		TZK_LOG_FORMAT(LogLevel::Warning, "File selector not implemented");
+		TZK_LOG(LogLevel::Warning, "File selector not implemented");
 	}
 	ImGui::SameLine();
 	ImGui::HelpMarker("Path to the python executable\n"

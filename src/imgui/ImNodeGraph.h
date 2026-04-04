@@ -237,17 +237,17 @@ struct context_popup
 	 * Pointer to the hovered Node, if any; will always be a nullptr unless it's
 	 * not already in the collection of selected nodes
 	 */
-	trezanik::imgui::BaseNode*  hovered_node;
+	trezanik::imgui::BaseNode*  hovered_node = nullptr;
 
 	/**
 	 * Pointer to the selected Pin, if any
 	 */
-	trezanik::imgui::Pin*  pin;
+	trezanik::imgui::Pin*  pin = nullptr;
 
 	/**
 	 * Pointer to the hovered Link, if any
 	 */
-	trezanik::imgui::Link*  hovered_link;
+	trezanik::imgui::Link*  hovered_link = nullptr;
 
 	/*
 	 * The mouse cursor position at the time of trigger (i.e. right-click
@@ -519,7 +519,7 @@ public:
 	 * file, which is default; only written if modified.
 	 */
 	struct {
-		grid_settings  grid_style;
+		grid_settings  grid_style = { 0 };
 		int   link_default_method = static_cast<int>(LinkMethod::CubicBezier);
 		bool  node_draw_headers = false;
 		bool  node_drag_from_headers_only = false;

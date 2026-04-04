@@ -87,7 +87,7 @@ namespace tga {
   };
 
   struct Header {
-    uint8_t  idLength;
+    uint8_t  idLength = 0;
     uint8_t  colormapType;
     uint8_t  imageType;
     uint16_t colormapOrigin;

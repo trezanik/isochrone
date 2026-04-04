@@ -434,7 +434,7 @@ TypeLoader_Image::LoadTGA(
 		
 		image.bytesPerPixel = header.bytesPerPixel();
 		image.rowstride = header.width * header.bytesPerPixel();
-		image.pixels = static_cast<unsigned char*>(TZK_MEM_ALLOC(image.rowstride * header.height));
+		image.pixels = static_cast<unsigned char*>(TZK_MEM_ALLOC(header.height * image.rowstride));
 		
 		if ( !decoder.readImage(header, image, nullptr) )
 		{

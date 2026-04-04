@@ -75,6 +75,7 @@ BaseNode::BaseNode(
 , my_parent_window(nullptr)
 , _channel(NodeGraphChannel_Unselected)
 , _saved_node_flags(NodeFlags_None)
+, _header_text(nullptr)
 {
 	using namespace trezanik::core;
 
