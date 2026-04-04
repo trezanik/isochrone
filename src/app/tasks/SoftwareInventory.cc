@@ -23,6 +23,10 @@
 #include "core/util/hash/compile_time_hash.h"
 #include "core/util/net/net.h"
 
+#if TZK_USING_PUGIXML
+#	include <pugixml.hpp>
+#endif
+
 #if TZK_IS_WIN32
 #	include "core/util/winops.h"
 #	include "core/util/string/textconv.h"
@@ -35,10 +39,25 @@
 #endif
 
 #include <algorithm>
+#include <fstream>
 
 
 namespace trezanik {
 namespace app {
+
+
+const char  nodestr_docroot_softinv[] = "SoftwareInventory";
+
+const char  nodestr_key[] = "key";
+const char  attrstr_name[] = "name";
+const char  attrstr_value[] = "value";
+const char  attrstr_data[] = "data";
+const char  attrstr_type[] = "type";
+const char  nodestr_entry[] = "entry";
+const char  attrstr_displayname[] = "DisplayName";
+const char  attrstr_displaystring[] = "DisplayString";
+
+const char  str_placeholder_unk[] = "Unknown";
 
 
 SoftwareInventoryTask::SoftwareInventoryTask(
@@ -72,7 +91,7 @@ SoftwareInventoryTask::~SoftwareInventoryTask()
 std::string
 SoftwareInventoryTask::GenerateCommandArgs() const
 {
-	// this is all common code, need to prevent repeating self
+// this is all common code, need to prevent repeating self
 	auto& ctx = engine::Context::GetSingleton();
 	auto wdat = my_params.wksp->GetWorkspaceData();
 
@@ -81,7 +100,7 @@ SoftwareInventoryTask::GenerateCommandArgs() const
 	std::string   empty;
 	std::string* user = &empty;
 	std::string* pass = &empty;
-	std::string* hash = &empty;
+	//std::string* hash = &empty;
 	auto  targetstr = core::aux::ipaddr_to_string(my_params.target_addr);
 
 	for ( auto& c : wdat.configs.credentials )
@@ -94,9 +113,9 @@ SoftwareInventoryTask::GenerateCommandArgs() const
 			break;
 		}
 	}
-	// end common code
+// end common code
 
-	ss << "\"" << ctx.AssetPath() << "scripts" << TZK_PATH_CHARSTR << "reg.py\" ";
+	ss << "\"" << ctx.AssetPath() << "scripts" << TZK_PATH_CHARSTR << "bin" << TZK_PATH_CHARSTR << "reg.py\" ";
 	ss << *user << ":" << *pass << "@" << targetstr;
 	ss << " query -keyName HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall -s";
 
@@ -120,6 +139,7 @@ SoftwareInventoryTask::Invoke()
 
 	// pull/determine file from task input. wkspid/nodeid.typeid.acqtime.dat
 	std::string  fpath = my_params.wksp->GenerateDataFileName(my_params.node_uuid, uuid_software_inventory);
+	std::string  fpath_int = fpath + ".intermediate";
 
 	// if we can't write out the data, no point executing anything
 	if ( fpath.empty() )
@@ -136,27 +156,154 @@ SoftwareInventoryTask::Invoke()
 		return EINVAL;
 	}
 
-	CommonExec  e(fpath, this);
-
-	_detail = pyexec;
-	if ( !e.args.empty() )
+	try
 	{
-		_detail += " ";
-		_detail += e.args;
+		CommonExec  c(fpath_int, this);
+		retval = c.Exec(pyexec.c_str());
+
+
+// this is common registry acquisition, make singular reusable method
+		std::vector<registry_item>  reg;
+		std::ifstream  intfile(fpath_int);
+		std::string  line;
+		std::string  last_key;
+
+		while ( std::getline(intfile, line) )
+		{
+			if ( line.compare(0, 1, "\t") != 0 )
+			{
+				last_key = line;
+				TrimCrLf(last_key);
+				// next line(s) contain data for this entry
+				continue;
+			}
+
+			/*
+			 * as with all registry stuff, expect: VALUE|TYPE|DATA, e.g. example REG_SZ calc.exe
+			 * could easily be full templates but there might be some deviations.
+			 * Note:
+			 *  Empty data is possible, but the reg.py from impacket will ALWAYS
+			 *  have a space after the tab, even if there is 100% no data present.
+			 *  This need not be handled when we migrate to internal code for all
+			 *  of this
+			 */
+			auto    linevec = Split(line, "\t");
+			size_t  num = linevec.size();
+			if ( num != 3 )
+			{
+				// final line has whitespace but never other chars
+				Trim(line);
+				if ( !line.empty() )
+				{
+					TZK_LOG_FORMAT(LogLevel::Warning, "Bad line format: '%s'", line.c_str());
+				}
+				continue;
+			}
+
+#if __cplusplus < 201703L // C++14 workaround
+			reg.emplace_back();
+			registry_item& entry = reg.back();
+#else
+			registry_item& entry = reg.emplace_back();
+#endif
+
+			entry.key = last_key;
+			entry.value = linevec[0];
+			entry.type = linevec[1];
+			entry.data = linevec[2];
+
+			TrimCrLf(entry.data);
+
+			if ( entry.data == " " || entry.data[0] == ' ' )
+			{
+				entry.data.erase(entry.data.begin());
+			}
+		}
+
+
+#if TZK_IS_WIN32
+		::CloseHandle(c.entry_file);
+		c.entry_file = INVALID_HANDLE_VALUE;
+#endif
+		int  openflags = core::aux::file::OpenFlag_WriteOnly
+			// windows-only
+			| core::aux::file::OpenFlag_DenyW
+			// unix-only
+			| core::aux::file::OpenFlag_CreateUserR
+			| core::aux::file::OpenFlag_CreateUserW;
+		FILE*  fp = core::aux::file::open(fpath.c_str(), openflags);
+
+		if ( fp == nullptr )
+		{
+			core::aux::file::remove(fpath_int.c_str());
+			throw std::runtime_error("file open failed");
+		}
+
+		pugi::xml_document  doc;
+		pugi::xml_node  root_node;
+
+		// create starting xml structure
+		auto  decl_node = doc.append_child(pugi::node_declaration);
+		decl_node.append_attribute("version") = "1.0";
+		decl_node.append_attribute("encoding") = "UTF-8";
+
+		root_node = doc.append_child(nodestr_docroot_softinv);
+
+		for ( auto& r : reg )
+		{
+			pugi::xml_node  key_node = root_node.child(nodestr_key);
+			pugi::xml_attribute  attr_name;
+			bool  is_cur = false;
+
+			if ( !key_node )
+			{
+				key_node = root_node.append_child(nodestr_key);
+				key_node.append_attribute(attrstr_name).set_value(r.key.c_str());
+			}
+
+			// find the key node with this name, or create if non-existent
+			for ( auto& n : root_node.children() )
+			{
+				attr_name = n.attribute(attrstr_name);
+				if ( r.key == attr_name.value() )
+				{
+					is_cur = true;
+					key_node = n;
+					break;
+				}
+			}
+			if ( !is_cur )
+			{
+				key_node = root_node.append_child(nodestr_key);
+				key_node.append_attribute(attrstr_name).set_value(r.key.c_str());
+			}
+
+			auto  entry_node = key_node.append_child(nodestr_entry);
+			entry_node.append_attribute(attrstr_value).set_value(r.value.c_str());
+			entry_node.append_attribute(attrstr_type).set_value(r.type.c_str());
+			entry_node.append_attribute(attrstr_data).set_value(r.data.c_str());
+		}
+
+		pugi::xml_writer_file  writer(fp);
+		doc.save(writer);
+
+		core::aux::file::close(fp);
+	}
+	catch ( std::exception& e )
+	{
+		TZK_LOG_FORMAT(LogLevel::Error, "Exception: %s", e.what());
+		retval = ErrFAILED;
+	}
+	catch ( ... )
+	{
+		TZK_LOG(LogLevel::Error, "Exception");
+		retval = ErrFAILED;
 	}
 
-	return e.Exec(pyexec.c_str());
-}
-
-
-/*std::string
-SoftwareInventoryTask::TaskDetail() const
-{
-	std::string  retval = "TBD";
+	core::aux::file::remove(fpath_int.c_str());
 
 	return retval;
-}*/
-
+}
 
 
 int
@@ -178,8 +325,128 @@ SoftwareInventoryParser::Parse(
 
 	auto  ptr = std::dynamic_pointer_cast<software_inventory>(objdata);
 
+	bool  case_sens = true;
+
+	pugi::xml_document  doc;
+	pugi::xml_parse_result  parse_res = doc.load_string(str_buf.c_str());
+
+	if ( parse_res.status != pugi::status_ok )
+	{
+		TZK_LOG(LogLevel::Error, "[pugixml] Failed to load from supplied buffer");
+		return ErrEXTERN;
+	}
+
+	pugi::xml_node  xml_root = doc.child(nodestr_docroot_softinv);
+
+	if ( !xml_root )
+	{
+		auto  fc = doc.first_child();
+		TZK_LOG_FORMAT(LogLevel::Error, "[pugixml] Mismatched document root element: %s != %s", nodestr_docroot_softinv, fc ? fc.name() : "<none>");
+		return EINVAL;
+	}
+
+#if 0  // format
+	<?xml version="1.0" encoding="UTF-8"?>
+	<SoftwareInventory>
+		<key name="HKLM\\SOFTWARE\\.">
+			<entry value="Value" type="REG_SZ" data="data" /> // each value gets its own key, all included
+		</key>
+		<key name="HKCU\\SOFTWARE\\.">
+		</key>
+	</SoftwareInventory>
 #endif
 
+	size_t  num_keys = 0;
+	size_t  valid_keys = 0;
+
+	for ( auto& xml_key : xml_root.children() )
+	{
+		if ( STR_compare(xml_key.name(), nodestr_key, case_sens) != 0 )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", nodestr_key, nodestr_docroot_softinv, xml_key.name());
+			continue;
+		}
+		num_keys++;
+		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu", nodestr_key, num_keys);
+
+
+		auto  attr_name = xml_key.attribute(attrstr_name);
+		if ( !attr_name )
+		{
+			TZK_LOG_FORMAT(LogLevel::Error, "Invalid registry entry; no %s attribute", attrstr_name);
+			continue;
+		}
+
+#if __cplusplus < 201703L // C++14 workaround
+		ptr->products.emplace_back();
+		auto&  pentry = ptr->products.back();
+#else
+		auto&  pentry = ptr->products.emplace_back();
+#endif
+
+		size_t  num_entries = 0;
+		size_t  valid_entries = 0;
+
+		for ( auto& xml_entry : xml_key.children() )
+		{
+			if ( STR_compare(xml_entry.name(), nodestr_entry, case_sens) != 0 )
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", nodestr_entry, nodestr_key, xml_entry.name());
+				continue;
+			}
+			num_entries++;
+			TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu", nodestr_entry, num_entries);
+
+			auto  attr_value = xml_entry.attribute(attrstr_value);
+			auto  attr_type = xml_entry.attribute(attrstr_type);
+			auto  attr_data = xml_entry.attribute(attrstr_data);
+
+			if ( !attr_value )
+			{
+				TZK_LOG_FORMAT(LogLevel::Error, "Invalid registry entry; no %s attribute", attrstr_value);
+				continue;
+			}
+			if ( !attr_type )
+			{
+				TZK_LOG_FORMAT(LogLevel::Error, "Invalid registry entry; no %s attribute", attrstr_type);
+				continue;
+			}
+			if ( !attr_data )
+			{
+				TZK_LOG_FORMAT(LogLevel::Error, "Invalid registry entry; no %s attribute", attrstr_data);
+				continue;
+			}
+
+			if ( STR_compare(attr_value.value(), "(Default)", case_sens) == 0 && strlen(attr_data.value()) == 0 )
+			{
+				if ( !xml_entry.next_sibling() && !xml_entry.previous_sibling() )
+				{
+					/*
+					 * Registry key with no values, and only default value data;
+					 * effectively useless.
+					 * Maybe make configurable in future for inclusion, but for
+					 * now we'll skip.
+					 */
+#if TZK_VERBOSE_TRACE_LOGGING
+					TZK_LOG_FORMAT(LogLevel::Trace, "No entries for %s; omitted", attr_name.value());
+#endif
+					ptr->products.pop_back();
+					continue;
+				}
+			}
+
+			// waste of memory storing key for each, but display is optional
+			pentry.keydata.push_back({ attr_name.value(), attr_value.value(), attr_type.value(), attr_data.value() });
+
+			valid_entries++;
+			TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu complete", nodestr_entry, num_entries);
+		}
+
+		valid_keys++;
+		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu complete", nodestr_key, num_keys);
+	}
+
+#if 0  // Code Disabled: original raw reg.py output
 	/*
 	 * Note:
 	 * -s to reg.py removes the root (HKLM\) in output for some reason
@@ -294,6 +561,43 @@ SoftwareInventoryParser::Parse(
 	if ( empty )
 	{
 		ptr->products.pop_back();
+	}
+
+#endif
+
+	/*
+	 * Data is loaded in, but has no route for display as we're only holding the
+	 * key trio collection, none extracted.
+	 * Do the extraction now, being conscious of the most 'valuable' fields,
+	 * whilst still allowing the option to load in the others available
+	 */
+	for ( auto& e : ptr->products )
+	{
+		for ( auto& d : e.keydata )
+		{
+			switch ( runtime_fnv1a_hash(d.value.c_str()) )
+			{
+			case dn_hash:
+			case ds_hash:
+				e.name = d.data;
+				break;
+			case dv_hash:
+				e.version = d.data;
+				break;
+			case ip_hash:
+			case il_hash:
+				e.install_target = d.data;
+				break;
+			case is_hash:
+				e.install_source = d.data;
+				break;
+			case id_hash:
+				e.install_date = d.data;
+				break;
+			default:
+				break;
+			}
+		}
 	}
 
 	return ErrNONE;

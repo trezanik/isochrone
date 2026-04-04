@@ -47,6 +47,22 @@ public:
 };
 
 
+struct registry_item
+{
+	/** Registry key of identified item, e.g. HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run */
+	std::string  key;
+
+	/** Registry value of identified item, e.g. RunMyApp */
+	std::string  value;
+
+	/** Registry value type of identified item, e.g. REG_SZ */
+	std::string  type;
+
+	/** Registry value data of identified item, e.g. app.exe args */
+	std::string  data;
+};
+
+
 /**
  * .
  */
@@ -55,16 +71,20 @@ struct product_entry
 	/**
 	 * Product/Software name
 	 *
-	 * Windows - a plain name, usually DisplayName
+	 * Windows - a plain name, usually DisplayName or DisplayString
 	 * Linux - the package name, which includes version info
-	 *   e.g.
 	 */
 	std::string  name;
-	// remainder are windows only
+#if 1
 	std::string  install_source;
 	std::string  install_target;
 	std::string  install_date;
 	std::string  version;
+#endif
+	// Windows-only; the registry key source (i.e. user or machine)
+	//std::string  regkey;
+	// Windows-only; all other values present within this product key
+	std::vector<registry_item>  keydata;
 };
 
 
