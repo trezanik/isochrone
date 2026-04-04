@@ -114,6 +114,9 @@ Workspace::~Workspace()
 			evtmgr->Unregister(id);
 		}
 
+		app::EventData::closed_workspace  evt { my_id };
+		evtmgr->DispatchEvent(uuid_closed_workspace, evt);
+
 		my_impl.reset();
 	}
 	TZK_LOG(LogLevel::Trace, "Destructor finished");

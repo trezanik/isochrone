@@ -192,6 +192,21 @@ private:
 
 
 	/**
+	 * Handles workspace closure events
+	 * 
+	 * With this notification, we have the opportunity to unload any data that
+	 * the workspace opened during our tenure
+	 * 
+	 * @param[in] evtdat
+	 *  The closure data
+	 */
+	void
+	HandleWorkspaceClosed(
+		app::EventData::closed_workspace evtdat
+	);
+
+
+	/**
 	 * Reads the associated structure type data from file.
 	 * 
 	 * Requires a pre-validated structure, and the file being successfully

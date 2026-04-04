@@ -91,6 +91,7 @@ ForensicData::ForensicData()
 
 	TZK_LOG(LogLevel::Trace, "Constructor starting");
 	{
+		my_reg_ids.emplace(my_evtmgr.Register(std::make_shared<core::Event<app::EventData::closed_workspace>>(uuid_closed_workspace, std::bind(&ForensicData::HandleWorkspaceClosed, this, std::placeholders::_1))));
 
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
@@ -193,6 +194,21 @@ ForensicData::GetAllNodeData(
 	}
 
 	return retval;
+}
+
+
+void
+ForensicData::HandleWorkspaceClosed(
+	app::EventData::closed_workspace evtdat
+)
+{
+	using namespace trezanik::core;
+
+	if ( my_wksp_data.count(evtdat.workspace_id) != 0 )
+	{
+		TZK_LOG_FORMAT(LogLevel::Trace, "Workspace data unloaded for: %s", evtdat.workspace_id.GetCanonical());
+		my_wksp_data.erase(evtdat.workspace_id);
+	}
 }
 
 
@@ -327,7 +343,27 @@ ForensicData::Preload(
 			fentry->acquired = ts;
 			fentry->node_id = nodeid.c_str();
 			fentry->type = type;
-			my_wksp_data[wksp->GetID()].push_back(fentry);
+
+			// don't add duplicates; only needed if we're not clearing on workspace closure
+			bool  unique = true;
+			
+			for ( auto& e : my_wksp_data[wksp->GetID()] )
+			{
+				if ( e->acquired == fentry->acquired
+				  && e->fpath == fentry->fpath
+				  && e->node_id == fentry->node_id
+				  && e->type == fentry->type )
+				{
+					// shouldn't ever hit, so include warning
+					TZK_LOG(LogLevel::Warning, "Attempting to add duplicate forensic data entry");
+					unique = false;
+					break;
+				}
+			}
+			if ( unique )
+			{
+				my_wksp_data[wksp->GetID()].push_back(fentry);
+			}
 		}
 	}
 }
