@@ -350,6 +350,9 @@
 #
 #	// hard error using newer MSVC compilers while using C++14 experimentals
 #	define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
+#	// codecvt deprecated - std::codecvt_mode, std::codecvt_utf8, std::codecvt_utf16, and std::codecvt_utf8_utf16
+#	define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+
 #
 #	undef TZK_PROJECT_COMPILER
 #	define TZK_PROJECT_COMPILER msvc _MSC_VER
