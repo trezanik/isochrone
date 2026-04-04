@@ -114,12 +114,6 @@ public:
 };
 
 
-/*
- * These are the functions that are not 'available conventionally', so require
- * function pointer definitions.
- * Anything that has been declared via standard included headers can be stated
- * as decltype to save all the lookups and typing.
- */
 typedef NTSTATUS(WINAPI* pf_NtQuerySystemInformation)(SYSTEM_INFORMATION_CLASS, PVOID, ULONG, PULONG);
 typedef NTSTATUS(WINAPI* pf_RtlGetVersion)(LPOSVERSIONINFOEX);
 typedef BOOLEAN(WINAPI* pf_RtlGenRandom)(PVOID, ULONG);
@@ -144,7 +138,6 @@ class Module_kernel32
 private:
 	DllWrapper  my_dll{ L"kernel32.dll" };
 public:
-	// introduced in Windows XP SP2
 	decltype(IsWow64Process)*  IsWow64Process = my_dll["IsWow64Process"];
 };
 
@@ -154,7 +147,6 @@ class Module_ntdll
 private:
 	DllWrapper  my_dll{ L"ntdll.dll" };
 public:
-	// introduced with Windows NT (? confirm)
 	pf_NtQuerySystemInformation  NtQuerySystemInformation = my_dll["NtQuerySystemInformation"];
 	// introduced in Windows 2000
 	pf_RtlGetVersion  RtlGetVersion = my_dll["RtlGetVersion"];

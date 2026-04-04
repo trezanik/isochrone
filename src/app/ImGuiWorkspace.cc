@@ -712,7 +712,6 @@ public:
 				task_runner.Sync();
 			}
 		}
-		// testing for tasks
 		ImGui::SameLine();
 		if ( ImGui::SmallButton("SoftwareInventory") )
 		{
@@ -746,7 +745,6 @@ public:
 				task_runner.Sync();
 			}
 		}
-		// testing for tasks
 		ImGui::SameLine();
 		bool  pingmon = node->has_component(cth_cmpt_online_track);
 		ImGui::PushID(node.get());
@@ -1192,14 +1190,6 @@ public:
 					}
 				}
 			}
-
-#if 0  // Code Disabled: This is now purely settings-based, and node flags. No component usage - purge?
-			// this is tied to topology settings, do not permit modification
-			ImGui::BeginDisabled();
-			ImGui::Checkbox("Topology Header", &hdr);
-			ImGui::EndDisabled();
-#endif
-
 			if ( ImGui::Checkbox("System Info", &sinfo) )
 			{
 				if ( !sinfo )
@@ -1300,7 +1290,6 @@ public:
 			time_t  refresh_rate = 5;
 			std::shared_ptr<fdata>  selected_dat;
 			static FDataPrinter  printer;
-			//static std::string  preview_str = "";
 
 			auto  reset_selection = [this, &selected_dat]() {
 				wksp->my_selected_dataentry_index = -1;

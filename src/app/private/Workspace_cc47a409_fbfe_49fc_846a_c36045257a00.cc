@@ -55,7 +55,6 @@ const char  xmlstr_root_styles[] = "styles";
 const char  xmlstr_components[] = "components";
 const char  xmlstr_components_child[] = "component";
 const char  xmlstr_configurations_child[] = "component";
-const char  xmlstr_forensics[] = "forensics";
 const char  xmlstr_links[] = "links";
 const char  xmlstr_links_child[] = "link";
 const char  xmlstr_nameservers[] = "nameservers";
@@ -981,14 +980,6 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::Load(
 					</pin>
 				</pins>
 			</topology>
-			<forensics>
-				<windows_system_autostarts>
-				</windows_system_autostarts>
-				<windows_prefetch>
-					<data path="prefetch-132485694789.dat" source="Image" acquired="132485694789" />
-					<data path="prefetch-132485694000.dat" source="Live" acquired="132485694000" />
-				</windows_prefetch>
-			</forensics>
 			<components>
 				<component id="1776201207">
 					<header></header>

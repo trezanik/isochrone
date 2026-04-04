@@ -26,7 +26,6 @@
 #include "app/ImGuiUpdateDialog.h"
 #include "app/ImGuiVirtualKeyboard.h"
 #include "app/ImGuiWorkspace.h"
-#include "app/Pong.h"
 #include "app/TConverter.h"
 #include "app/Workspace.h"
 #include "app/event/AppEvent.h"

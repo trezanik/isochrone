@@ -155,13 +155,6 @@ public:
 	 * Standard destructor
 	 */
 	~WindowsRegistryAutostartsTask();
-
-
-	/**
-	 * Implementation of Task::TaskDetail
-	 */
-	//virtual std::string
-	//TaskDetail() const override;
 };
 
 
@@ -490,23 +483,10 @@ public:
 
 
 
-constexpr char  idstr_file_autostarts[] = "39c3fc67-8d5c-4e1f-aeb8-a6729430d092";
-constexpr uint32_t  cth_file_autostarts = core::aux::compile_time_crc32_hash(idstr_file_autostarts);
-static trezanik::core::UUID  uuid_file_autostarts(idstr_file_autostarts);
 
 
 
 
-#if 0
-"03d55abf-32fe-488b-bb84-b35227c57e85";
-"c739ef28-efec-4a01-92f0-336b1ded9e8d";
-"9e242a30-38c5-414e-9519-1dd277590e41";
-"4078643a-d43d-418a-8d35-81fa3b8e48a0";
-"cb582ecb-ee42-4f05-abc8-d675cb75653d";
-"961e2c20-b9ec-4c8c-bee1-590f4815d408";
-"402f493a-7cfa-40d8-b4b5-b773f563e1c9";
-"1456983a-4039-4d09-b08b-83c81e61b19a";
-"eeec9bb1-c3f2-46fc-8dc3-98bb7cd0746e";
 #endif
 
 

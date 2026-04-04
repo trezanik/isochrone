@@ -153,11 +153,6 @@ WindowsRegistryAutostartsParser::Parse(
 	using namespace trezanik::core;
 	using namespace trezanik::core::aux;
 
-#if 0  // disabling for now, as logic for processing I can see being nasty
-	if ( objdata->target_os != OperatingSystem::Windows )
-		return ErrIMPL;
-#endif
-
 	auto  ptr = std::dynamic_pointer_cast<registry_autostarts>(objdata);
 
 	std::shared_ptr<registry_autostart>  entry;
@@ -252,9 +247,6 @@ WindowsFileAutostartsTask::GenerateCommandArgs() const
 // this is all common code, need to prevent repeating self
 	auto& ctx = engine::Context::GetSingleton();
 	auto wdat = my_params.wksp->GetWorkspaceData();
-	
-	std::stringstream  ss;
-	
 	std::string   empty;
 	std::string*  user = &empty;
 	std::string*  pass = &empty;
@@ -394,9 +386,6 @@ WindowsFileAutostartsParser::Parse(
 	using namespace trezanik::core;
 	using namespace trezanik::core::aux;
 
-#if 0  // disabling for now, as logic for processing I can see being nasty
-	if ( objdata->target_os != OperatingSystem::Windows )
-		return ErrIMPL;
 #endif
 
 	auto  ptr = std::dynamic_pointer_cast<file_autostarts>(objdata);
@@ -473,20 +462,6 @@ FolderContentTask::GenerateCommandArgs() const
 
 	outdir = my_params.wksp->GetSaveDirectory();
 	outdir += my_params.wksp->GetID().GetCanonical();
-
-#if TZK_IS_WIN32
-	/*
-	 * this is really not thread safe, but smbclient has no output file option;
-	 * consider temporary. We also won't revert it as we don't rely on the curdir
-	 * for anything (maybe assets if we're not doing things correctly), so it
-	 * limits the problem to only multiples workspaces in use
-	 * 
-	 * Edit: ah, there is a lcd to change the localhost, so this can be updated
-	 */
-	SetCurrentDirectory(core::aux::UTF8ToUTF16(outdir).c_str());
-#else
-
-#endif
 
 	// extract out the share the folder is in, unless the caller supplies
 	// write out the commands to the tempfile

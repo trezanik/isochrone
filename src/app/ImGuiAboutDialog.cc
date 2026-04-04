@@ -63,13 +63,8 @@ ImGuiAboutDialog::ImGuiAboutDialog(
 		auto  evtdsp = core::ServiceLocator::EventDispatcher();
 		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<engine::EventData::resource_state>>(uuid_resourcestate, std::bind(&ImGuiAboutDialog::HandleResourceState, this, std::placeholders::_1))));
 
-
 		Context&     ctx = Context::GetSingleton();
-#if 0  // Code Disabled: AppIcon vs Banner
-		std::string  fpath = aux::BuildPath(ctx.AssetPath() + assetdir_images, "app_icon-128x128.png");
-#else
 		std::string  fpath = aux::BuildPath(ctx.AssetPath() + assetdir_images, "isochrone-banner-tiny.tga");
-#endif
 		auto         id = ctx.GetResourceCache().GetResourceID(fpath.c_str());
 
 		// if not in the cache, trigger the load (could be a re-open, used elsewhere)

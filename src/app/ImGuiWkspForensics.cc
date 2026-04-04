@@ -96,13 +96,6 @@ public:
 			ImGui::TreeNodeEx(p.name.c_str(), viewer_tree_node_flags);
 			ImGui::TableNextColumn();
 
-			/* enable once we have target_os actually being set
-			if ( si->target_os != OperatingSystem::Windows )
-			{
-				ImGui::PopID();
-				continue;
-			}*/
-
 			ImGui::TreeNodeEx(p.version.c_str(), viewer_tree_node_flags);
 			ImGui::TableNextColumn();
 			ImGui::TreeNodeEx(p.install_date.c_str(), viewer_tree_node_flags);
@@ -468,18 +461,6 @@ ImGuiWkspForensics::DrawNodeOps(
 			ImGui::EndTable();
 		}
 
-		
-		// viewer of content - add old data selectable too
-		
-		enum class DataView : uint8_t
-		{
-			Plaintext = 0,  //< output as-is
-			Registry,       //< Registry, 3 column table
-			Table3Col,
-			Prefetch,       //< 
-			Table5Col,      //< Windows software output, 5 column table
-		};
-		DataView  dv;
 		FDataPrinter  printer;
 		std::vector<std::string>  table_cols;
 
@@ -517,8 +498,6 @@ ImGuiWkspForensics::DrawNodeOps(
 				switch ( my_selected_fdata->type )
 				{
 				case cth_windows_reg_autostarts:
-					//dv = DataView::Registry;
-					dv = DataView::Table3Col;
 					ImGui::TableSetupColumn("Value", col_flags);
 					ImGui::TableSetupColumn("Type", col_flags);
 					ImGui::TableSetupColumn("Data", col_flags);
@@ -532,7 +511,6 @@ ImGuiWkspForensics::DrawNodeOps(
 				case cth_software_inventory:
 					// target windows - table, x columns
 					// target linux - listbox or 1 column table
-					dv = DataView::Table5Col;
 					ImGui::TableSetupColumn("Name", col_flags);
 					ImGui::TableSetupColumn("Version", col_flags);
 					ImGui::TableSetupColumn("InstallDate", col_flags);
@@ -548,7 +526,6 @@ ImGuiWkspForensics::DrawNodeOps(
 				case cth_folder_content:
 					break;
 				default:
-					dv = DataView::Plaintext;
 					break;
 				}
 

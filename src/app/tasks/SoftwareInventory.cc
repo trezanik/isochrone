@@ -161,7 +161,7 @@ SoftwareInventoryTask::TaskDetail() const
 
 int
 SoftwareInventoryParser::Parse(
-	std::shared_ptr<fdata> objdata,// dest, target, receiver, best?
+	std::shared_ptr<fdata> objdata,
 	std::string& str_buf
 )
 {
@@ -178,9 +178,6 @@ SoftwareInventoryParser::Parse(
 
 	auto  ptr = std::dynamic_pointer_cast<software_inventory>(objdata);
 
-#if 0  // this needs handling when we consider linux exec!
-	if ( objdata->target_os != OperatingSystem::Windows )
-		return ErrIMPL;
 #endif
 
 	/*
