@@ -1,7 +1,7 @@
 /**
  * @file        src/core/util/string/string.cc
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 
@@ -14,10 +14,19 @@
 #include "core/services/memory/Memory.h"
 #include "core/services/ServiceLocator.h"
 
+#if TZK_IS_WIN32
+// since codecvt is deprecated, optionally use Win32 API functions in their place
+#	include "core/util/string/textconv.h"
+#endif
+
 #include <algorithm>
 #include <math.h>
 #include <iomanip>  // setprecision
 #include <sstream>
+#include <codecvt>
+#include <locale>
+#include <string>
+#include <type_traits>
 
 
 namespace trezanik {
@@ -394,6 +403,20 @@ QuotePathIfNeeded(
 }
 
 
+void
+RemoveFileExtension(
+	std::string& path
+)
+{
+	size_t  pos = path.find_last_of('.');
+
+	if ( pos != std::string::npos && pos != 0 && pos != path.length() )
+	{
+		path.erase(pos, path.length() - pos);
+	}
+}
+
+
 std::string
 ReplaceFileExtension(
 	const std::string& path,
@@ -403,9 +426,16 @@ ReplaceFileExtension(
 	std::string  retval;
 	size_t       pos = path.find_last_of('.');
 
+	if ( new_extension == nullptr )
+		return retval;
+
 	if ( pos != std::string::npos && pos != 0 && ++pos != path.length() )
 	{
 		retval = path;
+
+		if ( *new_extension == '.' )
+			pos--;
+
 		retval.replace(pos, retval.length() - pos, new_extension);
 	}
 
@@ -600,6 +630,34 @@ TrimRight(
 	str.erase(std::find_if(str.rbegin(), str.rend(), [](unsigned char ch) {
 		return !std::isspace(ch);
 	}).base(), str.end());
+}
+
+
+std::u16string
+utf8_to_utf16string(
+	std::string const& str
+)
+{
+	std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
+	return converter.from_bytes(str);
+}
+
+std::string
+utf16_to_utf8string(
+	std::u16string const& str
+)
+{
+	std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
+	return converter.to_bytes(str);
+}
+
+std::string
+utf16_to_utf8string(
+	const char16_t* str
+)
+{
+	std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
+	return converter.to_bytes(str);
 }
 
 

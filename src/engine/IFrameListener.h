@@ -4,7 +4,7 @@
  * @file        src/engine/IFrameListener.h
  * @brief       Interface for objects to receive frame rendering notifications
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

@@ -4,7 +4,7 @@
  * @file        src/app/Workspace.h
  * @brief       Containment of an application workspace at a data level
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * 
  * Workspace objects load and save to disk, but are otherwise static for the
  * duration of the application lifecycle.

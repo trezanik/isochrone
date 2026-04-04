@@ -4,7 +4,7 @@
  * @file        src/core/util/hash/compile_time_hash.h
  * @brief       Compile-time hash generation
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @note        Realised very late that this was still doing runtime generation.
  *              Needed a quick alternative, so making use of the method acquired from:
  *              https://xueyouchao.github.io/2016/11/16/CompileTimeString/

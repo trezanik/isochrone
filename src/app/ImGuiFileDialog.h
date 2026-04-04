@@ -4,7 +4,7 @@
  * @file        src/app/ImGuiFileDialog.h
  * @brief       Dialog for selecting, creating, and deleting files and folders
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

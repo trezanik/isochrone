@@ -1,7 +1,7 @@
 /**
  * @file        src/core/util/hash/sha256.cc
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @note        Implementation sourced and altered from zedwood.com. License
  *              is just below
  */

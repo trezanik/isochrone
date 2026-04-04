@@ -4,7 +4,7 @@
  * @file        src/engine/services/net/Net.h
  * @brief       Network service implementation
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

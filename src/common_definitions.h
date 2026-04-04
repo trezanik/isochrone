@@ -4,7 +4,7 @@
  * @file        src/common_definitions.h
  * @brief       Shared definitions and helper macros
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

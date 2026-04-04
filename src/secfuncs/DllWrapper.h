@@ -4,7 +4,7 @@
  * @file        src/secfuncs/DllWrapper.h
  * @brief       
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * 
  * Based on https://github.com/bblanchon/dllhelper
  *

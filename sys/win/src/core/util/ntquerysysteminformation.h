@@ -4,7 +4,7 @@
  * @file        sys/win/src/core/util/ntquerysysteminformation.h
  * @brief       Local implementation of Windows' NtQuerySystemInformation
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @warning     This entire file may be subject to missing types, members, and
  *              many other issues; it exists solely to call the function with
  *              targeting Process, Thread and Module information.

@@ -4,7 +4,7 @@
  * @file        src/engine/resources/ResourceTypes.h
  * @brief       Common resource types and definitions
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

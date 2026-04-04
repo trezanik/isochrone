@@ -4,7 +4,7 @@
  * @file        src/core/util/string/strtonum.h
  * @brief       Better atoi/strtol implementation from OpenBSD
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

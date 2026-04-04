@@ -4,7 +4,7 @@
  * @file        src/app/ImGuiWorkspace.h
  * @brief       ImGui-specific representation for a Workspace
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * 
  * @note
  *  Pending split of the ImGui-related components so this file isn't spammed

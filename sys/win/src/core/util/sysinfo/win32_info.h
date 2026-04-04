@@ -4,7 +4,7 @@
  * @file        sys/win/src/core/util/sysinfo/win32_info.h
  * @brief       Win32 system information utility functions
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

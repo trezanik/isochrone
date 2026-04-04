@@ -4,7 +4,7 @@
  * @file        src/imgui/Canvas.h
  * @brief       The NodeGraph Canvas
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * 
  * Essentially a copy with amendments of the ImNodeFlow original project from
  * mid-late 2024, up for refactor for personal traits if needed

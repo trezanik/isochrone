@@ -4,7 +4,7 @@
  * @file        src/engine/services/objects/AudioComponent.h
  * @brief       A component covering audio
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

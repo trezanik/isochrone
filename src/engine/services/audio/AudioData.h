@@ -4,7 +4,7 @@
  * @file        src/engine/services/audio/AudioData.h
  * @brief       The PCM audio data fed in to the audio library for output
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

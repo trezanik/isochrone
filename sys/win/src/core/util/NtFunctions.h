@@ -4,7 +4,7 @@
  * @file        src/core/util/NtFunctions.h
  * @brief       Windows NT functions not callable conventionally
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @note        Since migration to DllWrapper, these are not actually invoked
  *              anywhere; happy to leave them present for documentation and
  *              individual callable capability.

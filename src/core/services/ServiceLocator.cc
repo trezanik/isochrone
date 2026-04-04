@@ -1,7 +1,7 @@
 /**
  * @file        src/core/services/ServiceLocator.cc
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @todo        Presently hosts hard-coded services, to replace in due course
  */
 

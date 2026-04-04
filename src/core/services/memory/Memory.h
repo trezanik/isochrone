@@ -4,7 +4,7 @@
  * @file        src/core/services/memory/Memory.h
  * @brief       Memory management and tracking service
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

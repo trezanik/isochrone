@@ -4,7 +4,7 @@
  * @file        src/core/services/memory/mem_info.h
  * @brief       Allocation tracking structures and defintions
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @note        If some of this design feels off, this was originally a C
  *              implementation extended out to C++ with class-based inheritance.
  *              It's been adapted here for a single encompassing service

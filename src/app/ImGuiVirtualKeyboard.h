@@ -4,7 +4,7 @@
  * @file        src/app/ImGuiVirtualKeyboard.h
  * @brief       On-screen virtual keyboard driven by ImGui
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

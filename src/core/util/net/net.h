@@ -4,7 +4,7 @@
  * @file        src/core/util/net/net.h
  * @brief       Network utility functionality
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

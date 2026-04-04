@@ -4,7 +4,7 @@
  * @file        src/app/ImGuiWkspSettings.h
  * @brief       Dedicated settings tab within a workspace
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

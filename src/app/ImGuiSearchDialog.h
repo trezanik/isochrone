@@ -4,7 +4,7 @@
  * @file        src/app/ImGuiSearchDialog.h
  * @brief       Dialog for searching within a Workspace
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

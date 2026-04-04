@@ -4,7 +4,7 @@
  * @file        src/engine/services/audio/ALSource.h
  * @brief       OpenAL Source wrapper
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @note        Am no audio engineer; https://ffainelli.github.io/openal-example/
  *              was used as the main reference for this creation
  */

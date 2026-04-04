@@ -4,7 +4,7 @@
  * @file        src/app/ImGuiPingMonitor.h
  * @brief       A ping monitor statistics output window
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

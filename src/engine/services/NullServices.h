@@ -4,7 +4,7 @@
  * @file        src/engine/services/NullServices.h
  * @brief       Null service implementations for engine service classes
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

@@ -4,7 +4,7 @@
  * @file        src/imgui/ImNodeGraph.h
  * @brief       The co-ordinator and driver for a dear imgui Node Graph
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @note        Custom imnodegraph since all the third-party ones are based
  *              around actual flows, which we don't have the desire for. This
  *              code and many surrounding resources are derived from ImNodeFlow,

@@ -4,7 +4,7 @@
  * @file        src/core/util/net/win32net.h
  * @brief       Custom Win32 network utilities for NT5 targets
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

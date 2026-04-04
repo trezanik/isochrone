@@ -4,7 +4,7 @@
  * @file        src/core/util/string/string.h
  * @brief       Utility functions for std::string
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 
@@ -185,6 +185,11 @@ FilenameFromPath(
  *
  * Simple wrapper around std::replace, tracking the number of replacements.
  *
+ * @warning
+ *  Do not attempt to use for swapping one of 'search' with multiple 'replacements'
+ *  (e.g. if wanting to replace each '\' with '\\') - this will loop endlessly
+ *  until you run out of memory
+ *
  * @param[in,out] source
  *  The string to search, and modify in-place
  * @param[in] search
@@ -331,22 +336,37 @@ QuotePathIfNeeded(
 
 
 /**
+ * Remove any file extension for the input string
+ * 
+ * Modifies the input string directly as this only acts as a trimmer
+ * 
+ * @param[in,out] path
+ *  The string representing a file path to have the extension removed from
+ */
+TZK_CORE_API
+void
+RemoveFileExtension(
+	std::string& path
+);
+
+
+/**
  * Replaces the file extension with the one supplied as a new string
  *
- * If the input path does not have an extension, or is a dot file, then an
- * empty string will be returned.
+ * If the input path does not have an extension, or is a dot file, or the new
+ * extension is a nullptr, then an empty string will be returned.
  *
  * @param[in] path
  *  The path the replacement will be based on
  * @param[in] new_extension
- *  The new file extension
+ *  The new file extension, with or without the leading '.'
  * @return
  *  A new string containing the input path with the new extension
  */
 TZK_CORE_API
 std::string
 ReplaceFileExtension(
-	std::string& path,
+	const std::string& path,
 	const char* new_extension
 );
 
@@ -524,6 +544,60 @@ TZK_CORE_API
 void
 TrimRight(
 	std::string& str
+);
+
+
+/**
+ * Converts a UTF-8 std string to UTF-16
+ *
+ * Used for interoperability with the Windows API and files that store specific
+ * encoding, which conflicts with other platforms data types (i.e. wchar_t)
+ *
+ * @param[in] str
+ *  The string to convert
+ * @return
+ *  The new string object containing the converted contents of str
+ */
+TZK_CORE_API
+std::u16string
+utf8_to_utf16string(
+	std::string const& str
+);
+
+
+/**
+ * Converts a UTF-16 std string to UTF-8
+ *
+ * Used for interoperability with the Windows API and files that store specific
+ * encoding, which conflicts with other platforms data types (i.e. wchar_t)
+ *
+ * @param[in] str
+ *  The string to convert
+ * @return
+ *  The new string object containing the converted contents of str
+ */
+TZK_CORE_API
+std::string
+utf16_to_utf8string(
+	std::u16string const& str
+);
+
+
+/**
+ * Converts a UTF-16 string pointer to a UTF-8 std string
+ *
+ * Used for interoperability with the Windows API and files that store specific
+ * encoding, which conflicts with other platforms data types (i.e. wchar_t)
+ *
+ * @param[in] str
+ *  The string to convert
+ * @return
+ *  The new string object containing the converted contents of str
+ */
+TZK_CORE_API
+std::string
+utf16_to_utf8string(
+	const char16_t* str
 );
 
 

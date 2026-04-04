@@ -4,7 +4,7 @@
  * @file        src/core/services/NullServices.h
  * @brief       Null service implementations for all core service classes
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @note        Log is not included here, as it is a hard integrated type
  * @note        Presently unused as the the single definitions that exist for
  *              the existing services are required for our functionality. This

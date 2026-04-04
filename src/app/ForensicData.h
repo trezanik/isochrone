@@ -4,7 +4,7 @@
  * @file        src/app/ForensicData.h
  * @brief       Forensic data processor, for loading and executing
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

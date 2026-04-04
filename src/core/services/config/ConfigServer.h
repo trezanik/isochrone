@@ -4,7 +4,7 @@
  * @file        src/core/services/config/ConfigServer.h
  * @brief       Base class for all Configuration service modules
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

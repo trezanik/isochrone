@@ -4,7 +4,7 @@
  * @file        src/engine/resources/ResourceLoader.h
  * @brief       Loads resources asynchronously using type loaders
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

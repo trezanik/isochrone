@@ -4,7 +4,7 @@
  * @file        src/core/services/threading/Threading.h
  * @brief       Threading subsystem
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * 
  * @todo at present, nothing in here nor what we've created elsewhere
  * requires this to be made available as a service vs utility functions.

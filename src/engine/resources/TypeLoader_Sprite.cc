@@ -1,7 +1,7 @@
 /**
  * @file        src/engine/resources/TypeLoader_Sprite.cc
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @note        No implementation, placeholder for future expansion
  */
 

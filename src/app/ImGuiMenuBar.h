@@ -4,7 +4,7 @@
  * @file        src/app/ImGuiMenuBar.h
  * @brief       Main menu bar
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

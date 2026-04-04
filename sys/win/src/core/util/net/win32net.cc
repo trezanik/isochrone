@@ -1,7 +1,7 @@
 /**
  * @file        src/core/util/net/win32net.cc
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @note        Credit, original copyright: ntop6 and pton6 pretty certain were
  *              acquired from winsocketdotnetworkprogramming.com, went hunting
  *              old source and this seems to match near identically. Believe

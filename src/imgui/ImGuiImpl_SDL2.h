@@ -4,7 +4,7 @@
  * @file        src/imgui/ImGuiImpl_SDL2.h
  * @brief       ImGui implementation for SDL2
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @note        This is essentially a copy of the imgui_impl_sdl2.cpp, merged
  *              into an interface implementation and formatting changes. A lot
  *              of methods may not make sense, but could be useful if we do a

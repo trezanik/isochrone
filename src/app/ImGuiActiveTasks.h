@@ -4,7 +4,7 @@
  * @file        src/app/ImGuiActiveTasks.h
  * @brief       An active tasklist window
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

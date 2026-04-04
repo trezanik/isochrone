@@ -4,7 +4,7 @@
  * @file        src/core/util/hash/Hash_SHA256.h
  * @brief       SHA2-256 generation in class form
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

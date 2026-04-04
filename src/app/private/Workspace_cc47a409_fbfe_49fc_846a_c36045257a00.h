@@ -4,7 +4,7 @@
  * @file        src/app/private/Workspace_cc47a409_fbfe_49fc_846a_c36045257a00.h
  * @brief       Version-specific Workspace save and load implementation
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

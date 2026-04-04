@@ -4,7 +4,7 @@
  * @file        sys/win/src/core/util/ntdll.h
  * @brief       Local implementation of Windows' ntdll functions we use
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @note        Kernel structures acquired from public sources, credited
  */
 

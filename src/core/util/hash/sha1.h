@@ -4,7 +4,7 @@
  * @file        src/core/util/hash/sha1.h
  * @brief       Simple SHA1 hash generator
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

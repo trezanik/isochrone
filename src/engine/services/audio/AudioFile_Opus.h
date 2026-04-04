@@ -4,7 +4,7 @@
  * @file        src/engine/services/audio/AudioFile_Opus.h
  * @brief       An audio file for opus
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

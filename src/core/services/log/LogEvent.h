@@ -4,7 +4,7 @@
  * @file        src/core/services/log/LogEvent.h
  * @brief       A log entry in the form of an event
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

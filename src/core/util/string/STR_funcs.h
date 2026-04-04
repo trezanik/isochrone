@@ -4,7 +4,7 @@
  * @file        src/core/util/STR_funcs.h
  * @brief       Expansion of C-style string functionality
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @note        The identifiers starting 'str' followed by a lowercase are
  *              reserved and we must not use them. For clarity, and to highlight
  *              the separation of inbuilt string methods and our own, we instead

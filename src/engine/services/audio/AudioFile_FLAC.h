@@ -4,7 +4,7 @@
  * @file        src/engine/services/audio/AudioFile_FLAC.h
  * @brief       An audio file for FLAC
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @note        Not implemented
  */
 

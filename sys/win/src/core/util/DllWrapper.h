@@ -4,7 +4,7 @@
  * @file        sys/win/src/core/util/DllWrapper.h
  * @brief       DLL wrapper to handle dynamic link function loading efficiently
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * 
  * Based on https://github.com/bblanchon/dllhelper
  *

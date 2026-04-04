@@ -1,7 +1,7 @@
 /**
  * @file        src/core/util/string/strtonum.cc
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  * @note        Original source by Ted Unangst and Todd Miller as part of the
  *              OpenBSD project. Modifications made to compile on all platforms
  *              and style formatting for this project (no functional change).

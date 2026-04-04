@@ -4,7 +4,7 @@
  * @file        src/core/util/string/strlcat.h
  * @brief       Secure strcat implementation from OpenBSD
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 

@@ -4,7 +4,7 @@
  * @file        src/core/util/sysinfo/sysinfo_enums.h
  * @brief       Generic system information enumerations and supporting operators
  * @license     zlib (view the LICENSE file for details)
- * @copyright   Trezanik Developers, 2014-2025
+ * @copyright   Trezanik Developers, 2014-2026
  */
 
 
