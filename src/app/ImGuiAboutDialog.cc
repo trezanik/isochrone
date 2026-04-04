@@ -38,7 +38,7 @@
 #	include <iomanip>
 #	include <sys/utsname.h>
 #endif
-
+#include "engine/resources/tga/tga.h"
 
 namespace trezanik {
 namespace app {
@@ -66,6 +66,8 @@ ImGuiAboutDialog::ImGuiAboutDialog(
 		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<engine::EventData::resource_state>>(uuid_resourcestate, std::bind(&ImGuiAboutDialog::HandleResourceState, this, std::placeholders::_1))));
 
 		Context&     ctx = Context::GetSingleton();
+
+		//std::string  fpath = aux::BuildPath(ctx.AssetPath() + assetdir_images, "app_icon-128x128.png");
 		std::string  fpath = aux::BuildPath(ctx.AssetPath() + assetdir_images, "isochrone-banner-tiny.tga");
 		auto         id = ctx.GetResourceCache().GetResourceID(fpath.c_str());
 
@@ -143,6 +145,54 @@ ImGuiAboutDialog::Draw()
 #endif
 			ImGui::Image((ImTextureID)(uintptr_t)my_img->AsSDLTexture(), ImVec2(static_cast<float>(w), static_cast<float>(h)));
 		}
+#if 0
+		static SDL_Texture*  tex = nullptr;
+		static int h = 0;
+		static int w = 0;
+
+		if ( tex == nullptr )
+		{
+			std::string  fpath = "assets/images/ctc24.tga";
+			auto  sptr = std::make_shared<Resource_Image>(fpath);
+			auto  p = sptr->ImageContainer();
+
+			FILE*  fp = fopen("assets/images/ctc24.tga", "r");
+			tga::StdioFileInterface file(fp);
+			tga::Decoder decoder(&file);
+			tga::Header header;
+			decoder.readHeader(header);
+
+			tga::Image image;
+			image.bytesPerPixel = header.bytesPerPixel();
+			image.rowstride = header.width * header.bytesPerPixel();
+			image.pixels = static_cast<unsigned char*>(malloc(image.rowstride * header.height));
+			decoder.readImage(header, image, nullptr);
+
+			p->data = image.pixels;
+			p->width = header.width;
+			p->height = header.height;
+			p->pixel_format = SDL_PIXELFORMAT_BGR888;
+			p->bits_per_pixel = header.bitsPerPixel;
+			p->surface = SDL_CreateRGBSurfaceWithFormatFrom((void*)image.pixels, header.width, header.height, image.bytesPerPixel, image.rowstride, SDL_PIXELFORMAT_BGR888);//SDL_PIXELFORMAT_ARGB8888);
+			p->texture = SDL_CreateTextureFromSurface(engine::Context::GetSingleton().GetSDLRenderer(), p->surface);
+			//SDL_Surface*  sfc = SDL_CreateRGBSurfaceWithFormatFrom((void*)image.pixels, header.width, header.height, image.bytesPerPixel, image.rowstride, SDL_PIXELFORMAT_BGR888);//SDL_PIXELFORMAT_ARGB8888);
+			//tex = SDL_CreateTextureFromSurface(engine::Context::GetSingleton().GetSDLRenderer(), sfc);
+			//SDL_FreeSurface(sfc);
+			free(image.pixels);
+			SDL_FreeSurface(p->surface);
+			p->surface = nullptr;
+			h = header.height;
+			w = header.width;
+			fclose(fp);
+			my_img = sptr;
+			tex = p->texture;
+		}
+		else
+		{
+			ImGui::SameLine();
+			ImGui::Image((ImTextureID)(uintptr_t)tex, ImVec2(static_cast<float>(w), static_cast<float>(h)));
+		}
+#endif
 		ImGui::SameLine();
 		ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
 		ImGui::SameLine();
