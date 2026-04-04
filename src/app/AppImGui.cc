@@ -1097,14 +1097,12 @@ AppImGui::LoadStyles_783d1279_05ca_40af_b1c2_cfc40c212658(
 
 	bool  case_sensitive = true;
 	size_t  num_styles = 0; 
-	pugi::xml_node  node_style = xmlnode_styles.child(nodename_style);
 
-	while ( node_style )
+	for ( auto& node_style : xmlnode_styles.children() )
 	{
 		if ( STR_compare(node_style.name(), nodename_style, case_sensitive) != 0 )
 		{
-			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in styles: %s", nodename_style, node_style.name());
-			node_style = node_style.next_sibling();
+			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", nodename_style, xmlnode_styles.name(), node_style.name());
 			continue;
 		}
 
@@ -1115,12 +1113,11 @@ AppImGui::LoadStyles_783d1279_05ca_40af_b1c2_cfc40c212658(
 		}
 
 		num_styles++;
-		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing style %zu", num_styles);
+		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu", nodename_style, num_styles);
 
 		LoadStyle_783d1279_05ca_40af_b1c2_cfc40c212658(node_style);
 
-		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing style %zu complete", num_styles);
-		node_style = node_style.next_sibling();
+		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu complete", nodename_style, num_styles);
 	}
 }
 

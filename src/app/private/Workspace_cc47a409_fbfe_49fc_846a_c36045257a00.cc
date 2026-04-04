@@ -507,13 +507,18 @@ LoadPins(
 
 	size_t  num_pins = 0;
 	size_t  valid_pins = 0;
+	bool    case_sens = true;
 
 	if ( xml_pins )
 	{
-		pugi::xml_node  xml_pin = xml_pins.child(xmlstr_pins_child);
-
-		while ( xml_pin )
+		for ( auto& xml_pin : xml_pins.children() )
 		{
+			if ( STR_compare(xml_pin.name(), xmlstr_pins_child, case_sens) != 0 )
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", xmlstr_pins_child, xml_pins.name(), xml_pin.name());
+				continue;
+			}
+
 			pugi::xml_attribute  attr_pin_id = xml_pin.attribute(xmlstr_attr_id);
 			pugi::xml_attribute  attr_pin_type = xml_pin.attribute(xmlstr_attr_type);
 			// optionals
@@ -528,7 +533,6 @@ LoadPins(
 				TZK_LOG_FORMAT(LogLevel::Warning, "%s pin %zu is invalid; no type",
 					uuid.GetCanonical(), num_pins
 				);
-				xml_pin = xml_pin.next_sibling();
 				continue;
 			}
 			if ( strlen(attr_pin_type.value()) == 0 )
@@ -536,7 +540,6 @@ LoadPins(
 				TZK_LOG_FORMAT(LogLevel::Warning, "%s pin %zu is invalid; blank type",
 					uuid.GetCanonical(), num_pins
 				);
-				xml_pin = xml_pin.next_sibling();
 				continue;
 			}
 			if ( !attr_pin_id )
@@ -544,7 +547,6 @@ LoadPins(
 				TZK_LOG_FORMAT(LogLevel::Warning, "%s pin %zu is invalid; no id",
 					uuid.GetCanonical(), num_pins
 				);
-				xml_pin = xml_pin.next_sibling();
 				continue;
 			}
 			if ( trezanik::core::UUID::IsStringUUID(attr_pin_id.value()) == 0 )
@@ -552,7 +554,6 @@ LoadPins(
 				TZK_LOG_FORMAT(LogLevel::Warning, "%s pin %zu is invalid; malformed UUID",
 					uuid.GetCanonical(), num_pins
 				);
-				xml_pin = xml_pin.next_sibling();
 				continue;
 			}
 
@@ -594,7 +595,6 @@ LoadPins(
 				TZK_LOG_FORMAT(LogLevel::Warning, "%s pin %zu is invalid; no position",
 					uuid.GetCanonical(), num_pins
 				);
-				xml_pin = xml_pin.next_sibling();
 				continue;
 			}
 
@@ -605,7 +605,6 @@ LoadPins(
 				TZK_LOG_FORMAT(LogLevel::Warning, "%s pin %zu is invalid; PinType is not valid",
 					uuid.GetCanonical(), num_pins
 				);
-				xml_pin = xml_pin.next_sibling();
 				continue;
 			}
 
@@ -626,7 +625,6 @@ LoadPins(
 					"%s pin %zu is invalid; Server with no service element",
 					uuid.GetCanonical(), num_pins
 				);
-				xml_pin = xml_pin.next_sibling();
 				continue;
 			}
 			if ( type != PinType::Server && xml_svc )
@@ -648,7 +646,6 @@ LoadPins(
 						uuid.GetCanonical(), num_pins,
 						imgui::attrname_service.c_str(), imgui::attrname_service_group.c_str()
 					);
-					xml_pin = xml_pin.next_sibling();
 					continue;
 				}
 				if ( attr_svc && attr_svcg )
@@ -670,7 +667,6 @@ LoadPins(
 							"%s pin %zu is invalid; service name is empty",
 							uuid.GetCanonical(), num_pins
 						);
-						xml_pin = xml_pin.next_sibling();
 						continue;
 					}
 				}
@@ -683,7 +679,6 @@ LoadPins(
 							"%s pin %zu is invalid; service group name is empty",
 							uuid.GetCanonical(), num_pins
 						);
-						xml_pin = xml_pin.next_sibling();
 						continue;
 					}
 				}
@@ -749,8 +744,6 @@ LoadPins(
 			gn->pins.emplace_back(p);
 
 			valid_pins++;
-
-			xml_pin = xml_pin.next_sibling();
 		}
 	}
 
@@ -1107,22 +1100,20 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadConfigs(
 	using namespace trezanik::core;
 
 	pugi::xml_node&  xml_comps = *loader.xml_configs_root;
-	pugi::xml_node   xml_comp;
 	size_t  num_comps = 0;
 	size_t  valid_comps = 0;
 	bool    case_sens = true;
 
-	if ( xml_comps )
+	if ( !xml_comps )
 	{
-		xml_comp = xml_comps.child(xmlstr_configurations_child);
+		return ErrNONE;
 	}
 
-	while ( xml_comp )
+	for ( auto& xml_comp : xml_comps.children() )
 	{
 		if ( STR_compare(xml_comp.name(), xmlstr_configurations_child, case_sens) != 0 )
 		{
-			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", xmlstr_configurations_child, xmlstr_root_configs, xml_comp.name());
-			xml_comp = xml_comp.next_sibling();
+			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", xmlstr_configurations_child, xml_comps.name(), xml_comp.name());
 			continue;
 		}
 
@@ -1139,19 +1130,16 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadConfigs(
 		if ( !attr_id )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_configurations_child, num_comps, "no id");
-			xml_comp = xml_comp.next_sibling();
 			continue;
 		}
 		if ( !UUID::IsStringUUID(attr_id.value()) )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_configurations_child, num_comps, "malformed id");
-			xml_comp = xml_comp.next_sibling();
 			continue;
 		}
 		if ( !attr_type )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_configurations_child, num_comps, "no type");
-			xml_comp = xml_comp.next_sibling();
 			continue;
 		}
 
@@ -1189,14 +1177,12 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadConfigs(
 			break;
 		default:
 			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_configurations_child, num_comps, "type hash unrecognised");
-			xml_comp = xml_comp.next_sibling();
 			continue;
 		}
 
 		valid_comps++;
 
 		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu complete", xmlstr_configurations_child, num_comps);
-		xml_comp = xml_comp.next_sibling();
 
 		/*
 		 * This is for advisory purposes only; direct addition bypasses event
@@ -1230,22 +1216,20 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadLinks(
 	using namespace trezanik::core;
 
 	pugi::xml_node&  xml_links = *loader.xml_links_root;
-	pugi::xml_node   xml_link;
 	size_t  num_links = 0;
 	size_t  valid_links = 0;
 	bool    case_sens = true;
 
-	if ( xml_links )
+	if ( !xml_links )
 	{
-		xml_link = xml_links.child(xmlstr_links_child);
+		return ErrNONE;
 	}
 
-	while ( xml_link )
+	for ( auto& xml_link : xml_links.children() )
 	{
 		if ( STR_compare(xml_link.name(), xmlstr_links_child, case_sens) != 0 )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", xmlstr_links_child, xmlstr_links, xml_link.name());
-			xml_link = xml_link.next_sibling();
 			continue;
 		}
 
@@ -1260,13 +1244,11 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadLinks(
 		if ( !attr_id )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_links_child, num_links, "no id");
-			xml_link = xml_link.next_sibling();
 			continue;
 		}
 		if ( !UUID::IsStringUUID(attr_id.value()) )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_links_child, num_links, "malformed id");
-			xml_link = xml_link.next_sibling();
 			continue;
 		}
 
@@ -1277,13 +1259,11 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadLinks(
 		if ( !xmlsrc )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_links_child, num_links, "no source");
-			xml_link = xml_link.next_sibling();
 			continue;
 		}
 		if ( !xmltgt )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_links_child, num_links, "no target");
-			xml_link = xml_link.next_sibling();
 			continue;
 		}
 		// text is optional
@@ -1294,26 +1274,22 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadLinks(
 		if ( !attr_sourceid )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_links_child, num_links, "no source id");
-			xml_link = xml_link.next_sibling();
 			continue;
 		}
 		if ( !UUID::IsStringUUID(attr_sourceid.value()) )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_links_child, num_links, "malformed source id");
-			xml_link = xml_link.next_sibling();
 			continue;
 		}
 
 		if ( !attr_targetid )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_links_child, num_links, "no target id");
-			xml_link = xml_link.next_sibling();
 			continue;
 		}
 		if ( !UUID::IsStringUUID(attr_targetid.value()) )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_links_child, num_links, "malformed target id");
-			xml_link = xml_link.next_sibling();
 			continue;
 		}
 
@@ -1350,7 +1326,6 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadLinks(
 		if ( !target_found || !source_found )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_links_child, num_links, "non-existent source and/or target");
-			xml_link = xml_link.next_sibling();
 			continue;
 		}
 
@@ -1371,7 +1346,6 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadLinks(
 		valid_links++;
 		
 		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu complete", xmlstr_links_child, num_links);
-		xml_link = xml_link.next_sibling();
 
 		// detect duplicate links from manual XML manipulation
 		bool  skip = false;
@@ -1412,22 +1386,20 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadNodes(
 	using namespace trezanik::core;
 
 	pugi::xml_node&  xml_nodes = *loader.xml_nodes_root;
-	pugi::xml_node  xml_node;
 	size_t  num_nodes = 0;
 	size_t  valid_nodes = 0;
 	bool    case_sens = true;
 
-	if ( xml_nodes )
+	if ( !xml_nodes )
 	{
-		xml_node = xml_nodes.child(xmlstr_nodes_child);
+		return ErrNONE;
 	}
 
-	while ( xml_node )
+	for ( auto& xml_node : xml_nodes.children() )
 	{
 		if ( STR_compare(xml_node.name(), xmlstr_nodes_child, case_sens) != 0 )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", xmlstr_nodes_child, xmlstr_nodes, xml_node.name());
-			xml_node = xml_node.next_sibling();
 			continue;
 		}
 
@@ -1453,25 +1425,21 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadNodes(
 		if ( !attr_id )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failstr, xmlstr_nodes_child, num_nodes, xmlstr_attr_id, "attribute");
-			xml_node = xml_node.next_sibling();
 			continue;
 		}
 		if ( !attr_name )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failstr, xmlstr_nodes_child, num_nodes, xmlstr_attr_name, "attribute");
-			xml_node = xml_node.next_sibling();
 			continue;
 		}
 		if ( !UUID::IsStringUUID(attr_id.as_string()) )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, "Fail: %s %zu is invalid - malformed id", xmlstr_nodes_child, num_nodes);
-			xml_node = xml_node.next_sibling();
 			continue;
 		}
 		if ( !xml_topology )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failstr, xmlstr_nodes_child, num_nodes, xmlstr_topology, "child element");
-			xml_node = xml_node.next_sibling();
 			continue;
 		}
 		
@@ -1482,13 +1450,11 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadNodes(
 		if ( !xml_position )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failstr2, xmlstr_nodes_child, num_nodes, xmlstr_topology, xmlstr_position, "child element");
-			xml_node = xml_node.next_sibling();
 			continue;
 		}
 		if ( !xml_size )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failstr2, xmlstr_nodes_child, num_nodes, xmlstr_topology, xmlstr_size, "child element");
-			xml_node = xml_node.next_sibling();
 			continue;
 		}
 
@@ -1500,25 +1466,21 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadNodes(
 		if ( !attr_x )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failstr2, xmlstr_nodes_child, num_nodes, xmlstr_position, xmlstr_attr_x, "attribute");
-			xml_node = xml_node.next_sibling();
 			continue;
 		}
 		if ( !attr_y )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failstr2, xmlstr_nodes_child, num_nodes, xmlstr_position, xmlstr_attr_y, "attribute");
-			xml_node = xml_node.next_sibling();
 			continue;
 		}
 		if ( !attr_h )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failstr2, xmlstr_nodes_child, num_nodes, xmlstr_size, xmlstr_attr_h, "attribute");
-			xml_node = xml_node.next_sibling();
 			continue;
 		}
 		if ( !attr_w )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, failstr2, xmlstr_nodes_child, num_nodes, xmlstr_size, xmlstr_attr_w, "attribute");
-			xml_node = xml_node.next_sibling();
 			continue;
 		}
 
@@ -1621,7 +1583,6 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadNodes(
 			node->graph.datastr = xml_data.child_value();
 		}
 
-		pugi::xml_node  xml_forensics = xml_node.child(xmlstr_forensics);
 		pugi::xml_node  xml_components = xml_node.child(xmlstr_components);
 
 		if ( xml_components )
@@ -1679,7 +1640,6 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadNodes(
 		
 
 		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu completed", xmlstr_nodes_child, num_nodes);
-		xml_node = xml_node.next_sibling();
 
 		app::EventData::loaded_node  evt;
 		evt.workspace_id = loader.wksp_data->id;
@@ -1702,18 +1662,16 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadServiceGroups(
 {
 	using namespace trezanik::core;
 
-	pugi::xml_node  xml_service_group = loader.xml_service_groups_root->child(xmlstr_servicegroups_child);
 	size_t  num_service_groups = 0;
 	size_t  valid_service_groups = 0;
 	bool    case_sens = true;
 
 	// must load after services AND before pins
-	while ( xml_service_group )
+	for ( auto& xml_service_group : loader.xml_service_groups_root->children() )
 	{
 		if ( STR_compare(xml_service_group.name(), xmlstr_servicegroups_child, case_sens) != 0 )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", xmlstr_servicegroups_child, xmlstr_root_servicegroups, xml_service_group.name());
-			xml_service_group = xml_service_group.next_sibling();
 			continue;
 		}
 
@@ -1730,7 +1688,6 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadServiceGroups(
 		if ( !attr_name )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, "Fail: %s must have a %s attribute", xmlstr_servicegroups_child, xmlstr_attr_name);
-			xml_service_group = xml_service_group.next_sibling();
 			continue;
 		}
 
@@ -1749,7 +1706,6 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadServiceGroups(
 		valid_service_groups++;
 		
 		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu complete", xmlstr_servicegroups_child, num_service_groups);
-		xml_service_group = xml_service_group.next_sibling();
 
 		app::EventData::loaded_service_group  evt;
 		evt.workspace_id = loader.wksp_data->id;
@@ -1774,20 +1730,17 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadServices(
 {
 	using namespace trezanik::core;
 
-	pugi::xml_node  xml_service = loader.xml_services_root->child(xmlstr_services_child);
-
 	size_t  num_services = 0;
 	size_t  valid_services = 0;
 
 	bool  case_sens = true;
 
 	// must load before service groups and pins
-	while ( xml_service )
+	for ( auto& xml_service : loader.xml_services_root->children() )
 	{
 		if ( STR_compare(xml_service.name(), xmlstr_services_child, case_sens) != 0 )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", xmlstr_services_child, xmlstr_root_services, xml_service.name());
-			xml_service = xml_service.next_sibling();
 			continue;
 		}
 		
@@ -1804,13 +1757,11 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadServices(
 		if ( !attr_name )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, "Fail: %s must have a %s attribute", xmlstr_services_child, xmlstr_attr_name);
-			xml_service = xml_service.next_sibling();
 			continue;
 		}
 		if ( !attr_proto )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, "Fail: %s must have a %s attribute", xmlstr_services_child, xmlstr_attr_protocol);
-			xml_service = xml_service.next_sibling();
 			continue;
 		}
 
@@ -1856,7 +1807,6 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadServices(
 			if ( !attr_port )
 			{
 				TZK_LOG_FORMAT(LogLevel::Warning, "Fail: %s must have a %s attribute", xmlstr_services_child, xmlstr_attr_port);
-				xml_service = xml_service.next_sibling();
 				continue;
 			}
 			// high port is optional, only used for implementing ranges
@@ -1872,7 +1822,6 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadServices(
 		valid_services++;
 
 		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu complete", xmlstr_services_child, num_services);
-		xml_service = xml_service.next_sibling();
 
 		app::EventData::loaded_service  evt;
 		evt.workspace_id = loader.wksp_data->id;
@@ -1900,16 +1849,14 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadSettings(
 	assert(loader.xml_settings_root != nullptr);
 
 	pugi::xml_node&  xml_settings = *loader.xml_settings_root;
-	pugi::xml_node  xml_setting = xml_settings.child(xmlstr_settings_child);
 	size_t  num_settings = 0;
 	bool    case_sens = true;
 
-	while ( xml_setting )
+	for ( auto& xml_setting : xml_settings.children() )
 	{
 		if ( STR_compare(xml_setting.name(), xmlstr_settings_child, case_sens) != 0 )
 		{
-			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", xmlstr_settings_child, xml_setting.name());
-			xml_setting = xml_setting.next_sibling();
+			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", xmlstr_settings_child, xml_settings.name(), xml_setting.name());
 			continue;
 		}
 
@@ -1924,19 +1871,16 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadSettings(
 		if ( !attr_key || attr_key.empty() )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, "%s %zu missing attribute '%s'", xmlstr_settings_child, num_settings, xmlstr_attr_key);
-			xml_setting = xml_setting.next_sibling();
 			continue;
 		}
 		if ( !attr_value || attr_value.empty() )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, "%s %zu missing attribute '%s'", xmlstr_settings_child, num_settings, xmlstr_attr_value);
-			xml_setting = xml_setting.next_sibling();
 			continue;
 		}
 		if ( !attr_type || attr_type.empty() )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, "%s %zu missing attribute '%s'", xmlstr_settings_child, num_settings, xmlstr_attr_type);
-			xml_setting = xml_setting.next_sibling();
 			continue;
 		}
 
@@ -1944,8 +1888,6 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadSettings(
 		// hashval, compile_time_hash
 
 		TZK_LOG_FORMAT(LogLevel::Debug, "%s %zu: %s (%s) = %s", xmlstr_settings_child, num_settings, attr_key.value(), attr_type.value(), attr_value.value());
-
-		xml_setting = xml_setting.next_sibling();
 
 		/*
 		 * Validate here, anything that fails is not added to the workspace
@@ -2053,17 +1995,12 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadStyles(
 	pugi::xml_node  xml_node_styles = xml_styles.child(xmlstr_nodestyles);
 	pugi::xml_node  xml_pin_styles = xml_styles.child(xmlstr_pinstyles);
 	pugi::xml_node  xml_nodelist_style = xml_styles.child(xmlstr_nodelist_style);
-	pugi::xml_node  xml_node_style;
-	pugi::xml_node  xml_pin_style;
 	size_t  num_node_styles = 0;
 	size_t  valid_node_styles = 0;
 	size_t  num_pin_styles = 0;
 	size_t  valid_pin_styles = 0;
 	bool    case_sens = true;
 	auto    def_style = trezanik::imgui::NodeStyle::standard();
-
-	if ( xml_node_styles )    xml_node_style = xml_node_styles.child(xmlstr_nodestyles_child);
-	if ( xml_pin_styles )     xml_pin_style = xml_pin_styles.child(xmlstr_pinstyles_child);
 
 	// lambda loaders for styles
 	auto colour_load = [](auto& xmlnode, ImU32& style_im32, size_t& style_num, const char* node_name)
@@ -2217,191 +2154,189 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadStyles(
 		}
 	};
 
-	while ( xml_node_style )
+	if ( xml_node_styles )
 	{
-		if ( STR_compare(xml_node_style.name(), xmlstr_nodestyles_child, case_sens) != 0 )
+		for ( auto& xml_node_style : xml_node_styles.children() )
 		{
-			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", xmlstr_nodestyles_child, xmlstr_nodestyles, xml_node_style.name());
-			xml_node_style = xml_node_style.next_sibling();
-			continue;
-		}
-
-		if ( valid_node_styles == TZK_MAX_NUM_STYLES )
-		{
-			TZK_LOG_FORMAT(LogLevel::Warning, "Styles limit (%u) reached, skipping all other elements", TZK_MAX_NUM_STYLES);
-			break;
-		}
-
-		num_node_styles++;
-
-		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu", xmlstr_nodestyles_child, num_node_styles);
-
-		/*
-		* the only mandatory item for styles is a unique name, and not using
-		* the reserved prefix 'Default:'.
-		* Any settings not specified will make use of the default node style
-		* setting in their place.
-		*/
-		pugi::xml_attribute  attr_name = xml_node_style.attribute(xmlstr_attr_name);
-
-		if ( !attr_name )
-		{
-			TZK_LOG_FORMAT(LogLevel::Warning, "Fail: %s %zu is invalid - no name", xmlstr_nodestyles_child, num_node_styles);
-			xml_node_style = xml_node_style.next_sibling();
-			continue;
-		}
-		if ( STR_compare_n(attr_name.value(), reserved_style_prefix.c_str(), reserved_style_prefix.length(), false) == 0 )
-		{
-			TZK_LOG_FORMAT(LogLevel::Warning,
-				"Fail: %s %zu is invalid - '%s' prefix is reserved for internal use",
-				xmlstr_nodestyles_child, num_node_styles, reserved_style_prefix.c_str()
-			);
-			xml_node_style = xml_node_style.next_sibling();
-			continue;
-		}
-
-		// style name only, too much to enter for debug otherwise
-		TZK_LOG_FORMAT(LogLevel::Debug, "%s %zu = %s", xmlstr_nodestyles_child, num_node_styles, attr_name.value());
-
-		pugi::xml_node  background = xml_node_style.child(xmlstr_background);
-		pugi::xml_node  border = xml_node_style.child(xmlstr_border);
-		pugi::xml_node  border_selected = xml_node_style.child(xmlstr_border_selected);
-		pugi::xml_node  header_background = xml_node_style.child(xmlstr_header_background);
-		pugi::xml_node  header_title = xml_node_style.child(xmlstr_header_title);
-		pugi::xml_node  padding = xml_node_style.child(xmlstr_padding);
-		pugi::xml_node  rounding = xml_node_style.child(xmlstr_rounding);
-		// object created and applied if valid, uses defaults; override as needed
-		auto  nodestyle = trezanik::imgui::NodeStyle::standard();
-
-		colour_load(background, nodestyle->bg, num_node_styles, xmlstr_background);
-		colour_load(border, nodestyle->border_colour, num_node_styles, xmlstr_border);
-		thickness_load(border, nodestyle->border_thickness, num_node_styles, xmlstr_border);
-		colour_load(border_selected, nodestyle->border_selected_colour, num_node_styles, xmlstr_border_selected);
-		thickness_load(border_selected, nodestyle->border_selected_thickness, num_node_styles, xmlstr_border_selected);
-		colour_load(header_background, nodestyle->header_bg, num_node_styles, xmlstr_header_background);
-		colour_load(header_title, nodestyle->header_title_colour, num_node_styles, xmlstr_header_title);
-		padding_load(padding, nodestyle->padding, num_node_styles, xmlstr_padding);
-		radius_load(rounding, nodestyle->radius, num_node_styles, xmlstr_rounding);
-
-		valid_node_styles++;
-
-		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu complete", xmlstr_nodestyles_child, num_node_styles);
-		xml_node_style = xml_node_style.next_sibling();
-
-		app::EventData::loaded_nodestyle  evt;
-		evt.name = attr_name.value();
-		evt.style = nodestyle;
-		evt.workspace_id = loader.wksp_data->id;
-		my_evtmgr.DispatchEvent(uuid_loaded_nodestyle, evt);
-
+			if ( STR_compare(xml_node_style.name(), xmlstr_nodestyles_child, case_sens) != 0 )
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", xmlstr_nodestyles_child, xmlstr_nodestyles, xml_node_style.name());
+				continue;
+			}
+	
+			if ( valid_node_styles == TZK_MAX_NUM_STYLES )
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Styles limit (%u) reached, skipping all other elements", TZK_MAX_NUM_STYLES);
+				break;
+			}
+	
+			num_node_styles++;
+	
+			TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu", xmlstr_nodestyles_child, num_node_styles);
+	
+			/*
+			 * the only mandatory item for styles is a unique name, and not using
+			 * the reserved prefix 'Default:'.
+			 * Any settings not specified will make use of the default node style
+			 * setting in their place.
+			 */
+			pugi::xml_attribute  attr_name = xml_node_style.attribute(xmlstr_attr_name);
+	
+			if ( !attr_name )
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Fail: %s %zu is invalid - no name", xmlstr_nodestyles_child, num_node_styles);
+				continue;
+			}
+			if ( STR_compare_n(attr_name.value(), reserved_style_prefix.c_str(), reserved_style_prefix.length(), false) == 0 )
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning,
+					"Fail: %s %zu is invalid - '%s' prefix is reserved for internal use",
+					xmlstr_nodestyles_child, num_node_styles, reserved_style_prefix.c_str()
+				);
+				continue;
+			}
+	
+			// style name only, too much to enter for debug otherwise
+			TZK_LOG_FORMAT(LogLevel::Debug, "%s %zu = %s", xmlstr_nodestyles_child, num_node_styles, attr_name.value());
+	
+			pugi::xml_node  background = xml_node_style.child(xmlstr_background);
+			pugi::xml_node  border = xml_node_style.child(xmlstr_border);
+			pugi::xml_node  border_selected = xml_node_style.child(xmlstr_border_selected);
+			pugi::xml_node  header_background = xml_node_style.child(xmlstr_header_background);
+			pugi::xml_node  header_title = xml_node_style.child(xmlstr_header_title);
+			pugi::xml_node  padding = xml_node_style.child(xmlstr_padding);
+			pugi::xml_node  rounding = xml_node_style.child(xmlstr_rounding);
+			// object created and applied if valid, uses defaults; override as needed
+			auto  nodestyle = trezanik::imgui::NodeStyle::standard();
+	
+			colour_load(background, nodestyle->bg, num_node_styles, xmlstr_background);
+			colour_load(border, nodestyle->border_colour, num_node_styles, xmlstr_border);
+			thickness_load(border, nodestyle->border_thickness, num_node_styles, xmlstr_border);
+			colour_load(border_selected, nodestyle->border_selected_colour, num_node_styles, xmlstr_border_selected);
+			thickness_load(border_selected, nodestyle->border_selected_thickness, num_node_styles, xmlstr_border_selected);
+			colour_load(header_background, nodestyle->header_bg, num_node_styles, xmlstr_header_background);
+			colour_load(header_title, nodestyle->header_title_colour, num_node_styles, xmlstr_header_title);
+			padding_load(padding, nodestyle->padding, num_node_styles, xmlstr_padding);
+			radius_load(rounding, nodestyle->radius, num_node_styles, xmlstr_rounding);
+	
+			valid_node_styles++;
+	
+			TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu complete", xmlstr_nodestyles_child, num_node_styles);
+	
+			app::EventData::loaded_nodestyle  evt;
+			evt.name = attr_name.value();
+			evt.style = nodestyle;
+			evt.workspace_id = loader.wksp_data->id;
+			my_evtmgr.DispatchEvent(uuid_loaded_nodestyle, evt);
+	
 #if 0  // Code Disabled - can also add directly without event management
-		loader.wksp_data->node_styles.emplace_back(evt.name, evt.style);
+			loader.wksp_data->node_styles.emplace_back(evt.name, evt.style);
 #endif
+		}
 	}
 
-	while ( xml_pin_style )
+	if ( xml_pin_styles )
 	{
-		if ( STR_compare(xml_pin_style.name(), xmlstr_pinstyles_child, case_sens) != 0 )
+		for ( auto& xml_pin_style : xml_pin_styles.children() )
 		{
-			TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", xmlstr_pinstyles_child, xmlstr_pinstyles, xml_pin_style.name());
-			xml_pin_style = xml_pin_style.next_sibling();
-			continue;
-		}
-
-		if ( valid_pin_styles == TZK_MAX_NUM_STYLES )
-		{
-			TZK_LOG_FORMAT(LogLevel::Warning, "Styles limit (%u) reached, skipping all other elements", TZK_MAX_NUM_STYLES);
-			break;
-		}
-
-		num_pin_styles++;
-
-		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu", xmlstr_pinstyles_child, num_pin_styles);
-
-		pugi::xml_attribute  attr_name = xml_pin_style.attribute(xmlstr_attr_name);
-		pugi::xml_attribute  attr_display = xml_pin_style.attribute(xmlstr_attr_display);
-
-		if ( !attr_name )
-		{
-			TZK_LOG_FORMAT(LogLevel::Warning, "Fail: %s %zu is invalid - no name", xmlstr_pinstyles_child, num_pin_styles);
-			xml_pin_style = xml_pin_style.next_sibling();
-			continue;
-		}
-		if ( STR_compare_n(attr_name.value(), reserved_style_prefix.c_str(), reserved_style_prefix.length(), false) == 0 )
-		{
-			TZK_LOG_FORMAT(LogLevel::Warning,
-				"Fail: %s %zu is invalid - '%s' prefix is reserved for internal use",
-				xmlstr_pinstyles_child, num_pin_styles, reserved_style_prefix.c_str()
-			);
-			xml_pin_style = xml_pin_style.next_sibling();
-			continue;
-		}
-
-		// style name only, too much to enter for debug otherwise
-		TZK_LOG_FORMAT(LogLevel::Debug, "%s %zu = %s", xmlstr_pinstyles_child, num_pin_styles, attr_name.value());
-
-		pugi::xml_node  xmlsocket_image = xml_pin_style.child(xmlstr_socket_image);
-		pugi::xml_node  xmlsocket_shape = xml_pin_style.child(xmlstr_socket_shape);
-		pugi::xml_node  xmlsocket_hovered = xml_pin_style.child(xmlstr_socket_hovered);
-		pugi::xml_node  xmlsocket_connected = xml_pin_style.child(xmlstr_socket_connected);
-		pugi::xml_node  xmllink = xml_pin_style.child(xmlstr_link);
-		pugi::xml_node  xmllink_dragged = xml_pin_style.child(xmlstr_link_dragged);
-		pugi::xml_node  xmllink_hovered = xml_pin_style.child(xmlstr_link_hovered_extra);
-		pugi::xml_node  xmllink_selected_outline = xml_pin_style.child(xmlstr_link_selected);
-		// new object, apply replacement settings to defaults
-		auto  pinstyle = trezanik::imgui::PinStyle::connector();
-
-		colour_load(xmlsocket_shape, pinstyle->socket_colour, num_pin_styles, xmlstr_socket_shape);
-		shape_load(xmlsocket_shape, pinstyle->socket_shape, num_pin_styles, xmlstr_socket_shape);
-		thickness_load(xmlsocket_shape, pinstyle->socket_thickness, num_pin_styles, xmlstr_socket_shape);
-		radius_load(xmlsocket_shape, pinstyle->socket_radius, num_pin_styles, xmlstr_socket_shape);
-		radius_load(xmlsocket_hovered, pinstyle->socket_hovered_radius, num_pin_styles, xmlstr_socket_hovered);
-		radius_load(xmlsocket_connected, pinstyle->socket_connected_radius, num_pin_styles, xmlstr_socket_connected);
-
-		thickness_load(xmllink, pinstyle->link_thickness, num_pin_styles, xmlstr_link);
-		thickness_load(xmllink_dragged, pinstyle->link_dragged_thickness, num_pin_styles, xmlstr_link_dragged);
-		thickness_load(xmllink_hovered, pinstyle->link_hovered_extra_thickness, num_pin_styles, xmlstr_link_hovered_extra);
-		thickness_load(xmllink_selected_outline, pinstyle->link_selected_thickness, num_pin_styles, xmlstr_link_selected);
-
-		/*
-		 * Since we load as a resource, we can load in other resources without
-		 * worrying about blocking the UI thread - so no need to sync back
-		 */
-		if ( xmlsocket_image )
-		{
-			pugi::xml_attribute  attr = xmlsocket_image.attribute(xmlstr_attr_filename);
-			if ( attr )
+			if ( STR_compare(xml_pin_style.name(), xmlstr_pinstyles_child, case_sens) != 0 )
 			{
-				pinstyle->filename = attr.value();
-				// trigger image load, assign to
-				pinstyle->image = nullptr;
+				TZK_LOG_FORMAT(LogLevel::Warning, "Ignoring non-%s in %s: %s", xmlstr_pinstyles_child, xmlstr_pinstyles, xml_pin_style.name());
+				continue;
 			}
-		}
-
-		if ( attr_display )
-		{
-			pinstyle->display = imgui::TConverter<imgui::PinStyleDisplay>::FromString(attr_display.value());
-
-			if ( pinstyle->display == imgui::PinStyleDisplay::Invalid )
+	
+			if ( valid_pin_styles == TZK_MAX_NUM_STYLES )
 			{
-				pinstyle->display = imgui::PinStyleDisplay::Shape;
+				TZK_LOG_FORMAT(LogLevel::Warning, "Styles limit (%u) reached, skipping all other elements", TZK_MAX_NUM_STYLES);
+				break;
 			}
-		}
-
-		valid_pin_styles++;
-
-		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu complete", xmlstr_pinstyles_child, num_pin_styles);
-		xml_pin_style = xml_pin_style.next_sibling();
-
-		app::EventData::loaded_pinstyle  evt;
-		evt.name = attr_name.value();
-		evt.style = pinstyle;
-		evt.workspace_id = loader.wksp_data->id;
-		my_evtmgr.DispatchEvent(uuid_loaded_pinstyle, evt);
-
+	
+			num_pin_styles++;
+	
+			TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu", xmlstr_pinstyles_child, num_pin_styles);
+	
+			pugi::xml_attribute  attr_name = xml_pin_style.attribute(xmlstr_attr_name);
+			pugi::xml_attribute  attr_display = xml_pin_style.attribute(xmlstr_attr_display);
+	
+			if ( !attr_name )
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning, "Fail: %s %zu is invalid - no name", xmlstr_pinstyles_child, num_pin_styles);
+				continue;
+			}
+			if ( STR_compare_n(attr_name.value(), reserved_style_prefix.c_str(), reserved_style_prefix.length(), false) == 0 )
+			{
+				TZK_LOG_FORMAT(LogLevel::Warning,
+					"Fail: %s %zu is invalid - '%s' prefix is reserved for internal use",
+					xmlstr_pinstyles_child, num_pin_styles, reserved_style_prefix.c_str()
+				);
+				continue;
+			}
+	
+			// style name only, too much to enter for debug otherwise
+			TZK_LOG_FORMAT(LogLevel::Debug, "%s %zu = %s", xmlstr_pinstyles_child, num_pin_styles, attr_name.value());
+	
+			pugi::xml_node  xmlsocket_image = xml_pin_style.child(xmlstr_socket_image);
+			pugi::xml_node  xmlsocket_shape = xml_pin_style.child(xmlstr_socket_shape);
+			pugi::xml_node  xmlsocket_hovered = xml_pin_style.child(xmlstr_socket_hovered);
+			pugi::xml_node  xmlsocket_connected = xml_pin_style.child(xmlstr_socket_connected);
+			pugi::xml_node  xmllink = xml_pin_style.child(xmlstr_link);
+			pugi::xml_node  xmllink_dragged = xml_pin_style.child(xmlstr_link_dragged);
+			pugi::xml_node  xmllink_hovered = xml_pin_style.child(xmlstr_link_hovered_extra);
+			pugi::xml_node  xmllink_selected_outline = xml_pin_style.child(xmlstr_link_selected);
+			// new object, apply replacement settings to defaults
+			auto  pinstyle = trezanik::imgui::PinStyle::connector();
+	
+			colour_load(xmlsocket_shape, pinstyle->socket_colour, num_pin_styles, xmlstr_socket_shape);
+			shape_load(xmlsocket_shape, pinstyle->socket_shape, num_pin_styles, xmlstr_socket_shape);
+			thickness_load(xmlsocket_shape, pinstyle->socket_thickness, num_pin_styles, xmlstr_socket_shape);
+			radius_load(xmlsocket_shape, pinstyle->socket_radius, num_pin_styles, xmlstr_socket_shape);
+			radius_load(xmlsocket_hovered, pinstyle->socket_hovered_radius, num_pin_styles, xmlstr_socket_hovered);
+			radius_load(xmlsocket_connected, pinstyle->socket_connected_radius, num_pin_styles, xmlstr_socket_connected);
+	
+			thickness_load(xmllink, pinstyle->link_thickness, num_pin_styles, xmlstr_link);
+			thickness_load(xmllink_dragged, pinstyle->link_dragged_thickness, num_pin_styles, xmlstr_link_dragged);
+			thickness_load(xmllink_hovered, pinstyle->link_hovered_extra_thickness, num_pin_styles, xmlstr_link_hovered_extra);
+			thickness_load(xmllink_selected_outline, pinstyle->link_selected_thickness, num_pin_styles, xmlstr_link_selected);
+	
+			/*
+			 * Since we load as a resource, we can load in other resources without
+			 * worrying about blocking the UI thread - so no need to sync back
+			 */
+			if ( xmlsocket_image )
+			{
+				pugi::xml_attribute  attr = xmlsocket_image.attribute(xmlstr_attr_filename);
+				if ( attr )
+				{
+					pinstyle->filename = attr.value();
+					// trigger image load, assign to
+					pinstyle->image = nullptr;
+				}
+			}
+	
+			if ( attr_display )
+			{
+				pinstyle->display = imgui::TConverter<imgui::PinStyleDisplay>::FromString(attr_display.value());
+	
+				if ( pinstyle->display == imgui::PinStyleDisplay::Invalid )
+				{
+					pinstyle->display = imgui::PinStyleDisplay::Shape;
+				}
+			}
+	
+			valid_pin_styles++;
+	
+			TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu complete", xmlstr_pinstyles_child, num_pin_styles);
+	
+			app::EventData::loaded_pinstyle  evt;
+			evt.name = attr_name.value();
+			evt.style = pinstyle;
+			evt.workspace_id = loader.wksp_data->id;
+			my_evtmgr.DispatchEvent(uuid_loaded_pinstyle, evt);
+	
 #if 0  // Code Disabled - can also add directly without event management
-		loader.wksp_data->pin_styles.emplace_back(evt.name, evt.style);
+			loader.wksp_data->pin_styles.emplace_back(evt.name, evt.style);
 #endif
+		}
 	}
 
 
@@ -3233,4 +3168,3 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::SaveStyles(
 
 } // namespace app
 } // namespace trezanik
-	
