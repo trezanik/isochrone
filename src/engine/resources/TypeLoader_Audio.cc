@@ -19,7 +19,6 @@
 #include "engine/services/ServiceLocator.h"
 
 #include "core/util/filesystem/file.h"
-#include "core/util/string/string.h"
 #include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
 #include "core/error.h"
@@ -92,6 +91,13 @@ TypeLoader_Audio::Load(
 	auto   filepath = resource->GetFilepath();
 	auto   al = trezanik::engine::ServiceLocator::Audio();
 	int    openflags = aux::file::OpenFlag_ReadOnly | aux::file::OpenFlag_Binary | aux::file::OpenFlag_DenyW;
+
+	if ( !ValidateLicense(filepath) )
+	{
+		NotifyFailure(&data);
+		return ErrFAILED;
+	}
+
 	FILE*  fp = aux::file::open(filepath.c_str(), openflags);
 
 	if ( fp == nullptr )
@@ -99,40 +105,6 @@ TypeLoader_Audio::Load(
 		NotifyFailure(&data);
 		return ErrFAILED;
 	}
-
-#if 0 // Code Disabled: To turn on once we're interested in enforcing asset licenses
-	/*
-	 * This scope is dedicated to validating the .license presence for all
-	 * assets. Presently duplicated between the typeloaders - @todo to have a
-	 * simple single instance.
-	 * Each asset must have a .license file of the same name, which details the
-	 * license of the asset. Given variable formats depending on sources, all
-	 * we do is check the file can be opened and contains at least 3 bytes of
-	 * data (to prevent touching the file to bypass).
-	 * Can integrate a proper structure in future once we know all the assets
-	 * we're using, or just creating our own.
-	 */
-	{
-		auto license_path = aux::ReplaceFileExtension(filepath, ".license");
-		
-		FILE* lic_fp = aux::file::open(license_path.c_str(), aux::file::OpenFlag_ReadOnly | aux::file::OpenFlag_DenyW);
-		
-		if ( lic_fp == nullptr )
-		{
-			TZK_LOG_FORMAT(LogLevel::Error, "No license file for %s", filepath.c_str());
-			NotifyFailure(&data);
-			return ErrFAILED;
-		}
-		if ( aux::file::size(lic_fp) < 3 )
-		{
-			TZK_LOG_FORMAT(LogLevel::Error, "Invalid license file for %s", filepath.c_str());
-			NotifyFailure(&data);
-			return ErrFAILED;
-		}
-
-		aux::file::close(lic_fp);
-	}
-#endif
 
 	// this could be a helper function rather than a service call
 	AudioFileType  filetype = al->GetFiletype(fp);

@@ -26,6 +26,7 @@ EngineConfigServer::EngineConfigServer()
 	TZK_CVAR(AUDIO_ENABLED, "enabled");
 	TZK_CVAR(AUDIO_VOLUME_EFFECTS, "value");
 	TZK_CVAR(AUDIO_VOLUME_MUSIC, "value");
+	TZK_CVAR(ENGINE_LICENSING_ENFORCE, "value");
 	TZK_CVAR(ENGINE_FPS_CAP, "value");
 	TZK_CVAR(ENGINE_RESOURCES_LOADER_THREADS, "loader_threads");
 }
@@ -73,6 +74,7 @@ EngineConfigServer::ValidateForCvar(
 		}
 		return ErrNONE;
 	case TZK_CVAR_HASH_AUDIO_ENABLED:
+	case TZK_CVAR_HASH_ENGINE_LICENSING_ENFORCE:
 		{
 			if (   (setting[0] == '1' && strlen(setting) == 1)
 			    || (setting[0] == '0' && strlen(setting) == 1)

@@ -134,9 +134,17 @@ TypeLoader_Image::Load(
 		return EFAULT;
 	}
 
+	std::string  filepath = resource->GetFilepath();
+
+	if ( !ValidateLicense(filepath) )
+	{
+		NotifyFailure(&data);
+		return ErrFAILED;
+	}
+
 	Context&  ctx = engine::Context::GetSingleton();
 	int    openflags = aux::file::OpenFlag_ReadOnly | aux::file::OpenFlag_Binary | aux::file::OpenFlag_DenyW;
-	FILE*  fp = aux::file::open(resource->GetFilepath().c_str(), openflags);
+	FILE*  fp = aux::file::open(filepath.c_str(), openflags);
 
 	if ( fp == nullptr )
 	{
@@ -172,7 +180,7 @@ TypeLoader_Image::Load(
 				break;
 #if TZK_USING_SDLIMAGE
 			{
-				if ( (imgcon->texture = IMG_LoadTexture(ctx.GetSDLRenderer(), resource->GetFilepath().c_str())) != nullptr )
+				if ( (imgcon->texture = IMG_LoadTexture(ctx.GetSDLRenderer(), filepath.c_str())) != nullptr )
 				{
 					if ( SDL_QueryTexture(imgcon->texture, &imgcon->pixel_format, nullptr, &imgcon->width, &imgcon->height) == 0 )
 					{

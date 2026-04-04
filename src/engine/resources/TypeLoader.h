@@ -40,6 +40,23 @@ private:
 	std::set<MediaType>    _handled_mediatypes;
 
 protected:
+
+	/**
+	 * Validates the license file for the associated resource
+	 * 
+	 * Licenses must be stored alongside the resource (same directory) with the
+	 * same name, only with the file extension '.license' instead.
+	 * 
+	 * @param[in] filepath
+	 *  The absolute or relative path to the resource file
+	 * @return
+	 *  true if the license was deemed valid, or enforcement is disabled; otherwise false
+	 */
+	bool
+	ValidateLicense(
+		const std::string& filepath
+	);
+
 public:
 	/**
 	 * Standard constructor
@@ -47,6 +64,13 @@ public:
 	 * Deriving classes must provide the handled media and file types
 	 * 
 	 * These parameters will likely be converted to a tuple in future
+	 * 
+	 * @param[in] ftypes
+	 *  Reference to a set of handled file types
+	 * @param[in] mtype_names
+	 *  Reference to a set of handled media typenames
+	 * @param[in] mtypes
+	 *  Reference to a set of handled media types
 	 */
 	TypeLoader(
 		const std::set<std::string>& ftypes,
