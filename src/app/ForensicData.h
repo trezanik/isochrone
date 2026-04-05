@@ -149,6 +149,41 @@ ParseForensicsData(
 
 
 /**
+ * Extracts a share and childpath from the input source string
+ * 
+ * This is designed for handling impacket expectations, where you use a share
+ * and have a path offset from that, e.g.
+ * C:\Windows\Prefetch would be accessed via 'use ADMIN$' and then 'cd Prefetch'
+ * We can't determine share locations or their validity, so the caller must do
+ * whatever checks they can based on information available to ensure accuracy.
+ * Main example would be a users profile:
+ * XP = C:\Documents and Settings\username, but this can be redirected or have
+ * another alternative, akin to: C:\Users\username like in the newer versions.
+ * 
+ * For the input 'C:\Users\username', the output would be:
+ * sharename = 'C$'
+ * childpath = 'Users\username'
+ *
+ * Could be in core/util/string, but we want explicit logging
+ * 
+ * @param[in] src
+ *  The string to process
+ * @param[out] sharename
+ *  The determined share name
+ * @param[out] childpath
+ *  The remaining child path, if any
+ * @return
+ *  An error code on failure, otherwise ErrNONE
+ */
+int
+ExtractPathInfo(
+	const std::string& src,
+	std::string& sharename,
+	std::string& childpath
+);
+
+
+/**
  * Loads a file straight into a string object
  * 
  * Only suitable for plaintext contents! Also no protections or considerations

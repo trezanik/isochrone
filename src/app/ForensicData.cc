@@ -29,6 +29,66 @@ namespace trezanik {
 namespace app {
 
 
+int
+ExtractPathInfo(
+	const std::string& src,
+	std::string& sharename,
+	std::string& childpath
+)
+{
+	using namespace trezanik::core;
+
+	int     retval = EINVAL;
+	size_t  dollar_pos = src.find_first_of('$', 0);
+	size_t  colon_pos = src.find_first_of(':', 0);
+
+	if ( dollar_pos == std::string::npos && colon_pos == std::string::npos )
+	{
+		TZK_LOG(LogLevel::Warning, "Path string contained no share (SHARENAME$) or volume (C:\\)");
+		return retval;
+	}
+
+	size_t  len = src.length();
+
+	if ( dollar_pos < colon_pos )
+	{
+		// share specified
+		if ( dollar_pos == 0 )
+		{
+			TZK_LOG(LogLevel::Warning, "Path string share missing");
+			return retval;
+		}
+		sharename = src.substr(0, dollar_pos + 1);
+		if ( len != (dollar_pos + 1) )
+		{
+			childpath = src.substr(dollar_pos + 2);
+		}
+	}
+	else
+	{
+		// volume specified
+		if ( colon_pos == 0 )
+		{
+			TZK_LOG(LogLevel::Warning, "Path string volume missing");
+			return retval;
+		}
+		if ( colon_pos == (len - 1) || (src[colon_pos + 1] != '\\' && src[colon_pos + 1] != '/') )
+		{
+			TZK_LOG(LogLevel::Warning, "Path string volume bad format");
+			return retval;
+		}
+		sharename = src.substr(0, colon_pos);
+		sharename += "$";
+		if ( len != (colon_pos + 1) )
+		{
+			childpath = src.substr(colon_pos + 2);
+		}
+	}
+
+	return ErrNONE;
+}
+
+
 // rapid prototype, duplicating data - can use fstream in proper flows
 std::string
 ReadFileToString(
