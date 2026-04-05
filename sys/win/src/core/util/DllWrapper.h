@@ -21,16 +21,15 @@
  */
 
 
+#include "core/definitions.h"
+
 #include <type_traits>
 #include <Windows.h>
+#include <ShlObj.h>
+#include <Psapi.h>
 
 #include "core/util/ntdll.h"
 #include "core/util/ntquerysysteminformation.h"
-
-#include "secfuncs/Autostarts.h"
-#include "secfuncs/Browsers.h"
-#include "secfuncs/Execution.h"
-#include "secfuncs/Prefetch.h"
 
 
 /**
@@ -58,11 +57,11 @@ public:
 
 /**
  * Wraps the loading and freeing of a dynamic library
- * 
+ *
  * Use as a class private member, and have public the methods desired for
  * exposure; for best practice, the function name should be the variable
  * name where possible (so three copies of the name), used differently.
- * 
+ *
  * Use like:
  * @code
  * class MyModule {
@@ -92,12 +91,12 @@ public:
 
 	/**
 	 * Obtains a function pointer for the supplied procedure name
-	 * 
+	 *
 	 * @warning
 	 *  You should check if the function is a nullptr, or test the OS version
 	 *  for general availability (e.g. RegDisableReflectionKey on XP x86 does
 	 *  not exist, so check for >=NT6/NT5 + x64)
-	 * 
+	 *
 	 * @param[in] proc_name
 	 *  The function/procedure name, as exported from the DLL
 	 * @return
@@ -109,14 +108,23 @@ public:
 	{
 		return ProcPtr(::GetProcAddress(my_module, proc_name));
 	}
-
-	static HMODULE  my_parent_module;
 };
 
 
+// WinInternal: SYSTEM_INFORMATION_CLASS, SystemInformation, SystemInformationLength, ReturnLength
 typedef NTSTATUS(WINAPI* pf_NtQuerySystemInformation)(SYSTEM_INFORMATION_CLASS, PVOID, ULONG, PULONG);
+// WinInternal
 typedef NTSTATUS(WINAPI* pf_RtlGetVersion)(LPOSVERSIONINFOEX);
+// WinInternal
 typedef BOOLEAN(WINAPI* pf_RtlGenRandom)(PVOID, ULONG);
+// Windows 8+
+typedef NTSTATUS(WINAPI* pf_RtlDecompressBufferEx)(USHORT, PUCHAR, ULONG, PUCHAR, ULONG, PULONG, PVOID);
+// Windows XP+
+typedef NTSTATUS(WINAPI* pf_RtlGetCompressionWorkSpaceSize)(USHORT, PULONG, PULONG);
+// Windows Vista+
+typedef NTSTATUS(WINAPI* pf_SHGetKnownFolderPath)(GUID, DWORD, HANDLE, PWSTR*);
+// Windows XP+ - special handling for Windows 7+ with PSAPI version
+typedef BOOLEAN(WINAPI* pf_EnumProcesses)(PDWORD, DWORD, LPDWORD);
 
 
 class Module_advapi32
@@ -138,7 +146,10 @@ class Module_kernel32
 private:
 	DllWrapper  my_dll{ L"kernel32.dll" };
 public:
+	// introduced in Windows XP SP2/Server 2003 SP1
 	decltype(IsWow64Process)*  IsWow64Process = my_dll["IsWow64Process"];
+	// introduced in Windows XP
+	pf_EnumProcesses  K32EnumProcesses = my_dll["K32EnumProcesses"];
 };
 
 
@@ -147,9 +158,45 @@ class Module_ntdll
 private:
 	DllWrapper  my_dll{ L"ntdll.dll" };
 public:
+	// introduced in Windows NT
 	pf_NtQuerySystemInformation  NtQuerySystemInformation = my_dll["NtQuerySystemInformation"];
+	// introduced in Windows 8
+	pf_RtlDecompressBufferEx  RtlDecompressBufferEx = my_dll["RtlDecompressBufferEx"];
+	// introduced in Windows XP
+	pf_RtlGetCompressionWorkSpaceSize  RtlGetCompressionWorkSpaceSize = my_dll["RtlGetCompressionWorkSpaceSize"];
+
 	// introduced in Windows 2000
 	pf_RtlGetVersion  RtlGetVersion = my_dll["RtlGetVersion"];
+};
+
+
+// fucking Windows and its defines away when we're handling it perfectly...
+#if PSAPI_VERSION > 1
+#	undef EnumProcesses
+BOOL
+WINAPI
+EnumProcesses(
+	_Out_writes_bytes_(cb) DWORD* lpidProcess,
+	_In_ DWORD cb,
+	_Out_ LPDWORD lpcbNeeded
+);
+#endif
+class Module_psapi
+{
+private:
+	DllWrapper  my_dll{ L"Psapi.dll" };
+public:
+	decltype(EnumProcesses)*  EnumProcesses = my_dll["EnumProcesses"];
+};
+// note: EnumProcesses will no longer be redirected, it MUST be called through this wrapper if the header is included!!
+
+
+class Module_shell32
+{
+private:
+	DllWrapper  my_dll{ L"shell32.dll" };
+public:
+	pf_SHGetKnownFolderPath  SHGetKnownFolderPath = my_dll["SHGetKnownFolderPath"];
 };
 
 
@@ -166,12 +213,22 @@ public:
 
 
 /*
- * This is our own module; we include it here for testing invocation
+ * This is our own module; we include it here for testing invocation, and will
+ * be purged when secfuncs becomes more production-ready
  */
+#if 0
+/*
+#include "Autostarts.h"
+#include "Browsers.h"
+#include "Execution.h"
+#include "Prefetch.h"
+#include "Service.h"
+#include "Utility.h"
+*/
 class Module_secfuncs
 {
 private:
-	DllWrapper my_dll{ L"secfuncs.dll" };
+	DllWrapper  my_dll{ L"secfuncs.dll" };
 public:
 	decltype(GetAutostarts)* GetAutostarts = my_dll["GetAutostarts"];
 	decltype(GetEvidenceOfExecution)* GetEvidenceOfExecution = my_dll["GetEvidenceOfExecution"];
@@ -180,9 +237,14 @@ public:
 	decltype(ReadAmCache)* ReadAmCache = my_dll["ReadAmCache"];
 	decltype(ReadAppCompatFlags)* ReadAppCompatFlags = my_dll["ReadAppCompatFlags"];
 	decltype(ReadBAM)* ReadBAM = my_dll["ReadBAM"];
+#if SECFUNCS_LINK_SQLITE3
 	decltype(ReadChromiumDataForAll)* ReadChromiumDataForAll = my_dll["ReadChromiumDataForAll"];
 	decltype(ReadChromiumDataForUser)* ReadChromiumDataForUser = my_dll["ReadChromiumDataForUser"];
+#endif
 	decltype(ReadPrefetch)* ReadPrefetch = my_dll["ReadPrefetch"];
 	decltype(ReadUserAssist)* ReadUserAssist = my_dll["ReadUserAssist"];
+
+	//decltype(GetOption)* GetOption = my_dll["GetOption"];
 	//decltype(SetOption)* SetOption = my_dll["SetOption"];
 };
+#endif
