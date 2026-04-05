@@ -48,7 +48,7 @@ See the [application usage guide](docs/using_the_application.md) for how to inte
  - Windows 10 (x86|x64)
  - Linux (kernel 2.6+ should be good, i386|amd64, if C++17 available)
 
-> **Windows XP/Server 2003** **\*** has multiple changes required.
+> **Windows XP/Server 2003** **\** has multiple changes required.
 > See the dedicated building_for_xp2003 markdown file for the guide and associated details.
 
 > ***Note***
@@ -82,14 +82,13 @@ No restrictions exist on where this can be executed; however naturally due to li
 ## <a id="Dependencies"></a>Dependencies
 
  - dear imgui (integrated)
- - freetype
- - libpng (TBD)
+ - freetype2
  - pugixml
  - SDL2
+ - SDL2_image (optional)
  - SDL2_ttf
  - sqlite3 (secfuncs/optional for RSS)
  - STBI (integrated, optional)
- - zlib
 
 With Audio enabled:
  - ogg (if oggopus and/or oggvorbis enabled)
@@ -105,6 +104,12 @@ With Networking enabled:
  **Pending introduction:**
  - catch2 (unit tests)
  - FLAC
+
+> ***Note***
+> Without SDL2_image or STBI, only tga (Truevision Targa) images are currently usable
+
+> ***Note***
+> Many dependencies can chain, e.g. if wanting PNG with SDL2_image, you'll need libpng and zlib available too
 
 
 ## <a id="Building"></a>Building
@@ -149,8 +154,6 @@ We believe in being completely open and attribute credit to authors - fonts, ima
 
 These are supplied alongside the assets as an additional file of the same name, but with a `.license` extension instead. If the license is not found, the asset will not be loaded - and should not be distributed.
 
-We are not yet compliant with this, but it will be a goal for release.
-
 
 ## <a id="FAQ"></a>FAQ
 
@@ -190,7 +193,7 @@ XP/2003 will obviously become a burden and outright unusable in future - my main
 
 Ah. I needed something cross-platform, and wanted to support Windows 7 still. I've always been fond of the classic GLUI and imgui has a nice consistent UI itself, while directly integrating into 3D applications, such as games - which is a desire I still have. It pretty much served the right purpose at the right time.
 
-Protip if you're thinking of doing this yourself: prepare for pain. After experiencing it, take ocornut at this word - I also do not recommend it for a full-blown UI like we've done!
+Protip if you're thinking of doing this yourself: prepare for pain. After experiencing it, take ocornut at his word - I also do not recommend it for a full-blown UI like we've done!
 
 It's by no means horrible but you will have to handle things like click/drag/contextual operations, which most people will take the existing OS/app library implementations for granted. And as expected, if you want a widget that doesn't yet exist (e.g. vertical tabs), you have to be prepared to implement it yourself - optionally replacing it if imgui introduces it in future - or live without.
 
@@ -199,3 +202,12 @@ It's by no means horrible but you will have to handle things like click/drag/con
 
 With C++17 and NT 6.1 (if Windows) set as our base, these must compile with no warnings at a high level (e.g. MSVC /W4) for releases.
 Warnings caused by lowering configuration to C++14, NT5/6.0 are not sought to be remediated.
+
+Present known flaws/deficiencies not in a transient state - i.e. don't raise bug reports for these:
+
+ - Multi-workspace support (not started)
+ - Linux images with OpenGL render as plain black. Vulkan or software renderers are fine, as is the entire Windows platform. Fault unknown.
+ - NT5 build ping is broken (not investigated beyond binary testing, where discovered)
+ - Audio streams spanning multiple buffers replay last buffer contents on start/resume
+
+There's lots more still a work in progress, but figured these are worth calling out explicitly as likely callouts even though we're still in alpha.
