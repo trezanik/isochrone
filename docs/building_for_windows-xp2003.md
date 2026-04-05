@@ -41,30 +41,10 @@ Many things will be unavailable due to lack of protocol support with modern stan
 We will seek to trial this for the concept of a full legacy network environment, but it'll likely require older versions and complicated build steps.
 
 
-#### openal : 1.0.38
-Special case: OpenAL-soft '1.21.1' (latest at time of writing) builds but is NOT compatible due to it attempting to import NT 6.0+ kernel32 functions, despite configuration. It should be disabled at compile-time else the application will fail to start, OR use an older OpenAL-soft release.
-This guide uses an old OpenAL-soft v1.0.38 release; others may work but require further/alternate fixes.
-```
-[ ] ALSOFT_EMBED_HRTF_DATA
-[ ] ALSOFT_EXAMPLES
-[ ] ALSOFT_INSTALL_AMBDEC_PRESETS
-[ ] ALSOFT_INSTALL_CONFIG
-[ ] ALSOFT_INSTALL_EXAMPLES
-[ ] ALSOFT_INSTALL_HRTF_DATA
-[ ] ALSOFT_INSTALL_UTILS
-[x] ALSOFT_NO_CONFIG_UTIL
-[ ] ALSOFT_UTILS
-CMAKE_INSTALL_PREFIX => C:/Code/dependencies/openal/nt5-x86
-```
-Build fix:
-- Forced Include File => `initguid.h`
-	_This resolves two linker missing imports without needing to touch the source code_
-- Linker additional dependencies => remove `m.lib`, add `ole32.lib;strmiids.lib;winmm.lib;`
+#### openal : 1.21.1
 
-Build fix - x64-only:
-- Source modification required (unsure why not for x86?). This is because they used inline within a source that's needed in another translation unit..
-1) Cut lines 55-93 from `ALu.c`, and paste to overwrite lines 17+18 in `alu.h` _(replace inline declaration with implementation)_
-2) Copy lines 94-95 from `alMain.h`, and paste at line 12 in `alu.h` _(duplicate missing definitions)_
+After opening the solution file, open the OpenAL project Properties. Set: `Configuration Properties > C/C++ > Language > Conformance mode` : `Yes (/permissive-)` => `No`
+
 
 #### Editing Project Files
 

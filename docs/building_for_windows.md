@@ -58,7 +58,7 @@ We then list the settings to modify from their defaults as follows:
 
 Once generated, each execution will require opening the generated project/solution and building in Visual Studio - one per each desired build type (x86/x64, and Debug/Release).
 
-#### zlib : 1.2.13
+#### zlib : 1.3.1
 ```
 CMAKE_INSTALL_PREFIX => C:/Code/dependencies/zlib/x64
 INSTALL_BIN_DIR => C:/Code/dependencies/zlib/x64/bin
@@ -68,19 +68,20 @@ INSTALL_MAN_DIR => C:/Code/dependencies/zlib/x64/share/man
 INSTALL_PKGCONFIG_DIR => C:/Code/dependencies/zlib/x64/share/man
 ```
 
-#### png : 1.6.40
+#### png : 1.6.53
 ```
 [ ] PNG_EXECUTABLES
 [ ] PNG_TESTS
+[ ] PNG_TOOLS
 CMAKE_INSTALL_PREFIX => C:/Code/dependencies/libpng/x64
 ZLIB_INCLUDE_DIR => C:/Code/dependencies/zlib/x64/include
 ZLIB_LIBRARY_DEBUG => C:/Code/dependencies/zlib/x64/lib/zlibd.lib
 ZLIB_LIBRARY_RELEASE => C:/Code/dependencies/zlib/x64/lib/zlib.lib
 ```
 
-#### freetype : 2.13.3
+#### freetype : 2.14.1
 ```
-CMAKE_C_FLAGS => /DWIN32 /D_WINDOWS /W3 /DDLL_EXPORT /DFT2_BUILD_LIBRARY
+CMAKE_C_FLAGS => /DWIN32 /D_WINDOWS /DDLL_EXPORT /DFT2_BUILD_LIBRARY
 CMAKE_INSTALL_PREFIX => C:/Code/dependencies/freetype/x64
 [x] FT_DISABLE_BROTLI
 [x] FT_DISABLE_BZIP2
@@ -105,14 +106,14 @@ The extra C_FLAGS we provide enable the functions being exported, without them i
 >Note:
 >_MSVC build files to handle dynamic and static builds are pre-shipped and can be used, but for consistency we'll keep cmake for now and apply workarounds_
 
-#### ogg : 1.3.4
+#### ogg : 1.3.6
 ```
 [x] BUILD_SHARED_LIBS
-[ ] BUILD_TESTING
+[ ] INSTALL_DOCS
 CMAKE_INSTALL_PREFIX => C:/Code/dependencies/libogg/x64
 ```
 
-#### vorbis : 1.3.6
+#### vorbis : 1.3.7
 ```
 [x] BUILD_SHARED_LIBS
 CMAKE_INSTALL_PREFIX => C:/Code/dependencies/vorbis/x64
@@ -158,7 +159,45 @@ CMAKE_INSTALL_PREFIX => C:/Code/dependencies/openal/x64
 CMAKE_INSTALL_PREFIX => C:/Code/dependencies/SDL2/x64
 ```
 
-#### sdl2_ttf : 2.20.2
+#### sdl2_image : 2.8.8
+```
+LIBPNG_PNG_INCLUDE_DIR => C:/Code/dependencies/libpng/x64/include
+LIBPNG_LIBRARY_DEBUG => C:/Code/dependencies/libpng/x64/lib/libpng16d.lib
+LIBPNG_LIBRARY_RELEASE => C:/Code/dependencies/libpng/x64/lib/libpng16.lib
+[ ] SDL2IMAGE_AVIF
+[ ] SDL2IMAGE_AVIF_SHARED
+[ ] SDL2IMAGE_BACKEND_STB
+[ ] SDL2IMAGE_BMP
+[ ] SDL2IMAGE_GIF
+[ ] SDL2IMAGE_JPG
+[ ] SDL2IMAGE_JPG_SAVE
+[ ] SDL2IMAGE_LBM
+[ ] SDL2IMAGE_PCX
+[ ] SDL2IMAGE_PNG_SAVE
+[ ] SDL2IMAGE_PNM
+[ ] SDL2IMAGE_QOI
+[ ] SDL2IMAGE_SAMPLES
+[x] SDL2IMAGE_STRICT
+[ ] SDL2IMAGE_SVG
+[x] SDL2IMAGE_TGA
+[ ] SDL2IMAGE_TIF
+[ ] SDL2IMAGE_TIF_SHARED
+[ ] SDL2IMAGE_VENDORED
+[ ] SDL2IMAGE_WEBP
+[ ] SDL2IMAGE_WEBP_SHARED
+[ ] SDL2IMAGE_XCF
+[ ] SDL2IMAGE_XPM
+[ ] SDL2IMAGE_XV
+ZLIB_INCLUDE_DIR => C:/Code/dependencies/zlib/x64/include
+ZLIB_LIBRARY_DEBUG => C:/Code/dependencies/zlib/x64/lib/zlibd.lib
+ZLIB_LIBRARY_RELEASE => C:/Code/dependencies/zlib/x64/lib/zlib.lib
+CMAKE_INSTALL_PREFIX => C:/Code/dependencies/SDL2_image/x64
+SDL2_DIR => C:/Code/dependencies/SDL2/x64/cmake
+SDL2_INCLUDE_DIR => C:/Code/dependencies/SDL2/x64/include
+SDL2_LIBRARY => C:/Code/dependencies/SDL2/x64/lib/SDL2.lib
+```
+
+#### sdl2_ttf : 2.24.0
 ```
 [ ] FT_DISABLE_ZLIB
 [ ] SDL2TTF_SAMPLES
@@ -172,21 +211,15 @@ SDL2_DIR => C:/Code/dependencies/SDL2/x64/cmake
 SDL2_INCLUDE_DIR => C:/Code/dependencies/SDL2/x64/include
 SDL2_LIBRARY => C:/Code/dependencies/SDL2/x64/lib/SDL2.lib
 ```
-Build fix: 
-- Add additional linker dependency [Debug]: `C:\Code\dependencies\zlib\x64\lib\zlibd.lib;`
-- Add additional linker dependency [Release]: `C:\Code\dependencies\zlib\x64\lib\zlib.lib;`
->Note:
->SDL2TTF_DEBUG_POSTFIX wasn't working properly until a commit resolved it, ensure you have this or apply the fix: https://discourse.libsdl.org/t/sdl-ttf-cmake-correctly-apply-d-postfix-to-debug-library/37823
+>Note if using an older version:
+>SDL2TTF_DEBUG_POSTFIX wasn't working properly until a commit resolved it, ensure you have this patched version or apply the fix: https://discourse.libsdl.org/t/sdl-ttf-cmake-correctly-apply-d-postfix-to-debug-library/37823
 
-#### pugixml : 1.10
+#### pugixml : 1.15
 ```
 [x] BUILD_SHARED_LIBS
 CMAKE_INSTALL_PREFIX => C:/Code/dependencies/pugixml/x64
+[x] PUGIXML_USE_POSTFIX
 ```
-Build change:
-
-- Edit `pugiconfig.hpp` before building
--- comment out the line `#define PUGIXML_HEADER_ONLY`
 
 ### Isochrone
 You're now free to open the Isochrone.sln solution file and build the `app` project, which will build all internal dependent projects too.
