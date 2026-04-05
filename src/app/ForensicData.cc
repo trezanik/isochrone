@@ -277,16 +277,17 @@ ForensicData::Preload(
 		 * e.g. 603191a8-b1e0-4084-aa0c-b4cae0970df2.2dc4a672-93ea-4124-b0c9-8b0a5f5f0ae9.132485694000.dat
 		 */
 		auto  vec = core::aux::Split(entry, ".");
-		const std::string&  nodeid = vec[0];
-		const std::string&  dataid = vec[1];
-		const std::string&  timestamp = vec[2];
-		const std::string&  extension = vec[3];
 
 		if ( vec.size() != 4 )
 		{
 			TZK_LOG_FORMAT(LogLevel::Warning, "Unexpected filename format: %s", entry.c_str());
 			continue;
 		}
+
+		const std::string&  nodeid = vec[0];
+		const std::string&  dataid = vec[1];
+		const std::string&  timestamp = vec[2];
+		const std::string&  extension = vec[3];
 
 		if ( !core::UUID::IsStringUUID(nodeid.c_str()) )
 		{
