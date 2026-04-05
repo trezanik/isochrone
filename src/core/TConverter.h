@@ -42,7 +42,7 @@ constexpr char  text_unset[] = "Unset";
  * Type converter template class for all types
  * 
  * Compilation will fail if attempting to call the specific method on a type
- * that hasn't been defined.
+ * that hasn't been defined, or is incompatible (e.g. 32-bit to 8-bit type).
  * 
  * This is the 'core' instance; it covers our types in the core namespace, in
  * addition to language native data types (e.g. bool, float).

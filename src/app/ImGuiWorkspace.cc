@@ -699,7 +699,7 @@ public:
 			ImGui::PopStyleColor();
 		}
 
-		// testing for tasks
+		// testing for tasks, useful to keep available if ping monitor disabled?
 		if ( ImGui::SmallButton("Ping") )
 		{
 			/// @todo no functionality; t.target_is_single_item equivalent

@@ -832,6 +832,7 @@ Workspace::Load(
 	loader.xml_root = &workspace;
 	loader.wksp_data = &my_wksp_data;
 
+	// doesn't currently return anything except ErrNONE, do check if altering
 	my_impl->Load(loader);
 
 

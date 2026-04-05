@@ -461,9 +461,9 @@ ImGuiWkspForensics::DrawNodeOps(
 			ImGui::EndTable();
 		}
 
+
 		FDataPrinter  printer;
 		std::vector<std::string>  table_cols;
-
 
 		if ( my_selected_fdata != nullptr )
 		{

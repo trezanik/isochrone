@@ -83,12 +83,12 @@ public:
 	DWORD  shared_mode = FILE_SHARE_READ;
 	SECURITY_ATTRIBUTES  sa;
 	
-	DWORD  create_disp = CREATE_ALWAYS;
-	DWORD  flagsattr = FILE_ATTRIBUTE_NORMAL;
+	DWORD   create_disp = CREATE_ALWAYS;
+	DWORD   flagsattr = FILE_ATTRIBUTE_NORMAL;
 	HANDLE  template_file = nullptr;
 	HANDLE  entry_file;
 #else
-	FILE* fp = nullptr;
+	FILE*  fp = nullptr;
 	int  pipe_fds[2] = { -1 };
 	std::string  fpath;
 #endif

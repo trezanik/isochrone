@@ -189,10 +189,11 @@ public:
 
 struct file_autostart
 {
-	/** Filename including extension (so .lnk on Windows) */
+
+	/** Filename including extension (so .lnk on Windows if a shortcut) */
 	std::string  name;
 
-	/** The target executed */
+	/** The target executed; empty if relative path */
 	std::string  target;
 
 	/** Additional parameters to the target */
@@ -225,6 +226,10 @@ struct file_autostarts : public fdata
  * 
  * This is effectively the same as a folder content task, only instead of getting
  * a listing it copies all the files
+ * 
+ * @todo
+ *  Multiple paths need to be supported, including an optional user and/or getting
+ *  all users as a single action, otherwise we'll have duplication or missing data
  */
 struct file_autostarts_task_params
 {
@@ -253,7 +258,7 @@ struct file_autostarts_task_params
 	 * Directory on the target to extract
 	 * 
 	 * Any file in this directory will be acquired and copied, being associated
-	 * with filesystem autostarts.
+	 * with filesystem autostarts. Cannot be empty.
 	 */
 	std::string  path;
 };

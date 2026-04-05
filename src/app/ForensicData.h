@@ -132,7 +132,8 @@ struct fdata
  *  read from the first byte to its very end. The format and structure of
  *  the data is down to the associated command executed and its output.
  *  If multi-sourced input, this should be appended to the file and done in
- *  a way the content can still be determined
+ *  a way the content can still be determined. Avoid where possible (e.g. try
+ *  to put it in XML)
  * @return
  *  An error code on failure, otherwise ErrNONE
  */

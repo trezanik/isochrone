@@ -239,7 +239,10 @@ spawn(
 	if ( args != nullptr )
 	{
 		wcscat_s(bin, _countof(bin), L" ");
-		wcscat_s(bin, _countof(bin), args);
+		if ( wcscat_s(bin, _countof(bin), args) != 0 )
+		{
+			// needs dynbuf
+		}
 	}
 
 	/**

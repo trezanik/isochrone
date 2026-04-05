@@ -9,9 +9,9 @@
 
 #include "app/tasks/Task.h"
 
-#include "core/services/ServiceLocator.h"
 #include "core/services/log/Log.h"
 #include "core/services/memory/Memory.h"
+#include "core/services/ServiceLocator.h"
 #include "core/util/time.h"
 #include "core/error.h"
 
@@ -233,6 +233,9 @@ CommonExec::CommonExec(
 
 CommonExec::~CommonExec()
 {
+	/*
+	 * We are not the guaranteed closer of this file!
+	 */
 	if ( entry_file != INVALID_HANDLE_VALUE )
 	{
 		::CloseHandle(entry_file);
@@ -392,4 +395,3 @@ CommonExec::Exec(
 
 } // namespace app
 } // namespace trezanik
-

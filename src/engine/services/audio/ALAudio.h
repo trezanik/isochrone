@@ -79,6 +79,8 @@ alErrorString(
  * TZK_OPENAL_SOURCE_COUNT to alter this for optimization and/or testing.
  * Note that we always reserve the 'last' one as an invalid check, so the
  * actual source maximum limit is 254 (0-255).
+ * 
+ * ALAudio constructor sets all these entries to inactive, and priority 255
  */
 struct AudioRecord
 {

@@ -798,7 +798,7 @@ enum class OperatingSystem : uint8_t
  * 
  * This structure is written out to the workspace XML.
  * 
- * Keys and encryption will be handled later, basic operations first-off
+ * Keys, hashes and encryption will be handled later, basic operations first-off
  */
 struct credentials_config
 {

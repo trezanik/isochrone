@@ -382,6 +382,7 @@ ForensicData::Read(
 
 	// this always assumes reasonably sized files...
 	std::string  str = ReadFileToString(data->fp);
+	// for those with custom format, these should be XML or JSON, so is always string-based
 
 	switch ( data->type )
 	{

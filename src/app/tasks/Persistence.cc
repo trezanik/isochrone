@@ -109,7 +109,7 @@ WindowsRegistryAutostartsTask::Invoke()
 
 	if ( my_params.os != OperatingSystem::Windows )
 	{
-		TZK_LOG(LogLevel::Warning, "Linux has no registry");
+		TZK_LOG(LogLevel::Warning, "Windows-only task");
 		return EINVAL;
 	}
 

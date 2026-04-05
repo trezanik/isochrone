@@ -36,7 +36,7 @@ constexpr char  text_unset[] = "Unset";
  * Type converter template class for all engine types
  * 
  * Compilation will fail if attempting to call the specific method on a type
- * that hasn't been defined.
+ * that hasn't been defined, or is incompatible (e.g. 32-bit to 8-bit type).
  * 
  * This is the 'engine' instance, covering items in the engine namespace.
  */

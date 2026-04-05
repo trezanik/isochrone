@@ -161,6 +161,9 @@ public:
 	Draw() override;
 
 
+	/**
+	 * .
+	 */
 	void
 	DrawNodeOps(
 		std::shared_ptr<workspace_node> node

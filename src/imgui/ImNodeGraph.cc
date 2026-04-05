@@ -268,10 +268,10 @@ ImNodeGraph::DrawDebug()
 	{
 		ImGui::Indent();
 
-		auto corigin = my_canvas.GetOrigin();
-		auto cscroll = my_canvas.GetScroll();
-		auto cscale = my_canvas.Scale();
-		auto cmpos = my_canvas.GetMousePos(); // == mouse_pos - my_canvas.GetOrigin();
+		auto    corigin = my_canvas.GetOrigin();
+		auto    cscroll = my_canvas.GetScroll();
+		auto    cscale = my_canvas.Scale();
+		auto    cmpos = my_canvas.GetMousePos(); // == mouse_pos - my_canvas.GetOrigin();
 		ImVec2  mouse_pos = ImGui::GetMousePos();
 		ImVec2  pos_on_scr = GetGridPosOnScreen(ImVec2(0, 0));
 		ImVec2  mgridpos;
