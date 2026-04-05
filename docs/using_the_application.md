@@ -3,7 +3,7 @@
 > Note:
 > The application is still under heavy development, user interface elements are subject to change and may not reflect the current visual state
 
-> The application embeds Control Freak (contf.ttf) and ProggyClean (proggyclean.ttf) for usage as fallback fonts.
+> The application embeds OpenSans-Regular and FiraCode-Regular for usage as fallback fonts.
 
 ### Table of Contents
 
@@ -78,7 +78,7 @@ Within the main menu bar, select `Workspace` and then `New`.
 A file dialog will open prompting for the filename to use (extensions are not automatically added and can be anything, but these are XML files) - Workspaces are by default stored in your user profiles application data:
 - (Windows) `%APPDATA%\trezanik\isochrone\workspaces`
 - (Linux) `/home/$username/.config/trezanik/isochrone/workspaces`
-You cannot navigate out of this directory within this dialog.
+
 
 ![save_dialog](save_dialog.png "Workspace Save")
 
