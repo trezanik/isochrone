@@ -848,6 +848,37 @@ Workspace::Load(
 	
 	TZK_LOG_FORMAT(LogLevel::Trace, "Workspace parsing complete for '%s'", my_wksp_data.name.c_str());
 
+
+#if 0  // Code Disabled: pending introduction of savedir knowledge from load, for non-standard paths
+	/*
+	 * Delete everything within the workspace data folder that is not a .dat
+	 * file. The dat files are XML with processed content; everything else is
+	 * temporary.
+	 * Do it on load as unexpected power loss, app crash or similar will leave
+	 * the intermediate and command files behind.
+	 * 
+	 * If the user leaves any other files in this folder, they will be deleted!
+	 * 
+	 * Will consider using command files renamed to .intermediate too, that way
+	 * only one extension type needs handling, and is generally safer. But it
+	 * doesn't solve downloaded files that aren't deleted. Another directory?
+	 */
+	std::string  datapath = GetSaveDirectory();
+	datapath += GetID().GetCanonical();
+	datapath += TZK_PATH_CHARSTR;
+
+	auto  dirlist = aux::folder::scan_directory(datapath, false);
+	std::string  dat_ext = ".dat";
+
+	for ( auto& f : dirlist )
+	{
+		if ( !aux::EndsWith(f, dat_ext) )
+		{
+			aux::file::remove(f.c_str());
+		}
+	}
+#endif
+
 	return ErrNONE;
 #else
 	return ErrIMPL;
