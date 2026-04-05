@@ -251,7 +251,9 @@ spawn(
 	 *  content in plaintext for all the world to see!
 	 *  We could add a parameter for no_cl_log and skip the args inclusion
 	 */
-	TZK_LOG_FORMAT(LogLevel::Info, "Starting process (wait %u): %ws", wait, bin);
+	TZK_LOG_FORMAT(LogLevel::Info, "Starting process (wait=%s): %ws",
+		wait == INFINITE ? "infinite" : std::to_string(wait).c_str(), bin
+	);
 
 	// since we're not specifying the app, module name portion is limited to MAX_PATH
 	if ( ::CreateProcess(nullptr, bin,
@@ -291,7 +293,7 @@ spawn(
 
 	if ( exit_code != 0 )
 	{
-		TZK_LOG_FORMAT(LogLevel::Warning, "Process exited with error code: %u", exit_code);
+		TZK_LOG_FORMAT(LogLevel::Warning, "Process exited with error code: %u (%s)", exit_code, error_code_as_string(exit_code).c_str());
 	}
 
 	::CloseHandle(pi.hProcess);
