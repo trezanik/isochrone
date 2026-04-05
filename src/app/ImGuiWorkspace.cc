@@ -2069,7 +2069,7 @@ ImGuiWorkspace::DrawComponentEditor()
 
 	// main components
 	ImGui::SetNextWindowSizeConstraints(minor_min_section_size, ImVec2(FLT_MAX, FLT_MAX));
-	ImGui::BeginChild("###ComponentType", minor_section_size);
+	ImGui::BeginChild("###ComponentType", minor_section_size, ImGuiChildFlags_ResizeX);
 	{
 		push_style_color(selected_category == ComponentConfigType::Credentials);
 		if ( ImGui::Button("Credentials", nav_button_size) )
@@ -2137,7 +2137,7 @@ ImGuiWorkspace::DrawComponentEditor()
 	std::vector<display_item>  display_items;
 	
 	ImGui::SetNextWindowSizeConstraints(minor_min_section_size, ImVec2(FLT_MAX, FLT_MAX));
-	ImGui::BeginChild("###ComponentRelevance", minor_section_size);
+	ImGui::BeginChild("###ComponentRelevance", minor_section_size, ImGuiChildFlags_ResizeX);
 	{
 		// even split width within section
 		ImVec2  add_del_button_size((minor_section_size.x - 10.f) * 0.5f, 0.f);
@@ -2243,7 +2243,7 @@ ImGuiWorkspace::DrawComponentEditor()
 
 		ImGui::Separator();
 
-		ImVec2  element_button_size(minor_section_size.x, 32.f);
+		ImVec2  element_button_size(ImGui::GetContentRegionAvail().x, 32.f);
 
 
 		switch ( selected_category )
