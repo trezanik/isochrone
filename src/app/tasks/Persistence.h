@@ -1,7 +1,7 @@
 #pragma once
 
 /**
- * @file        sys/win/src/app/tasks/Persistence.h
+ * @file        src/app/tasks/Persistence.h
  * @brief       A Windows persistence acquisition task and parser
  * @license     zlib (view the LICENSE file for details)
  * @copyright   Trezanik Developers, 2014-2026
