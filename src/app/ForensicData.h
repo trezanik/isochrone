@@ -200,6 +200,10 @@ std::string
 ReadFileToString(
 	FILE* fp
 );
+std::u16string
+ReadFileToUTF16String(
+	FILE* fp
+);
 
 
 

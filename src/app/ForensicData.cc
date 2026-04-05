@@ -90,6 +90,8 @@ ExtractPathInfo(
 
 
 // rapid prototype, duplicating data - can use fstream in proper flows
+// and a second one for enforced char16_t (UTF-16) data sources.
+// I will merge/template these in future, but want to always use simplest (i.e. smallest) first
 std::string
 ReadFileToString(
 	FILE* fp
@@ -141,7 +143,58 @@ ReadFileToString(
 
 	return retval;
 }
+std::u16string
+ReadFileToUTF16String(
+	FILE* fp
+)
+{
+	using namespace trezanik::core;
 
+	fseek(fp, 0, SEEK_SET);
+
+	std::u16string  retval;
+	char16_t   stack_buf[2048];
+	char16_t*  buf = stack_buf;
+	size_t  buf_size = sizeof(stack_buf) - 1; // nul terminator
+	size_t  fs = core::aux::file::size(fp);
+	size_t  num_read = 0;
+
+	if ( fs > buf_size )
+	{
+		buf = (char16_t*)TZK_MEM_ALLOC(fs + 1);
+		if ( buf == nullptr )
+		{
+			return retval;
+		}
+		buf_size = fs;
+	}
+
+	// we allocate/reserve one character for a nul terminator
+	memset(buf, '\0', buf_size + 1);
+
+	//aux::file::open_stream(fpath);
+	if ( (num_read = aux::file::read(fp, (char*)buf, fs)) == fs )
+	{
+		retval = buf;
+	}
+	else
+	{
+		TZK_LOG_FORMAT(LogLevel::Warning, "Read %zu of %zu bytes", num_read, fs);
+
+		// even if size mismatch, if eof and no error, store it
+		if ( feof(fp) != 0 && ferror(fp) == 0 )
+		{
+			retval = buf;
+		}
+	}
+
+	if ( buf != stack_buf )
+	{
+		TZK_MEM_FREE(buf);
+	}
+
+	return retval;
+}
 
 
 ForensicData::ForensicData()
