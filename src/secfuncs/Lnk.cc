@@ -45,6 +45,7 @@ ParseShortcut(
 
 	if ( rd == 0 )
 	{
+		free(data);
 		return -1;
 	}
 
