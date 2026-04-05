@@ -2,7 +2,7 @@
 
 /**
 * @file        src/core/services/event/Event.h
-* @brief       .
+* @brief       Base class hierarchy for event processing
 * @license     zlib (view the LICENSE file for details)
 * @copyright   Trezanik Developers, 2014-2026
 */
@@ -167,7 +167,10 @@ private:
 	/** The callback function to invoke */
 	event_callback const  my_cb;
 
-	/** Stored data; must be a type in a shared_ptr */
+	/**
+	 * Stored data; must be a type in a shared_ptr for safety, but I will not
+	 * enforce it to cover scenarios I may not have thought of
+	 */
 	T  ptr;
 
 protected:
