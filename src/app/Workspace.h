@@ -1843,6 +1843,11 @@ public:
 	 *  Reference to the nodes unique identifier
 	 * @param[in] type_id
 	 *  Reference to the data type unique identifier
+	 * @param[in] ensure_exists
+	 *  (Optional) When true (default), this method will check for the resulting
+	 *  filename existence in the filesystem, and fail if it does NOT already
+	 *  exist. If the generating command can output to the path directly and we
+	 *  don't need to perform redirection or intermediaries, this can be false
 	 * @return
 	 *  A formatted string of a non-existent file within the workspace data
 	 *  folder **at the time of generation** (TOCTOU).
@@ -1852,7 +1857,8 @@ public:
 	std::string
 	GenerateDataFileName(
 		const trezanik::core::UUID& node_id,
-		const trezanik::core::UUID& type_id
+		const trezanik::core::UUID& type_id,
+		const bool ensure_exists = true
 	) const;
 
 

@@ -458,7 +458,8 @@ Workspace::CheckServiceName(
 std::string
 Workspace::GenerateDataFileName(
 	const trezanik::core::UUID& node_id,
-	const trezanik::core::UUID& type_id
+	const trezanik::core::UUID& type_id,
+	const bool ensure_exists
 ) const
 {
 	using namespace trezanik::core;
@@ -496,7 +497,7 @@ Workspace::GenerateDataFileName(
 	 * that in the directory scanning and loading code, which I don't want to
 	 * do. Return failure instead
 	 */
-	if ( aux::file::exists(retval.c_str()) != ENOENT )
+	if ( ensure_exists && aux::file::exists(retval.c_str()) != ENOENT )
 	{
 		return "";
 	}
