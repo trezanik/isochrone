@@ -78,12 +78,12 @@ struct grid_colours
 	 * don't set the alphas of these too low, otherwise they naturally won't be visible!
 	 * too high is also jarring visually - aim for 20-90
 	 */
-	ImU32  background; ///< grid background
-	ImU32  primary;    ///< major line colour
-	ImU32  secondary;  ///< minor line colour
-	ImU32  origins;    ///< origin colour
-	ImU32  selector_rect;  ///< colour of the selection rectangle
-	ImU32  link;       ///< link line colour (only when making link; takes pin colour afterwards)
+	ImU32  background = 0; ///< grid background
+	ImU32  primary = 0;    ///< major line colour
+	ImU32  secondary = 0;  ///< minor line colour
+	ImU32  origins = 0;    ///< origin colour
+	ImU32  selector_rect = 0;  ///< colour of the selection rectangle
+	ImU32  link = 0;       ///< link line colour (only when making link; takes pin colour afterwards)
 };
 
 /**
@@ -92,23 +92,23 @@ struct grid_colours
 struct grid_settings
 {
 	/** Boolean for actually drawing the grid */
-	bool  draw;
+	bool  draw = true;
 
 	/** Boolean for drawing the origin marker (0,0) */
-	bool  draw_origin;
+	bool  draw_origin = false;
 
 	/** Size of grid spacing; must be divisible by 10 with no remainder */
-	int  size;
+	int  size = 50;
 
 	/**
 	 * grid subdivisions, for node snapping
 	 * make this size/10 for conventional purposes.
 	 * 1, 2, 5 and 10 are permitted values
 	 */
-	int  subdivisions;
+	int  subdivisions = 5;
 
 	/** Thickness of the node selector rectangle */
-	float  selector_rect_thickness;
+	float  selector_rect_thickness = 1.5f;
 
 	/** structure containing the grid colours */
 	grid_colours  colours;
@@ -519,7 +519,7 @@ public:
 	 * file, which is default; only written if modified.
 	 */
 	struct {
-		grid_settings  grid_style = { 0 };
+		grid_settings  grid_style;
 		int   link_default_method = static_cast<int>(LinkMethod::CubicBezier);
 		bool  node_draw_headers = false;
 		bool  node_drag_from_headers_only = false;
