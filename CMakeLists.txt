@@ -418,7 +418,7 @@ if ( ISOCHRONE_FORCE_INCLUDE_CONFIGURE )
 endif()
 target_compile_options(core PUBLIC "$<$<CONFIG:DEBUG>:${DEBUG_CXX_FLAGS}>")
 target_compile_options(core PUBLIC "$<$<CONFIG:RELEASE>:${RELEASE_CXX_FLAGS}>")
-target_link_libraries(core PUBLIC stdc++fs imgui)
+target_link_libraries(core PUBLIC stdc++fs imgui uuid)
 #target_link_options()
 set_target_properties(core PROPERTIES DEBUG_POSTFIX ${BINARY_DEBUG_POSTFIX})
 
