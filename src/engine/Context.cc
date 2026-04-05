@@ -436,7 +436,7 @@ Context::Initialize()
 	int  img_init_flags = IMG_INIT_PNG;
 	if ( IMG_Init(img_init_flags) == img_init_flags )
 	{
-		TZK_LOG_FORMAT(LogLevel::Info, "SDL_image initialized with IMG_INIT_PNG");
+		TZK_LOG(LogLevel::Info, "SDL_image initialized with IMG_INIT_PNG");
 	}
 #endif
 
