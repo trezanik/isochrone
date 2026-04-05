@@ -12,6 +12,9 @@
 #include "core/services/log/Log.h"
 #include "core/error.h"
 
+#include <climits>
+#include <limits>
+
 
 namespace trezanik {
 namespace imgui {
@@ -66,8 +69,9 @@ Canvas::AppendDrawData(
 	ImDrawList* src
 )
 {
-	// possible resize/reserver optimization? depends how imgui handles it, not checked
 	ImDrawList* dl = ImGui::GetWindowDrawList();
+#if 0  // Code Disabled: original
+	// possible resize/reserver optimization? depends how imgui handles it, not checked
 	const int vtx_start = dl->VtxBuffer.size();
 	const int idx_start = dl->IdxBuffer.size();
 	dl->VtxBuffer.resize(dl->VtxBuffer.size() + src->VtxBuffer.size());
@@ -103,6 +107,137 @@ Canvas::AppendDrawData(
 	dl->_VtxCurrentIdx += src->VtxBuffer.size();
 	dl->_VtxWritePtr = dl->VtxBuffer.Data + dl->VtxBuffer.size();
 	dl->_IdxWritePtr = dl->IdxBuffer.Data + dl->IdxBuffer.size();
+#else  // scotbrew patch submitted to ImNodeFlow: eae8e3acedbab0844b18c0689e4a07ec4eab8f43
+	if ( src->VtxBuffer.empty() || src->CmdBuffer.empty() )
+	{
+		return;
+	}
+
+	const bool hasVtxOffset = (ImGui::GetIO().BackendFlags & ImGuiBackendFlags_RendererHasVtxOffset) != 0;
+
+	// Extend destination buffers and transform vertices into place.
+	//   VtxBuffer and IdxBuffer were pre-reserved in end() so these resize()
+	//   calls should not realloc in the common case.
+	const unsigned int vtx_start = static_cast<unsigned int>(dl->VtxBuffer.Size);
+	const unsigned int idx_start = static_cast<unsigned int>(dl->IdxBuffer.Size);
+
+	dl->VtxBuffer.resize(dl->VtxBuffer.Size + src->VtxBuffer.Size);
+	dl->IdxBuffer.resize(dl->IdxBuffer.Size + src->IdxBuffer.Size);
+	dl->CmdBuffer.reserve(dl->CmdBuffer.Size + src->CmdBuffer.Size);
+
+	{
+		ImDrawVert* dst_v = dl->VtxBuffer.Data + vtx_start;
+		const ImDrawVert* src_v = src->VtxBuffer.Data;
+		for ( int i = 0; i < src->VtxBuffer.Size; ++i )
+		{
+			dst_v[i].uv = src_v[i].uv;
+			dst_v[i].col = src_v[i].col;
+			dst_v[i].pos = src_v[i].pos * my_scale + my_origin;
+		}
+	}
+
+	// Copy indices and fixup commands.
+	ImDrawIdx* dst_idx_base = dl->IdxBuffer.Data + idx_start;
+
+	if ( hasVtxOffset )
+	{
+		// Hot path: all modern backends (DX11/12, Vulkan, Metal, GL3+).
+
+		// Indices are segment-relative and require no per-index arithmetic —
+		// bulk copy the entire index buffer in one shot, then fix up cmd
+		// offsets in the command loop. This uses a single SIMD-optimised memcpy
+		// instead of a scalar loop.
+		memcpy(dst_idx_base, src->IdxBuffer.Data, src->IdxBuffer.Size * sizeof(ImDrawIdx));
+
+		// Cache for segment boundary scan: ImGui emits commands in non-decreasing
+		// VtxOffset order, so consecutive commands often share the same segment.
+		// Recomputing the forward scan per command would be O(n^2); caching the
+		// result per unique VtxOffset keeps it O(n).
+		unsigned int cached_vtx_offset = UINT_MAX;
+		unsigned int cached_seg_vtx_count = 0;
+
+		for ( int ci = 0; ci < src->CmdBuffer.Size; ++ci )
+		{
+			ImDrawCmd cmd = src->CmdBuffer[ci];
+
+			cmd.ClipRect.x = cmd.ClipRect.x * my_scale + my_origin.x;
+			cmd.ClipRect.y = cmd.ClipRect.y * my_scale + my_origin.y;
+			cmd.ClipRect.z = cmd.ClipRect.z * my_scale + my_origin.x;
+			cmd.ClipRect.w = cmd.ClipRect.w * my_scale + my_origin.y;
+
+			// Compute the vertex count for this segment so _VtxCurrentIdx
+			// stays segment-relative (never exceeds 65535 with 16-bit indices).
+			// Skip the scan when this command shares a VtxOffset with the
+			// previous one — same segment, boundary already known.
+			if ( cmd.VtxOffset != cached_vtx_offset )
+			{
+				cached_vtx_offset = cmd.VtxOffset;
+				unsigned int next_vtx_offset = static_cast<unsigned int>(src->VtxBuffer.Size);
+				for ( int ni = ci + 1; ni < src->CmdBuffer.Size; ++ni )
+				{
+					if ( src->CmdBuffer[ni].VtxOffset > cmd.VtxOffset )
+					{
+						next_vtx_offset = src->CmdBuffer[ni].VtxOffset;
+						break;
+					}
+				}
+				cached_seg_vtx_count = next_vtx_offset - cmd.VtxOffset;
+			}
+
+			// Segment-relative count keeps the ImGui 16-bit index assert happy.
+			dl->_VtxCurrentIdx = cached_seg_vtx_count;
+
+			cmd.VtxOffset += vtx_start;
+			cmd.IdxOffset += idx_start;
+			dl->CmdBuffer.push_back(cmd);
+		}
+	}
+	else
+	{
+		// Cold path: Legacy backends without RendererHasVtxOffset (OpenGL 2.x / ES2).
+
+		// Bake the vertex offset into each index to produce absolute outer-buffer
+		// indices, since these backends cannot use cmd.VtxOffset to shift the base.
+		const ImDrawIdx* src_idx_base = src->IdxBuffer.Data;
+
+		for ( auto cmd : src->CmdBuffer )
+		{
+			// Note: cmd is a local copy
+			IM_ASSERT(cmd.VtxOffset == 0 && "Non-zero VtxOffset in legacy path; backend flag mismatch. Should not happen.");
+
+			// Adjust clipping
+			cmd.ClipRect.x = cmd.ClipRect.x * my_scale + my_origin.x;
+			cmd.ClipRect.y = cmd.ClipRect.y * my_scale + my_origin.y;
+			cmd.ClipRect.z = cmd.ClipRect.z * my_scale + my_origin.x;
+			cmd.ClipRect.w = cmd.ClipRect.w * my_scale + my_origin.y;
+
+			const unsigned int base = vtx_start + cmd.VtxOffset;
+			// Verify the baked indices will fit in ImDrawIdx, handles both 16 and 32-bit indices.
+			IM_ASSERT((sizeof(ImDrawIdx) >= 4 ||
+				base + static_cast<unsigned int>(src->VtxBuffer.Size) - 1u
+				<= static_cast<unsigned int>(std::numeric_limits<ImDrawIdx>::max()))
+				&& "Vertex count exceeds ImDrawIdx range; enable RendererHasVtxOffset or use 32-bit indices");
+
+			const ImDrawIdx* si = src_idx_base + cmd.IdxOffset;
+			ImDrawIdx* di = dst_idx_base + cmd.IdxOffset;
+			for ( unsigned int ii = 0; ii < cmd.ElemCount; ++ii )
+			{
+				di[ii] = static_cast<ImDrawIdx>(si[ii] + base);
+			}
+			cmd.VtxOffset = 0;
+			cmd.IdxOffset += idx_start;
+			dl->CmdBuffer.push_back(cmd);
+		}
+
+		// Guaranteed safe by the IM_ASSERT above.
+		dl->_VtxCurrentIdx = vtx_start + static_cast<unsigned int>(src->VtxBuffer.Size);
+	}
+
+	// Advance write pointers to the new buffer ends.
+	// _VtxCurrentIdx was already set inside each path above.
+	dl->_VtxWritePtr = dl->VtxBuffer.Data + dl->VtxBuffer.Size;
+	dl->_IdxWritePtr = dl->IdxBuffer.Data + dl->IdxBuffer.Size;
+#endif
 }
 
 
