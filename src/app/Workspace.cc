@@ -463,9 +463,11 @@ Workspace::GenerateDataFileName(
 {
 	using namespace trezanik::core;
 
+	if ( node_id == blank_uuid || type_id == blank_uuid )
+		return "";
+
 	std::string  retval = my_save_dir;
 
-	retval += TZK_PATH_CHARSTR;
 	retval += my_id.GetCanonical();
 
 	/*
