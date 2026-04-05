@@ -36,6 +36,10 @@ struct registry_autostarts;
 struct software_inventory;
 struct folder_contents;
 struct file_autostarts;
+struct prefetch_data;
+struct port_scan_data;
+struct browser_data;
+struct scheduled_tasks;
 struct fdata_visitor;
 
 
@@ -59,7 +63,10 @@ public:
 	virtual void Visit(software_inventory* softinv) = 0;
 	virtual void Visit(folder_contents* dircnt) = 0;
 	virtual void Visit(file_autostarts* fautos) = 0;
-	//virtual void Visit(windows_prefetch* pref) = 0;
+	virtual void Visit(prefetch_data* pref) = 0;
+	virtual void Visit(port_scan_data* scan) = 0;
+	virtual void Visit(browser_data* bdata) = 0;
+	virtual void Visit(scheduled_tasks* stasks) = 0;
 
 	//virtual void Visit(fdata_visitor_params* params) = 0;
 };

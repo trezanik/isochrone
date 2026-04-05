@@ -11,7 +11,9 @@
 
 #include "app/ImGuiWkspForensics.h"
 #include "app/ImGuiWorkspace.h"
+#include "app/tasks/Artifacts.h"
 #include "app/tasks/Persistence.h"
+#include "app/tasks/PortScan.h"
 #include "app/tasks/SoftwareInventory.h"
 #include "app/Workspace.h"
 #include "app/ForensicData.h"
@@ -42,11 +44,12 @@ public:
 		ImGuiTreeNodeFlags  viewer_tree_node_flags = ImGuiTreeNodeFlags_Leaf
 			| ImGuiTreeNodeFlags_FramePadding
 			| ImGuiTreeNodeFlags_NoTreePushOnOpen;
-		
+		int  i = 0;
+
 		for ( auto& c : ra->collection )
 		{
 			key = "Key: ";
-			key += c->key;
+			key += c.key;
 
 			// better hope these are organized by key!
 			if ( last_key != key )
@@ -56,7 +59,7 @@ public:
 					ImGui::TreePop();
 					key_open = false;
 				}
-				if ( ImGui::TreeNodeEx(c->key.c_str(), key_tree_node_flags) )
+				if ( ImGui::TreeNodeEx(c.key.c_str(), key_tree_node_flags) )
 				{
 					key_open = true;
 					ImGui::TableNextRow();
@@ -65,12 +68,12 @@ public:
 			}
 			if ( key_open )
 			{
-				ImGui::PushID(c->value.c_str());
-				ImGui::TreeNodeEx(c->value.c_str(), viewer_tree_node_flags);
+				ImGui::PushID(++i);
+				ImGui::TreeNodeEx("val", viewer_tree_node_flags, "%s", c.value.c_str());
 				ImGui::TableNextColumn();
-				ImGui::TreeNodeEx(c->type.c_str(), viewer_tree_node_flags);
+				ImGui::TreeNodeEx("type", viewer_tree_node_flags, "%s", c.type.c_str());
 				ImGui::TableNextColumn();
-				ImGui::TreeNodeEx(c->data.c_str(), viewer_tree_node_flags);
+				ImGui::TreeNodeEx("data", viewer_tree_node_flags, "%s", c.data.c_str());
 				ImGui::TableNextColumn();
 				ImGui::PopID();
 			}
@@ -92,17 +95,22 @@ public:
 
 		for ( auto& p : si->products )
 		{
+			// (Win32) presence of DisplayName or DisplayString required
+			if ( p.name.empty() )
+				continue;
+
 			ImGui::PushID(++i);
-			ImGui::TreeNodeEx(p.name.c_str(), viewer_tree_node_flags);
+			ImGui::TreeNodeEx("name", viewer_tree_node_flags, "%s", p.name.c_str());
 			ImGui::TableNextColumn();
 
-			ImGui::TreeNodeEx(p.version.c_str(), viewer_tree_node_flags);
+			// if tgt is windows
+			ImGui::TreeNodeEx("ver", viewer_tree_node_flags, "%s", p.version.c_str());
 			ImGui::TableNextColumn();
-			ImGui::TreeNodeEx(p.install_date.c_str(), viewer_tree_node_flags);
+			ImGui::TreeNodeEx("instd", viewer_tree_node_flags, "%s", p.install_date.c_str());
 			ImGui::TableNextColumn();
-			ImGui::TreeNodeEx(p.install_target.c_str(), viewer_tree_node_flags);
+			ImGui::TreeNodeEx("instt", viewer_tree_node_flags, "%s", p.install_target.c_str());
 			ImGui::TableNextColumn();
-			ImGui::TreeNodeEx(p.install_source.c_str(), viewer_tree_node_flags);
+			ImGui::TreeNodeEx("insts", viewer_tree_node_flags, "%s", p.install_source.c_str());
 			ImGui::TableNextColumn();
 			ImGui::PopID();
 		}
@@ -119,16 +127,16 @@ public:
 		for ( auto& p : fa->collection )
 		{
 			ImGui::PushID(++i);
-#if 0
-			ImGui::TreeNodeEx(p.name.c_str(), viewer_tree_node_flags);
+#if 1
+			ImGui::TreeNodeEx("name", viewer_tree_node_flags, "%s", p.name.c_str());
 			ImGui::TableNextColumn();
-			ImGui::TreeNodeEx(p.version.c_str(), viewer_tree_node_flags);
+			ImGui::TreeNodeEx("tgt", viewer_tree_node_flags, "%s", p.target.c_str());
 			ImGui::TableNextColumn();
-			ImGui::TreeNodeEx(p.install_date.c_str(), viewer_tree_node_flags);
+			ImGui::TreeNodeEx("relp", viewer_tree_node_flags, "%s", p.relative_path.c_str());
 			ImGui::TableNextColumn();
-			ImGui::TreeNodeEx(p.install_target.c_str(), viewer_tree_node_flags);
+			ImGui::TreeNodeEx("args", viewer_tree_node_flags, "%s", p.cmdline.c_str());
 			ImGui::TableNextColumn();
-			ImGui::TreeNodeEx(p.install_source.c_str(), viewer_tree_node_flags);
+			ImGui::TreeNodeEx("wdir", viewer_tree_node_flags, "%s", p.working_dir.c_str());
 			ImGui::TableNextColumn();
 #endif
 			ImGui::PopID();
@@ -137,6 +145,7 @@ public:
 
 	virtual void Visit(folder_contents* fc) override
 	{
+#if 0  // still todo
 		ImGuiTreeNodeFlags  viewer_tree_node_flags = ImGuiTreeNodeFlags_Leaf
 			| ImGuiTreeNodeFlags_SpanFullWidth
 			| ImGuiTreeNodeFlags_FramePadding
@@ -146,18 +155,103 @@ public:
 		for ( auto& p : fc->collection )
 		{
 			ImGui::PushID(++i);
-#if 0
-			ImGui::TreeNodeEx(p.name.c_str(), viewer_tree_node_flags);
-			ImGui::TableNextColumn();
-			ImGui::TreeNodeEx(p.version.c_str(), viewer_tree_node_flags);
-			ImGui::TableNextColumn();
-			ImGui::TreeNodeEx(p.install_date.c_str(), viewer_tree_node_flags);
-			ImGui::TableNextColumn();
-			ImGui::TreeNodeEx(p.install_target.c_str(), viewer_tree_node_flags);
-			ImGui::TableNextColumn();
-			ImGui::TreeNodeEx(p.install_source.c_str(), viewer_tree_node_flags);
-			ImGui::TableNextColumn();
+
+
+
+			ImGui::PopID();
+		}
 #endif
+	}
+
+	virtual void Visit(browser_data* fc) override
+	{
+		ImGuiTreeNodeFlags  viewer_tree_node_flags = ImGuiTreeNodeFlags_Leaf
+			| ImGuiTreeNodeFlags_SpanFullWidth
+			| ImGuiTreeNodeFlags_FramePadding
+			| ImGuiTreeNodeFlags_NoTreePushOnOpen;
+		int  i = 0;
+
+		for ( auto& p : fc->items )
+		{
+			ImGui::PushID(++i);
+
+			ImGui::TreeNodeEx("dir", viewer_tree_node_flags, "%s", p.folder.c_str());
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("name", viewer_tree_node_flags, "%s", p.filename.c_str());
+			ImGui::TableNextColumn();
+
+			ImGui::PopID();
+		}
+	}
+
+	virtual void Visit(scheduled_tasks* st) override
+	{
+		ImGuiTreeNodeFlags  viewer_tree_node_flags = ImGuiTreeNodeFlags_Leaf
+			| ImGuiTreeNodeFlags_SpanFullWidth
+			| ImGuiTreeNodeFlags_FramePadding
+			| ImGuiTreeNodeFlags_NoTreePushOnOpen;
+		int  i = 0;
+
+		for ( auto& p : st->tasks )
+		{
+			ImGui::PushID(++i);
+
+			
+
+			ImGui::PopID();
+		}
+	}
+
+	virtual void Visit(prefetch_data* pf) override
+	{
+		ImGuiTreeNodeFlags  viewer_tree_node_flags = ImGuiTreeNodeFlags_Leaf
+			| ImGuiTreeNodeFlags_SpanFullWidth
+			| ImGuiTreeNodeFlags_FramePadding
+			| ImGuiTreeNodeFlags_NoTreePushOnOpen;
+		int  i = 0;
+
+		for ( auto& p : pf->items )
+		{
+			ImGui::PushID(++i);
+
+			ImGui::TreeNodeEx("ver", viewer_tree_node_flags, "%s", std::to_string(p.prefetch_version).c_str());
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("exec", viewer_tree_node_flags, "%s", p.executed.c_str());
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("hash", viewer_tree_node_flags, "%s", p.hash.c_str());
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("mods", viewer_tree_node_flags, "%s", std::to_string(p.modules.size()).c_str());
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("lrt", viewer_tree_node_flags, "%s", std::to_string(p.last_run_times.size()).c_str());
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("rc", viewer_tree_node_flags, "%s", std::to_string(p.run_count).c_str());
+			ImGui::TableNextColumn();
+
+			ImGui::PopID();
+		}
+	}
+
+	virtual void Visit(port_scan_data* ps) override
+	{
+		ImGuiTreeNodeFlags  viewer_tree_node_flags = ImGuiTreeNodeFlags_Leaf
+			| ImGuiTreeNodeFlags_SpanFullWidth
+			| ImGuiTreeNodeFlags_FramePadding
+			| ImGuiTreeNodeFlags_NoTreePushOnOpen;
+		int  i = 0;
+
+		for ( auto& p : ps->collection )
+		{
+			ImGui::PushID(++i);
+
+			ImGui::TreeNodeEx("svc", viewer_tree_node_flags, "%s", p.svc_name.c_str());
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("ver", viewer_tree_node_flags, "%s", p.svc_version.c_str());
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("port", viewer_tree_node_flags, "%s", std::to_string(p.port).c_str());
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("prot", viewer_tree_node_flags, "%s", std::to_string(p.proto).c_str());
+			ImGui::TableNextColumn();
+
 			ImGui::PopID();
 		}
 	}
@@ -302,6 +396,8 @@ ImGuiWkspForensics::DrawNodeOps(
 		static int   sel_lb_pos = -1;
 		static bool  cb_include_user = false;
 		static char  user_spec[64];
+		static bool  sel_lb_item_has_user = false;
+		static bool  sel_lb_item_requires_user = false;
 
 		if ( ImGui::BeginListBox("##AvailableMethods", lb_size) )
 		{
@@ -309,7 +405,10 @@ ImGuiWkspForensics::DrawNodeOps(
 				"Registry Autostarts [Windows]",
 				"Prefetch [Windows]",
 				"File Autostarts",
-				"Software Inventory"
+				"Software Inventory",
+				"Port Scan",
+				"Browser Data",
+				"Scheduled Tasks [Windows]"
 			};
 			int   pos = -1;
 
@@ -320,6 +419,28 @@ ImGuiWkspForensics::DrawNodeOps(
 				if ( ImGui::Selectable(t.c_str(), is_selected) )
 				{
 					sel_lb_pos = pos;
+					switch ( sel_lb_pos )
+					{
+						// yeah, I know - will sort in future once structure set
+					case 0: // reg
+					case 2: // fauto
+					case 3: // sinv
+					case 6: // task
+						sel_lb_item_has_user = true;
+						sel_lb_item_requires_user = false;
+						break;
+					case 1: // pfetch
+					case 4: // pscan
+						sel_lb_item_has_user = false;
+						sel_lb_item_requires_user = false;
+						break;
+					case 5: // bhist
+						sel_lb_item_has_user = true;
+						sel_lb_item_requires_user = true;
+						break;
+					default:
+						break;
+					}
 				}
 				if ( is_selected )
 				{
@@ -334,24 +455,38 @@ ImGuiWkspForensics::DrawNodeOps(
 		ImGui::BeginGroup();
 		{
 			float  midsec_width = 150.f;
+			bool   exec_disabled = sel_lb_pos == -1 || (sel_lb_item_requires_user && user_spec[0] == '\0');
 			
-			if ( sel_lb_pos != -1 )
+			if ( exec_disabled )
 				ImGui::BeginDisabled();
 			ImGui::PushItemWidth(midsec_width);
 			if ( ImGui::Button("Execute") )
 			{
+				// %s, method
+				TZK_LOG_FORMAT(LogLevel::Info, "Executing method %zu with user: %s",
+					sel_lb_pos, (sel_lb_item_has_user && cb_include_user) ? user_spec : "<none>"
+				);
+
 				// spawn
 			}
 			ImGui::PopItemWidth();
-			if ( sel_lb_pos != -1 )
+			if ( exec_disabled )
 				ImGui::EndDisabled();
 
-			if ( ImGui::Checkbox("Include User", &cb_include_user) )
+			if ( !sel_lb_item_has_user && !sel_lb_item_requires_user )
 			{
+				ImGui::BeginDisabled();
 			}
+			ImGui::Checkbox("Include User", &cb_include_user);
 			ImGui::PushItemWidth(midsec_width);
 			ImGui::InputText("##user", user_spec, sizeof(user_spec));//, flags);
+			ImGui::SameLine();
+			ImGui::HelpMarker("When omitted, only system-scope items are included");
 			ImGui::PopItemWidth();
+			if ( !sel_lb_item_has_user && !sel_lb_item_requires_user )
+			{
+				ImGui::EndDisabled();
+			}
 		}
 		ImGui::EndGroup();
 		ImGui::SameLine();
@@ -409,6 +544,9 @@ ImGuiWkspForensics::DrawNodeOps(
 					case cth_windows_reg_autostarts:  dname = "winregauto##"; break;
 					case cth_windows_file_autostarts: dname = "winfileauto##"; break;
 					case cth_folder_content:          dname = "fldrcontent##"; break;
+					case cth_port_scan:               dname = "portscan##"; break;
+					case cth_browser_data:            dname = "browser##"; break;
+					case cth_scheduled_tasks:         dname = "stasks##"; break;
 					default: dname = "unknown##"; break;
 					}
 					dname += std::to_string(entry->acquired);
@@ -482,8 +620,10 @@ ImGuiWkspForensics::DrawNodeOps(
 			// argh, I hate this! only because we must know the column count in advance
 			switch ( my_selected_fdata->type )
 			{
+			case cth_windows_file_autostarts: num_columns = 5; break;
 			case cth_windows_reg_autostarts: num_columns = 3; break;
-			case cth_windows_prefetch: num_columns = 3; break;
+			case cth_windows_prefetch: num_columns = 6; break;
+			case cth_port_scan: num_columns = 4; break;
 			case cth_software_inventory: num_columns = 5; break; // !if linux, 1!
 			default:
 				break;
@@ -497,6 +637,17 @@ ImGuiWkspForensics::DrawNodeOps(
 
 				switch ( my_selected_fdata->type )
 				{
+				case cth_windows_file_autostarts:
+					ImGui::TableSetupColumn("Name", col_flags); 
+					ImGui::TableSetupColumn("Target", col_flags);
+					ImGui::TableSetupColumn("RelativePath", col_flags);
+					ImGui::TableSetupColumn("CommandLine", col_flags);
+					ImGui::TableSetupColumn("WorkingDir", col_flags);
+					ImGui::TableHeadersRow();
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					printer.Visit((file_autostarts*)my_selected_fdata.get());
+					break;
 				case cth_windows_reg_autostarts:
 					ImGui::TableSetupColumn("Value", col_flags);
 					ImGui::TableSetupColumn("Type", col_flags);
@@ -505,8 +656,6 @@ ImGuiWkspForensics::DrawNodeOps(
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn();
 					printer.Visit((registry_autostarts*)my_selected_fdata.get());
-					break;
-				case cth_windows_prefetch:
 					break;
 				case cth_software_inventory:
 					// target windows - table, x columns
@@ -521,10 +670,49 @@ ImGuiWkspForensics::DrawNodeOps(
 					ImGui::TableNextColumn();
 					printer.Visit((software_inventory*)my_selected_fdata.get());
 					break;
-				case cth_file_autostarts:
+				case cth_windows_prefetch:
+					ImGui::TableSetupColumn("Version", col_flags);
+					ImGui::TableSetupColumn("Executed", col_flags);
+					ImGui::TableSetupColumn("Hash", col_flags);
+					ImGui::TableSetupColumn("Modules", col_flags);
+					ImGui::TableSetupColumn("LastRunTimes", col_flags);
+					ImGui::TableSetupColumn("RunCount", col_flags);
+					ImGui::TableHeadersRow();
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					printer.Visit((prefetch_data*)my_selected_fdata.get());
 					break;
+				case cth_port_scan:
+					ImGui::TableSetupColumn("Service", col_flags);
+					ImGui::TableSetupColumn("Version", col_flags);
+					ImGui::TableSetupColumn("Port", col_flags);
+					ImGui::TableSetupColumn("Protocol", col_flags);
+					ImGui::TableHeadersRow();
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					printer.Visit((port_scan_data*)my_selected_fdata.get());
+					break;
+				case cth_browser_data:
+					ImGui::TableSetupColumn("Folder", col_flags);
+					ImGui::TableSetupColumn("Name", col_flags);
+					ImGui::TableHeadersRow();
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					printer.Visit((browser_data*)my_selected_fdata.get());
+					break;
+				case cth_scheduled_tasks:
+					ImGui::TableSetupColumn("Location", col_flags);
+					ImGui::TableSetupColumn("Name", col_flags);
+					ImGui::TableSetupColumn("RunAs", col_flags);
+					ImGui::TableSetupColumn("Execute", col_flags);
+					ImGui::TableSetupColumn("LastRun", col_flags);
+					ImGui::TableHeadersRow();
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					printer.Visit((scheduled_tasks*)my_selected_fdata.get());
+					break;
+				case cth_unixlike_cronjobs:  // fall through
 				case cth_folder_content:
-					break;
 				default:
 					break;
 				}

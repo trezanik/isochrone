@@ -11,9 +11,10 @@
 #include "app/Workspace.h"
 // structure types and ids for everything that is forensic-data based
 #include "app/tasks/SoftwareInventory.h"
-//#include "app/tasks/WindowsPrefetch.h"
+#include "app/tasks/Artifacts.h"
 //#include "app/tasks/WindowsFileAutostarts.h"
 #include "app/tasks/Persistence.h"
+#include "app/tasks/PortScan.h"
 
 #include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
@@ -99,6 +100,8 @@ ReadFileToString(
 {
 	using namespace trezanik::core;
 
+	fseek(fp, 0, SEEK_SET);
+
 	std::string  retval;
 	char    stack_buf[2048];
 	char*   buf = stack_buf;
@@ -118,7 +121,6 @@ ReadFileToString(
 
 	// we allocate/reserve one character for a nul terminator
 	memset(buf, '\0', buf_size + 1);
-	fseek(fp, 0, SEEK_SET);
 
 	//aux::file::open_stream(fpath);
 	if ( (num_read = aux::file::read(fp, buf, fs)) == fs )
@@ -439,12 +441,15 @@ ForensicData::Preload(
 		// factoryyyyy
 		switch ( type )
 		{
-		case cth_software_inventory:  fentry = std::make_shared<software_inventory>(); break;
-			// prefetch should be specific files, otherwise we can just use the folder getter
-		//case cth_windows_prefetch:    fentry = std::make_shared<windows_prefetch>(); break;
+		case cth_software_inventory:      fentry = std::make_shared<software_inventory>(); break;
+		case cth_windows_prefetch:        fentry = std::make_shared<prefetch_data>(); break;
 		case cth_windows_reg_autostarts:  fentry = std::make_shared<registry_autostarts>(); break;
-		case cth_file_autostarts:  fentry = std::make_shared<file_autostarts>(); break;
-		case cth_folder_content:   fentry = std::make_shared<folder_contents>(); break;
+		case cth_windows_file_autostarts: fentry = std::make_shared<file_autostarts>(); break;
+		case cth_port_scan:               fentry = std::make_shared<port_scan_data>(); break;
+		case cth_browser_data:            fentry = std::make_shared<browser_data>(); break;
+		case cth_folder_content:          fentry = std::make_shared<folder_contents>(); break;
+		case cth_scheduled_tasks:         fentry = std::make_shared<scheduled_tasks>(); break;
+		case cth_unixlike_cronjobs:   break;//
 		default:
 			// indicates an addition we forgot, or a user doing random stuff
 			TZK_LOG_FORMAT(LogLevel::Warning, "Found unhandled datatype hash: %s", dataid.c_str());
@@ -501,10 +506,12 @@ ForensicData::Read(
 	switch ( data->type )
 	{
 	case cth_software_inventory:      retval = ParseForensicsData<SoftwareInventoryParser>(data, str); break;
-	//case cth_windows_prefetch:        retval = ParseForensicsData<WindowsPrefetchParser>(data, str); break;
+	case cth_windows_prefetch:        retval = ParseForensicsData<WindowsPrefetchParser>(data, str); break;
 	case cth_folder_content:          retval = ParseForensicsData<FolderContentParser>(data, str); break;
 	case cth_windows_file_autostarts: retval = ParseForensicsData<WindowsFileAutostartsParser>(data, str); break;
 	case cth_windows_reg_autostarts:  retval = ParseForensicsData<WindowsRegistryAutostartsParser>(data, str); break;
+	case cth_browser_data:            retval = ParseForensicsData<BrowserDataParser>(data, str); break;
+	case cth_scheduled_tasks:         retval = ParseForensicsData<ScheduledTasksParser>(data, str); break;
 	default:
 		TZK_LOG_FORMAT(LogLevel::Warning, "Data type %u not handled", data->type);
 		retval = ErrTYPE;

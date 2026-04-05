@@ -56,6 +56,11 @@ public:
 		const uint8_t uint8
 	);
 
+	static T
+	FromUint32(
+		const uint32_t uint32
+	);
+
 	static std::string
 	ToString(
 		const T type
@@ -65,7 +70,23 @@ public:
 	ToUint8(
 		const T type
 	);
+
+	static uint32_t
+	ToUint32(
+		const T type
+	);
 };
+
+
+
+/**
+ * I'm debating where and how to use this given Windows changes, so this is just
+ * a dump here for now - NOT its final destination!
+ */
+std::string
+WindowsVersionToString(
+	uint16_t winver
+);
 
 
 } // namespace app

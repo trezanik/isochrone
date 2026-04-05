@@ -8,7 +8,9 @@
 #include "app/definitions.h"
 
 #include "app/tasks/Task.h"
+#include "app/AppConfigDefs.h"
 
+#include "core/services/config/Config.h"
 #include "core/services/log/Log.h"
 #include "core/services/memory/Memory.h"
 #include "core/services/ServiceLocator.h"
@@ -19,11 +21,14 @@
 #	include "core/util/winops.h"
 #	include "core/util/string/textconv.h"
 #else
+#	include "core/util/filesystem/file.h"
+#	include "core/util/string/string.h"
 #	include <asm/termbits.h>
 #	include <spawn.h>
 #	include <sys/ioctl.h>
 #	include <sys/wait.h>
 #	include <fcntl.h>
+#	include <wordexp.h>
 #endif
 
 
@@ -216,18 +221,30 @@ Task::Stop()
 
 CommonExec::CommonExec(
 	std::string& outfile_path,
-	Task* t
+	Task* task,
+	bool redirect_output
 )
-: my_t(t)
+: my_task(task)
+, redirect_output(redirect_output)
 {
-	sa.nLength = sizeof(sa);
-	sa.lpSecurityDescriptor = NULL;
-	sa.bInheritHandle = TRUE; // required so we can capture stdout
+	using namespace trezanik::core;
 
-	std::wstring  wstr_path = core::aux::UTF8ToUTF16(outfile_path);
-	// create the file for redirected output to be written to
-	entry_file = ::CreateFile(wstr_path.c_str(), desired_access, shared_mode, &sa, create_disp, flagsattr, template_file);
-	// throw
+	if ( redirect_output )
+	{
+		sa.nLength = sizeof(sa);
+		sa.lpSecurityDescriptor = NULL;
+		sa.bInheritHandle = TRUE; // required so we can capture stdout
+
+		std::wstring  wstr_path = core::aux::UTF8ToUTF16(outfile_path);
+		// create the file for redirected output to be written to
+		entry_file = ::CreateFile(wstr_path.c_str(), desired_access, shared_mode, &sa, create_disp, flagsattr, template_file);
+		if ( entry_file == INVALID_HANDLE_VALUE )
+		{
+			const char  msg[] = "Failed to open output file";
+			TZK_LOG_FORMAT(LogLevel::Warning, "%s: '%s'", msg, outfile_path.c_str());
+			throw std::runtime_error(msg);
+		}
+	}
 }
 
 
@@ -251,8 +268,15 @@ CommonExec::Exec(
 	using namespace trezanik::core;
 	using namespace trezanik::core::aux;
 
+	my_task->_detail = executable;
+	if ( !args.empty() )
+	{
+		my_task->_detail += " ";
+		my_task->_detail += args;
+	}
+
 	std::wstring  wexec = core::aux::UTF8ToUTF16(executable);
-	std::wstring  wargs = core::aux::UTF8ToUTF16(my_t->GenerateCommandArgs());
+	std::wstring  wargs = core::aux::UTF8ToUTF16(my_task->GenerateCommandArgs());
 	wchar_t   stack[2048];
 	wchar_t*  wbuf = stack;
 	size_t    wbuf_cnt = _countof(stack);
@@ -267,16 +291,19 @@ CommonExec::Exec(
 
 	if ( spawn(INFINITE, exit_code, entry_file, wexec.c_str(), wbuf) == ErrNONE && exit_code == 0 )
 	{
-		LARGE_INTEGER  fsize;
+		if ( redirect_output )
+		{
+			LARGE_INTEGER  fsize;
 
-		if ( ::GetFileSizeEx(entry_file, &fsize) == 0 )
-		{
-			TZK_LOG(LogLevel::Warning, "GetFileSizeEx failed");
-			retval = ErrEXTERN;
-		}
-		else
-		{
-			retval = (fsize.QuadPart > 0) ? ErrNONE : ErrDATA;
+			if ( ::GetFileSizeEx(entry_file, &fsize) == 0 )
+			{
+				TZK_LOG(LogLevel::Warning, "GetFileSizeEx failed");
+				retval = ErrEXTERN;
+			}
+			else
+			{
+				retval = (fsize.QuadPart > 0) ? ErrNONE : ErrDATA;
+			}
 		}
 	}
 
@@ -292,9 +319,11 @@ CommonExec::Exec(
 
 CommonExec::CommonExec(
 	std::string& outfile_path,
-	Task* t
+	Task* task,
+	bool redirect_output
 )
-: my_t(t)
+: my_task(task)
+, redirect_output(redirect_output)
 , fpath(outfile_path)
 {
 
@@ -305,6 +334,7 @@ CommonExec::~CommonExec()
 {
 	using namespace trezanik::core;
 
+#if 0  // Code Disabled: all operations done via FILE*, but pipes may be desired in future
 	if ( pipe_fds[0] != -1 && ::close(pipe_fds[0]) != 0 )
 	{
 		TZK_LOG_FORMAT(LogLevel::Warning, "Failed to close read pipe: %s", err_as_string((errno_ext)errno));
@@ -313,6 +343,7 @@ CommonExec::~CommonExec()
 	{
 		TZK_LOG_FORMAT(LogLevel::Warning, "Failed to close write pipe: %s", err_as_string((errno_ext)errno));
 	}
+#endif
 	if ( fp != nullptr )
 	{
 		aux::file::close(fp);
@@ -327,8 +358,39 @@ CommonExec::Exec(
 {
 	using namespace trezanik::core;
 
-	int  rc;
+	int    rc;
 	pid_t  pid;
+
+	args = my_task->GenerateCommandArgs();
+	/*
+	 * Argument list is always mandatory down this route!
+	 * A target or input file with details is needed for everything we execute,
+	 * so I don't see us never needing this
+	 */
+	if ( args.empty() )
+	{
+		return ErrFAILED;
+	}
+
+	my_task->_detail = executable;
+	my_task->_detail += " ";
+	my_task->_detail += args;
+
+	/*
+	 * wordexp removes any backslashes automatically; since we want to preserve
+	 * them (in the situation say, this is a reg key in the argument list) we'll
+	 * escape each one.
+	 * Other characters may also need to be considered and handled here - there's
+	 * quite a list. For now, this covers "regular" stuff
+	 */
+	std::string  full = my_task->_detail;
+	for ( auto c = full.begin(); c != full.end(); c++ )
+	{
+		if ( *c == '\\' )
+		{
+			c = full.insert(++c, '\\');
+		}
+	}
 
 	posix_spawn_file_actions_t  action;
 
@@ -338,30 +400,54 @@ CommonExec::Exec(
 		return ErrSYSAPI;
 	}
 
-	if ( (rc = posix_spawn_file_actions_addopen(
-		&action, STDOUT_FILENO, fpath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644
-	)) != 0 )
+	if ( redirect_output )
 	{
-		TZK_LOG_FORMAT(LogLevel::Warning, "Failed: %s (%d)", "posix_spawn_file_actions_addopen", rc);
-		return ErrSYSAPI;
-	}
+		if ( (rc = posix_spawn_file_actions_addopen(
+			&action, STDOUT_FILENO, fpath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644
+		)) != 0 )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Failed: %s (%d)", "posix_spawn_file_actions_addopen", rc);
+			return ErrSYSAPI;
+		}
 
-	// add stderr to stdout (so also written to file)
-	if ( (rc = posix_spawn_file_actions_adddup2(&action, STDOUT_FILENO, STDERR_FILENO)) != 0 )
-	{
-		TZK_LOG_FORMAT(LogLevel::Warning, "Failed: %s (%d)", "posix_spawn_file_actions_addup2", rc);
-		return ErrSYSAPI;
+		// add stderr to stdout (so also written to file)
+		if ( (rc = posix_spawn_file_actions_adddup2(&action, STDOUT_FILENO, STDERR_FILENO)) != 0 )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "Failed: %s (%d)", "posix_spawn_file_actions_addup2", rc);
+			return ErrSYSAPI;
+		}
 	}
 
 	int  retval;
+	wordexp_t  exp;
+	char**  spawn_args = nullptr;
 
-	if ( (rc = posix_spawn(&pid, command.c_str(), &action, nullptr, args, environ)) == 0 )
+	if ( (rc = wordexp(full.c_str(), &exp, WRDE_NOCMD|WRDE_UNDEF)) == 0 )
+	{
+		if ( exp.we_wordc > 0 )
+		{
+			spawn_args = exp.we_wordv;
+#if 0  // Code Disabled: validation
+			for ( size_t i = 0; i < exp.we_wordc; i++ )
+			{
+				TZK_LOG_FORMAT(LogLevel::Info, "Argument %zu: '%s'", i, spawn_args[i]);
+			}
+#endif
+		}
+	}
+	else if ( !args.empty() )
+	{
+		TZK_LOG_FORMAT(LogLevel::Warning, "Failed: %s (%d)", "wordexp", rc);
+		return ErrSYSAPI;
+	}
+
+	TZK_LOG_FORMAT(LogLevel::Info, "Executing process: '%s'", my_task->_detail.c_str());
+
+	if ( (rc = posix_spawn(&pid, executable.c_str(), &action, nullptr, spawn_args, environ)) == 0 )
 	{
 		siginfo_t  si;
 
 		waitid(P_PID, pid, &si, WEXITED);
-
-		posix_spawn_file_actions_destroy(&action);
 
 		fp = core::aux::file::open(fpath.c_str(), aux::file::OpenFlag_ReadOnly);
 		if ( fp == nullptr )
@@ -369,22 +455,26 @@ CommonExec::Exec(
 			// already logged
 			retval = ErrFAILED;
 		}
-		size_t  fsize = core::aux::file::size(fp);
-		if ( fsize == 0 )
+		else
 		{
-			TZK_LOG(LogLevel::Warning, "Empty output file");
-			retval = ErrEXTERN;
+			size_t  fsize = core::aux::file::size(fp);
+			if ( fsize == 0 )
+			{
+				TZK_LOG(LogLevel::Warning, "Empty output file");
+				retval = ErrEXTERN;
+			}
 		}
 
 		retval = ErrNONE;
 	}
 	else
 	{
-		posix_spawn_file_actions_destroy(&action);
-
 		TZK_LOG_FORMAT(LogLevel::Warning, "Failed: %s (%d)", "posix_spawnp", rc);
 		retval = ErrSYSAPI;
 	}
+
+	posix_spawn_file_actions_destroy(&action);
+	wordfree(&exp);
 
 	return retval;
 }

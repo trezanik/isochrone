@@ -52,45 +52,102 @@ typedef std::function<int()>  async_task;
 class Task;
 
 
+/**
+ * Handles common execution between tasks to cover DRY
+ *
+ * This is effectively the process initiator, with output capture/redirection
+ * set as needed.
+ *
+ * Sets the Task _detail variable, requiring friend access
+ */
 class CommonExec
 {
 private:
-	Task*  my_t;
+	/** Raw pointer to the task we are associated with */
+	Task*  my_task;
+
 public:
 	/**
-	 * .
+	 * Standard constructor
+	 * 
+	 * @param[in] outfile_path
+	 *  The path to the output file for the invoked process
+	 * @param[in] task
+	 *  The Task object we're linked with'
+	 * @param[in] redirect_output
+	 *  Boolean toggle; if true, output (i.e. stdout) is redirected to the
+	 *  outfile_path so the data can be captured/analysed, as some tasks output
+	 *  the exact data we can parse already
 	 */
 	CommonExec(
 		std::string& outfile_path,
-		Task* t
+		Task* task,
+		bool redirect_output = true
 	);
 
+
+	/**
+	 * Standard destructor
+	 */
 	~CommonExec();
 
+
+	/**
+	 * Initiates execution of the provided executable
+	 * 
+	 * Windows:
+	 *  throws if unable to open the output file with redirection enabled
+	 * Non-Windows:
+	 *  wordexp used for arguments concatenation, with associated expansion
+	 *
+	 * @param[in] executable
+	 *  Absolute, relative, or system path location of the file to execute
+	 * @return
+	 *  An error code on failure, otherwise ErrNONE
+	 *  If output redirection is enabled and the resulting file size is 0, even
+	 *  if the process completed successfully this will return ErrEXTERN
+	 */
 	int
 	Exec(
 		std::string executable
 	);
 	
 
+	/** The arguments given to the executable */
 	std::string  args;
 
+	/**
+	 * When we require an intermediate file, redirect output to it. Some
+	 * programs have the options for formatted output to an alternate file via
+	 * inbuilt methods, but this is less frequent so we default to redirection
+	 */
+	bool  redirect_output = true;
+
 #if TZK_IS_WIN32
+	/** Process exit code */
 	DWORD  exit_code;
 
-	// createfile arguments
-	DWORD  desired_access = GENERIC_READ | GENERIC_WRITE;
-	DWORD  shared_mode = FILE_SHARE_READ;
+	/** CreateFile arguments */
 	SECURITY_ATTRIBUTES  sa;
-	
+	DWORD   desired_access = GENERIC_READ | GENERIC_WRITE;
+	DWORD   shared_mode = FILE_SHARE_READ;
 	DWORD   create_disp = CREATE_ALWAYS;
 	DWORD   flagsattr = FILE_ATTRIBUTE_NORMAL;
 	HANDLE  template_file = nullptr;
-	HANDLE  entry_file;
+
+	/** Output redirection file handle, returned by CreateFile */
+	HANDLE  entry_file = INVALID_HANDLE_VALUE;
 #else
+	/** File pointer to the output redirection target */
 	FILE*  fp = nullptr;
-	int  pipe_fds[2] = { -1 };
+	/** The file path opened and used for output redirection */
 	std::string  fpath;
+
+#if 0  // Code Disabled: Unused
+	/** Pipe file descriptiors for redirection without the FILE* */
+	int    pipe_fds[2] = { -1 };
+#endif
+
 #endif
 };
 
@@ -161,7 +218,7 @@ public:
 	 * Standard constructor with bound function
 	 * 
 	 * @param[in] t
-	 *  
+	 *  The task to invoke, being an internal function address
 	 */
 	Task(
 		async_task t
@@ -172,7 +229,9 @@ public:
 	 * Standard constructor with plaintext command
 	 *
 	 * @param[in] command
-	 *
+	 *  A plain command to be executed blindly. This is logged to ensure
+	 *  visibility in case of nefarious actors, as this is a dangerous method to
+	 *  have available for untrusted sources
 	 */
 	Task(
 		std::string& command
@@ -294,6 +353,9 @@ public:
 	 * text field not representative of a command - anything that is suitable
 	 * for feeding back state to the user if they look into what this task is
 	 * and/or what it's doing.
+	 *
+	 * Practically, this is the executable passed to CommonExec with our (a
+	 * derived class instance) arguments appended
 	 * 
 	 * @return
 	 *  A string suitable for displaying to the user

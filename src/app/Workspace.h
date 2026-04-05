@@ -814,6 +814,8 @@ struct credentials_config
 	std::string  username;
 	/** Self-explanatory */
 	std::string  password;
+	/** Self-explanatory */
+	std::string  hash;
 };
 
 /**

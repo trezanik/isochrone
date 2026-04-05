@@ -156,6 +156,18 @@
     <ClCompile Include="..\..\src\app\tasks\Persistence.cc">
       <Filter>Source Files\tasks</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\app\tasks\Artifacts.cc">
+      <Filter>Source Files\tasks</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\private\Lnk.cc">
+      <Filter>Source Files\private</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\private\Prefetch.cc">
+      <Filter>Source Files\private</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\tasks\PortScan.cc">
+      <Filter>Source Files\tasks</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\app\definitions.h">
@@ -303,6 +315,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\app\tasks\Persistence.h">
+      <Filter>Header Files\tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\tasks\Artifacts.h">
+      <Filter>Header Files\tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\private\Lnk.h">
+      <Filter>Header Files\private</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\private\Prefetch.h">
+      <Filter>Header Files\private</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\tasks\PortScan.h">
       <Filter>Header Files\tasks</Filter>
     </ClInclude>
   </ItemGroup>

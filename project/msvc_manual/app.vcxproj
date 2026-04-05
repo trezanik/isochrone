@@ -45,12 +45,16 @@
     <ClCompile Include="..\..\src\app\ImGuiWorkspace.cc" />
     <ClCompile Include="..\..\src\app\main.cc" />
     <ClCompile Include="..\..\src\app\Pong.cc" />
+    <ClCompile Include="..\..\src\app\private\Lnk.cc" />
+    <ClCompile Include="..\..\src\app\private\Prefetch.cc" />
     <ClCompile Include="..\..\src\app\private\Workspace_cc47a409_fbfe_49fc_846a_c36045257a00.cc" />
     <ClCompile Include="..\..\src\app\resources\Resource_Workspace.cc" />
     <ClCompile Include="..\..\src\app\resources\TypeLoader_Workspace.cc" />
+    <ClCompile Include="..\..\src\app\tasks\Artifacts.cc" />
     <ClCompile Include="..\..\src\app\tasks\Persistence.cc" />
     <ClCompile Include="..\..\src\app\tasks\Ping.cc" />
     <ClCompile Include="..\..\src\app\tasks\PingMonitor.cc" />
+    <ClCompile Include="..\..\src\app\tasks\PortScan.cc" />
     <ClCompile Include="..\..\src\app\tasks\SoftwareInventory.cc" />
     <ClCompile Include="..\..\src\app\tasks\Task.cc" />
     <ClCompile Include="..\..\src\app\tasks\Tasker.cc" />
@@ -89,6 +93,8 @@
     <ClInclude Include="..\..\src\app\ImGuiWorkspace.h" />
     <ClInclude Include="..\..\src\app\IWorkspacePimpl.h" />
     <ClInclude Include="..\..\src\app\Pong.h" />
+    <ClInclude Include="..\..\src\app\private\Lnk.h" />
+    <ClInclude Include="..\..\src\app\private\Prefetch.h" />
     <ClInclude Include="..\..\src\app\private\Workspace_cc47a409_fbfe_49fc_846a_c36045257a00.h" />
     <ClInclude Include="..\..\src\app\resources\contf.h" />
     <ClInclude Include="..\..\src\app\resources\error_wav.h" />
@@ -100,9 +106,11 @@
     <ClInclude Include="..\..\src\app\resources\proggyclean.h" />
     <ClInclude Include="..\..\src\app\resources\Resource_Workspace.h" />
     <ClInclude Include="..\..\src\app\resources\TypeLoader_Workspace.h" />
+    <ClInclude Include="..\..\src\app\tasks\Artifacts.h" />
     <ClInclude Include="..\..\src\app\tasks\Persistence.h" />
     <ClInclude Include="..\..\src\app\tasks\Ping.h" />
     <ClInclude Include="..\..\src\app\tasks\PingMonitor.h" />
+    <ClInclude Include="..\..\src\app\tasks\PortScan.h" />
     <ClInclude Include="..\..\src\app\tasks\SoftwareInventory.h" />
     <ClInclude Include="..\..\src\app\tasks\Task.h" />
     <ClInclude Include="..\..\src\app\tasks\Tasker.h" />

@@ -10,7 +10,6 @@
 #if TZK_USING_IMGUI
 
 #include "app/ImGuiWorkspace.h"
-//#include "app/ImGuiWkspDefinition.h"
 #include "app/ImGuiWkspForensics.h"
 #include "app/ImGuiWkspSettings.h"
 #include "app/ImGuiWkspTopology.h"
@@ -21,9 +20,11 @@
 #include "app/TConverter.h"
 #include "app/Command.h"
 #include "app/tasks/Tasker.h"
+#include "app/tasks/Artifacts.h"
 #include "app/tasks/Persistence.h"
 #include "app/tasks/Ping.h"
 #include "app/tasks/PingMonitor.h"
+#include "app/tasks/PortScan.h"
 #include "app/tasks/SoftwareInventory.h"
 #include "app/event/AppEvent.h"
 
@@ -108,9 +109,9 @@ public:
 	{
 		for ( auto& c : ra->collection )
 		{
-			my_str += c->key; my_str += "\n\t";
-			my_str += c->value; my_str += " : ";
-			my_str += c->data; my_str += "\n";
+			my_str += c.key; my_str += "\n\t";
+			my_str += c.value; my_str += " : ";
+			my_str += c.data; my_str += "\n";
 		}
 	}
 
@@ -137,7 +138,11 @@ public:
 	{
 		for ( auto& f : fa->collection )
 		{
-			
+			my_str += f.name; my_str += "\n\t";
+			if ( !f.target.empty() )        { my_str += f.target; my_str += "\n\t"; }
+			if ( !f.relative_path.empty() ) { my_str += f.relative_path; my_str += "\n\t"; }
+			if ( !f.cmdline.empty() )       { my_str += f.cmdline; my_str += "\n\t"; }
+			if ( !f.working_dir.empty() )   { my_str += f.working_dir; my_str += "\n"; }
 		}
 	}
 
@@ -146,6 +151,45 @@ public:
 		for ( auto& e : fc->collection )
 		{
 
+		}
+	}
+
+	virtual void Visit(prefetch_data* pf) override
+	{
+		for ( auto& p : pf->items )
+		{
+			my_str += p.executed; my_str += " | ";
+			my_str += p.hash; my_str += " | ";
+			my_str += std::to_string(p.prefetch_version); my_str += "\n";
+		}
+	}
+
+	virtual void Visit(browser_data* bd) override
+	{
+		for ( auto& e : bd->items )
+		{
+
+		}
+	}
+	
+	virtual void Visit(scheduled_tasks* st) override
+	{
+		for ( auto& e : st->tasks )
+		{
+
+		}
+	}
+
+	virtual void Visit(port_scan_data* ps) override
+	{
+		//my_str = ps.nmap_ver;
+
+		for ( auto& p : ps->collection )
+		{
+			my_str += p.svc_name; my_str += " | ";
+			my_str += p.svc_version; my_str += " | ";
+			my_str += std::to_string(p.port); my_str += " | ";
+			my_str += std::to_string(p.proto); my_str += "\n";
 		}
 	}
 
@@ -712,6 +756,7 @@ public:
 				task_runner.Sync();
 			}
 		}
+#if 0
 		ImGui::SameLine();
 		if ( ImGui::SmallButton("SoftwareInventory") )
 		{
@@ -745,6 +790,8 @@ public:
 				task_runner.Sync();
 			}
 		}
+#endif
+		// quick access toggle
 		ImGui::SameLine();
 		bool  pingmon = node->has_component(cth_cmpt_online_track);
 		ImGui::PushID(node.get());
@@ -1069,6 +1116,8 @@ public:
 				ImGui::EndDisabled();
 			}
 
+			ImGui::EndGroup();
+
 			// optimize! will do away with this eventually anyway, just make list text bold or a different colour
 			auto  res = std::find_if(selected_node->targets.begin(), selected_node->targets.end(), [&tgt_id](auto&& i)
 			{
@@ -1083,7 +1132,6 @@ public:
 #endif
 			}
 
-			ImGui::EndGroup();
 			ImGui::EndTabItem();
 		}
 		if ( ImGui::BeginTabItem("Hardware") )
@@ -1240,10 +1288,14 @@ public:
 
 			ImGui::EndTabItem();
 		}
+		if ( ImGui::BeginTabItem("Topology") )
+		{
+			// need a new file, ImGuiNodeProps, and relevant parts extracted for shared use from ImGuiWkspTopology
+
+			ImGui::EndTabItem();
+		}
 		if ( ImGui::BeginTabItem("Properties") )
 		{
-			/// @todo consider the full propview in here, if appropriate
-
 			static std::string  os_unspecified = TConverter<OperatingSystem>::ToString(OperatingSystem::Invalid);
 			static std::string  os_windows = TConverter<OperatingSystem>::ToString(OperatingSystem::Windows);
 			static std::string  os_linux = TConverter<OperatingSystem>::ToString(OperatingSystem::Linux);
@@ -1275,6 +1327,171 @@ public:
 
 			ImGui::EndTabItem();
 		}
+#if 1  // quick debugging and proof of concept only
+		if ( ImGui::BeginTabItem("TestExec") )
+		{
+			static bool  override = false;
+			
+			core::aux::ip_address  ipaddr;
+
+			auto task_common = [&](trezanik::core::UUID* cred_id) {
+				if ( cred_id == nullptr )
+				{
+					return (errno_ext)EINVAL;
+				}
+				if ( core::aux::string_to_ipaddr(node->targets.front().target.c_str(), ipaddr) > 0 )
+				{
+					for ( auto& c : node->components )
+					{
+						if ( c->component_id == cth_cmpt_credentials )
+						{
+							auto  cc = dynamic_cast<node_component_credentials*>(c.get());
+							*cred_id = cc->id;
+							break;
+						}
+					}
+					if ( *cred_id != blank_uuid )
+					{
+						return ErrNONE;
+					}
+				}
+				return ErrFAILED;
+			};
+
+			ImGui::Checkbox("Override OS restrictions", &override);
+			if ( ImGui::Button("File Autostarts") )
+			{
+				file_autostarts_task_params  params;
+				params.wksp = wksp->GetWorkspace();
+				params.node_uuid = node->id;
+				params.os = OperatingSystem::Windows;  // grab from node, hardcoded for now
+				params.path = "C$\\Users\\t\\Start Menu\\Programs\\Startup";  /// @todo listed, non-default aware
+				// iterate all paths, read in user-specific too if stated. Permit custom paths?
+				//params.path = "C:\\Users\\All Users\\Start Menu\\Programs\\Startup";
+
+				if ( task_common(&params.creds) == ErrNONE )
+				{
+					params.target_addr = ipaddr;
+					auto  fauto = std::make_shared<WindowsFileAutostartsTask>(params);
+					task_runner.AddTask(fauto);
+					task_runner.Sync();
+				}
+			}
+			if ( ImGui::Button("Browser Data (todo)") )
+			{
+				browser_data_task_params  params;
+				params.wksp = wksp->GetWorkspace();
+				params.node_uuid = node->id;
+				params.os = OperatingSystem::Windows;  // grab from node, hardcoded for now
+				// multi-path
+				params.profiles_path = "C$\\Users\\t\\";
+				// chrome local user install? I don't have a system-wide installer to check!
+				params.chromium_targets.push_back("Local Settings\\Application Data\\Google\\Chrome");
+				params.firefox_targets.push_back("Application Data\\Mozilla\\Firefox\\Profiles\\*.default");
+
+				if ( task_common(&params.creds) == ErrNONE )
+				{
+					params.target_addr = ipaddr;
+					auto  bdata = std::make_shared<BrowserDataTask>(params);
+					task_runner.AddTask(bdata);
+					task_runner.Sync();
+				}
+			}
+			if ( ImGui::Button("Folder Content (todo)") )
+			{
+				folder_content_task_params  params;
+				params.wksp = wksp->GetWorkspace();
+				params.node_uuid = node->id;
+
+				if ( task_common(&params.creds) == ErrNONE )
+				{
+					params.target_addr = ipaddr;
+					auto  dcont = std::make_shared<FolderContentTask>(params);
+					task_runner.AddTask(dcont);
+					task_runner.Sync();
+				}
+			}
+			if ( ImGui::Button("Process List (todo)") )
+			{
+			}
+			if ( ImGui::Button("Software Inventory") )
+			{
+				software_inventory_task_params  params;
+				params.wksp = wksp->GetWorkspace();
+				params.node_uuid = node->id;
+				params.os = OperatingSystem::Windows;
+
+				if ( task_common(&params.creds) == ErrNONE )
+				{
+					params.target_addr = ipaddr;
+					auto  inv = std::make_shared<SoftwareInventoryTask>(params);
+					task_runner.AddTask(inv);
+					task_runner.Sync();
+				}
+			}
+			if ( ImGui::Button("Port Scan") )
+			{
+				port_scan_task_params  params;
+				params.wksp = wksp->GetWorkspace();
+				params.node_uuid = node->id;
+
+				auto  scan = std::make_shared<PortScanTask>(params);
+				task_runner.AddTask(scan);
+				task_runner.Sync();
+			}
+			if ( override || selected_node->operating_system == OperatingSystem::Windows )
+			{
+				if ( ImGui::Button("Registry Autostarts") )
+				{
+					registry_autostarts_task_params  params;
+					params.wksp = wksp->GetWorkspace();
+					params.node_uuid = node->id;
+					params.os = OperatingSystem::Windows;  // grab from node, hardcoded for now
+
+					if ( task_common(&params.creds) == ErrNONE )
+					{
+						params.target_addr = ipaddr;
+						auto  rauto = std::make_shared<WindowsRegistryAutostartsTask>(params);
+						task_runner.AddTask(rauto);
+						task_runner.Sync();
+					}
+				}
+				if ( ImGui::Button("Scheduled Tasks") )
+				{
+					scheduled_tasks_task_params  params;
+					params.wksp = wksp->GetWorkspace();
+					params.node_uuid = node->id;
+					params.os = OperatingSystem::Windows;
+
+					if ( task_common(&params.creds) == ErrNONE )
+					{
+						params.target_addr = ipaddr;
+						auto  stasks = std::make_shared<ScheduledTasksTask>(params);
+						task_runner.AddTask(stasks);
+						task_runner.Sync();
+					}
+				}
+				if ( ImGui::Button("Prefetch") )
+				{
+					prefetch_task_params  params;
+					params.wksp = wksp->GetWorkspace();
+					params.node_uuid = node->id;
+					params.os = OperatingSystem::Windows;
+
+					if ( task_common(&params.creds) == ErrNONE )
+					{
+						params.target_addr = ipaddr;
+						auto  pref = std::make_shared<WindowsPrefetchTask>(params);
+						task_runner.AddTask(pref);
+						task_runner.Sync();
+					}
+				}
+				//if ( ImGui::Button("WMI Events") )
+			}
+
+			ImGui::EndTabItem();
+		}
+#endif  // test execution
 		if ( ImGui::BeginTabItem("Data") )
 		{
 			static time_t  last_refresh = 0;
@@ -1327,9 +1544,13 @@ public:
 							std::string  dname;
 							switch ( entry->type )
 							{
-							case cth_software_inventory:     dname = "softinv##"; break;
-							case cth_windows_prefetch:       dname = "winprefetch##"; break;
-							case cth_windows_reg_autostarts: dname = "winregauto##"; break;
+							case cth_software_inventory:      dname = "softinv##"; break;
+							case cth_windows_prefetch:        dname = "winprefetch##"; break;
+							case cth_windows_file_autostarts: dname = "winfileauto##"; break;
+							case cth_windows_reg_autostarts:  dname = "winregauto##"; break;
+							case cth_port_scan:               dname = "portscan##"; break;
+							case cth_browser_data:            dname = "browserdat##"; break;
+							case cth_scheduled_tasks:         dname = "stasks##"; break;
 							default: dname = "unknown##"; break;
 							}
 							dname += std::to_string(entry->acquired);
@@ -1375,7 +1596,11 @@ public:
 									case cth_software_inventory:      printer.Visit((software_inventory*)selected_dat.get()); break;
 									case cth_windows_reg_autostarts:  printer.Visit((registry_autostarts*)selected_dat.get()); break;
 									case cth_windows_file_autostarts: printer.Visit((file_autostarts*)selected_dat.get()); break;
+									case cth_windows_prefetch:        printer.Visit((prefetch_data*)selected_dat.get()); break;
 									case cth_folder_content:          printer.Visit((folder_contents*)selected_dat.get()); break;
+									case cth_port_scan:               printer.Visit((port_scan_data*)selected_dat.get()); break;
+									case cth_browser_data:            printer.Visit((browser_data*)selected_dat.get()); break;
+									case cth_scheduled_tasks:         printer.Visit((scheduled_tasks*)selected_dat.get()); break;
 									default:
 										break;
 									}

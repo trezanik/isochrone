@@ -11,6 +11,7 @@
 #include "app/Workspace.h"
 #include "app/TConverter.h"
 #include "app/ImGuiPreferencesDialog.h" // AudioAction
+#include "app/tasks/Persistence.h" // Windows types
 
 #include "core/util/string/STR_funcs.h"
 
@@ -586,6 +587,95 @@ TConverter<WindowLocation>::ToUint8(
 )
 {
 	return static_cast<uint8_t>(location);
+}
+
+
+
+
+// ----------------
+
+template<>
+std::string
+TConverter<WindowsPriorityClass>::ToString(
+	WindowsPriorityClass priority_class
+)
+{
+	switch ( priority_class )
+	{
+	case WindowsPriorityClass::Realtime: return "REALTIME_PRIORITY_CLASS";
+	case WindowsPriorityClass::High:     return "HIGH_PRIORITY_CLASS";
+	case WindowsPriorityClass::Idle:     return "IDLE_PRIORITY_CLASS";
+	case WindowsPriorityClass::Normal:   return "NORMAL_PRIORITY_CLASS";
+	default:
+		return "Unknown/Invalid";
+	}
+}
+
+
+template<>
+std::string
+TConverter<WindowsTaskStatus>::ToString(
+	WindowsTaskStatus status
+)
+{
+	switch ( status )
+	{
+	case WindowsTaskStatus::Ready:           return "SCHED_S_TASK_READY";
+	case WindowsTaskStatus::Running:         return "SCHED_S_TASK_RUNNING";
+	case WindowsTaskStatus::HasNotRun:       return "SCHED_S_TASK_HAS_NOT_RUN";
+	case WindowsTaskStatus::Disabled:        return "SCHED_S_TASK_DISABLED";
+	case WindowsTaskStatus::NoMoreRuns:      return "SCHED_S_TASK_NO_MORE_RUNS";
+	case WindowsTaskStatus::NoValidTriggers: return "SCHED_S_TASK_NO_VALID_TRIGGERS";
+	case WindowsTaskStatus::Queued:          return "SCHED_S_TASK_QUEUED";
+	case WindowsTaskStatus::NotScheduled:    return "SCHED_S_TASK_NOT_SCHEDULED";
+	default:
+		return "Unknown/Invalid";
+	}
+}
+
+
+template<>
+std::string
+TConverter<TriggerType>::ToString(
+	TriggerType ttype
+)
+{
+	switch ( ttype )
+	{
+	case TriggerType::Once:               return "Once";
+	case TriggerType::Daily:              return "Daily";
+	case TriggerType::Weekly:             return "Weekly";
+	case TriggerType::MonthlyDate:        return "MonthlyDate";
+	case TriggerType::MonthlyDow:         return "MonthlyDayOfWeek";
+	case TriggerType::EventOnIdle:        return "EventOnIdle";
+	case TriggerType::EventAtSystemStart: return "EventAySystemStart";
+	case TriggerType::EventAtLogon:       return "EventAtLogon";
+	default:
+		return "Unknown/Invalid";
+	}
+}
+
+
+std::string
+WindowsVersionToString(
+	uint16_t winver
+)
+{
+	switch ( winver )
+	{
+		case 0x0400: return "Windows NT4";
+		case 0x0500: return "Windows 2000";
+		case 0x0501: return "Windows XP";
+		case 0x0502: return "Windows XPx64/2003";
+		case 0x0600: return "Windows Vista/2008";
+		case 0x0601: return "Windows 7/2008 R2";
+		case 0x0602: return "Windows 8/2012";
+		case 0x0603: return "Windows 8.1/2016";
+		case 0x0a00: return "Windows 10/2019";
+		case 0x0a01: return "Windows 11/2022/2025"; // need to get the accurate ones for these
+		default:
+			return "Unknown/Invalid";
+	}
 }
 
 
