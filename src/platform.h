@@ -68,7 +68,9 @@
 #	 * POSIX.1-2008, requires glibc 2.10.
 #	 * Needed for FTW_DEPTH, realpath behaviour, and others.
 #	 */
-#	define _XOPEN_SOURCE    700
+#	if !defined(_XOPEN_SOURCE) || _XOPEN_SOURCE < 700
+#		define _XOPEN_SOURCE    700
+#	endif
 #endif	// TZK_IS_LINUX
 
 
