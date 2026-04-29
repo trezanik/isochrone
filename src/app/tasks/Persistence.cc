@@ -154,17 +154,10 @@ WindowsRegistryAutostartsTask::Invoke()
 		return retval;
 	}
 
-	auto  pyexec = ServiceLocator::Config()->Get(TZK_CVAR_SETTING_PYTHON_EXECUTABLE);
-	if ( pyexec.empty() )
-	{
-		TZK_LOG(LogLevel::Warning, "No python executable configured");
-		return EINVAL;
-	}
-
 	try
 	{
 		CommonExec  c(fpath_int, this);
-		retval = c.Exec(pyexec.c_str());
+		retval = c.Exec(PythonPath().c_str());
 
 		std::vector<registry_autostart>  autostarts;
 		std::ifstream  intfile(fpath_int);
@@ -644,19 +637,12 @@ WindowsFileAutostartsTask::Invoke()
 		return ErrFAILED;
 	}
 
-	auto  pyexec = ServiceLocator::Config()->Get(TZK_CVAR_SETTING_PYTHON_EXECUTABLE);
-	if ( pyexec.empty() )
-	{
-		TZK_LOG(LogLevel::Warning, "No python executable configured");
-		return EINVAL;
-	}
-
 	std::vector<std::string>  downloaded_files;
 
 	try
 	{
 		CommonExec  c(fpath_int, this);
-		retval = c.Exec(pyexec.c_str());
+		retval = c.Exec(PythonPath().c_str());
 
 		/*
 		 * Our data file contains the impacket script operations output, so will
@@ -1103,16 +1089,9 @@ FolderContentTask::Invoke()
 		return retval;
 	}
 
-	auto  pyexec = ServiceLocator::Config()->Get(TZK_CVAR_SETTING_PYTHON_EXECUTABLE);
-	if ( pyexec.empty() )
-	{
-		TZK_LOG(LogLevel::Warning, "No python executable configured");
-		return EINVAL;
-	}
-
 	try
 	{
-		retval = CommonExec(fpath, this).Exec(pyexec.c_str());
+		retval = CommonExec(fpath, this).Exec(PythonPath().c_str());
 	}
 	catch ( ... )
 	{
@@ -1504,19 +1483,12 @@ ScheduledTasksTask::Invoke()
 		return retval;
 	}
 
-	auto  pyexec = ServiceLocator::Config()->Get(TZK_CVAR_SETTING_PYTHON_EXECUTABLE);
-	if ( pyexec.empty() )
-	{
-		TZK_LOG(LogLevel::Warning, "No python executable configured");
-		return EINVAL;
-	}
-
 	std::vector<std::string>  downloaded_files;
 
 	try
 	{
 		CommonExec  c(fpath_int, this);
-		retval = c.Exec(pyexec.c_str());
+		retval = c.Exec(PythonPath().c_str());
 
 		std::ifstream  datfile(fpath_int);
 		std::string  line;

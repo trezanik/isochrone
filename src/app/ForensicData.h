@@ -190,6 +190,27 @@ ExtractPathInfo(
 );
 
 
+
+
+/**
+ * Gets the absolute path to the python executable within the virtual environment
+ *
+ * This is a hard-coded offset, which requires the python venv to be setup in
+ * the specific directory.
+ * This is mandatory, as the python venv uses these paths and I'm not aware of
+ * any way to change these.
+ *
+ * Calculated once at runtime, then returns the result for all future calls.
+ *
+ * @return
+ *  Always returns a path within the $(app)/assets/scripts folder:
+ *  Windows - "Scripts/python.exe"
+ *  Others - "bin/python"
+ */
+std::string
+PythonPath();
+
+
 /**
  * Loads a file straight into a string object
  * 

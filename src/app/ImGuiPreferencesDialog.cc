@@ -1596,29 +1596,6 @@ ImGuiPreferencesDialog::Draw_Workspaces()
 	
 	ImGui::Spacing();
 
-	// will relocate!
-
-	if ( ImGui::InputText("Python executable path", &my_python_path, ImGuiInputTextFlags_EnterReturnsTrue) )
-	{
-		// ever want/need?
-	}
-	if ( ImGui::IsItemEdited() )
-	{
-		my_current_settings[TZK_CVAR_SETTING_PYTHON_EXECUTABLE] = my_python_path;
-	}
-	ImGui::SameLine();
-	if ( ImGui::Button("Browse...##pythonexec") )
-	{
-		// file browse and selection, file dialog, todo
-		TZK_LOG(LogLevel::Warning, "File selector not implemented");
-	}
-	ImGui::SameLine();
-	ImGui::HelpMarker("Path to the python executable\n"
-		"- If blank, python execution will rely on and use the PATH environment variables\n"
-		"- Only used for running scripts in the assets folder, on-demand"
-	);
-
-
 	Draw_Return(my_wnd_workspaces);
 }
 
@@ -1849,10 +1826,6 @@ ImGuiPreferencesDialog::LoadPreferences()
 	TZK_LOG(LogLevel::Trace, "Fresh loading: Workspaces");
 	{
 		my_loaded_settings[TZK_CVAR_SETTING_WORKSPACES_PATH]   = inflight[TZK_CVAR_SETTING_WORKSPACES_PATH];
-		my_loaded_settings[TZK_CVAR_SETTING_PYTHON_EXECUTABLE] = inflight[TZK_CVAR_SETTING_PYTHON_EXECUTABLE];
-
-		// open for improvements
-		my_python_path = VariantDataAsString(my_loaded_settings[TZK_CVAR_SETTING_PYTHON_EXECUTABLE]);
 	}
 
 	// copy over so we can determine and display differences

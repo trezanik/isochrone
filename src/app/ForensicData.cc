@@ -90,6 +90,26 @@ ExtractPathInfo(
 }
 
 
+
+std::string
+PythonPath()
+{
+	static std::string retval;
+
+	if ( !retval.empty() )
+		return retval;
+
+	std::stringstream  pydir;
+	pydir << engine::Context::GetSingleton().AssetPath() << assetdir_scripts << TZK_PYTHON_VENV_DIR;
+	retval = core::aux::BuildPath(pydir.str(), "python"
+#if TZK_IS_WIN32
+		, "exe"
+#endif
+	);
+	return retval;
+}
+
+
 // rapid prototype, duplicating data - can use fstream in proper flows
 // and a second one for enforced char16_t (UTF-16) data sources.
 // I will merge/template these in future, but want to always use simplest (i.e. smallest) first

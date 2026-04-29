@@ -202,19 +202,12 @@ WindowsPrefetchTask::Invoke()
 		return retval;
 	}
 
-	auto  pyexec = ServiceLocator::Config()->Get(TZK_CVAR_SETTING_PYTHON_EXECUTABLE);
-	if ( pyexec.empty() )
-	{
-		TZK_LOG(LogLevel::Warning, "No python executable configured");
-		return EINVAL;
-	}
-
 	std::vector<std::string>  downloaded_files;
 
 	try
 	{
 		CommonExec  c(fpath_int, this);
-		retval = c.Exec(pyexec.c_str());
+		retval = c.Exec(PythonPath().c_str());
 
 		// effectively a duplicate of Persistence's WindowsFileAutostartsTask::Invoke section, consider common handling
 		std::ifstream  datfile(fpath_int);
@@ -871,19 +864,12 @@ BrowserDataTask::Invoke()
 		return retval;
 	}
 
-	auto  pyexec = ServiceLocator::Config()->Get(TZK_CVAR_SETTING_PYTHON_EXECUTABLE);
-	if ( pyexec.empty() )
-	{
-		TZK_LOG(LogLevel::Warning, "No python executable configured");
-		return EINVAL;
-	}
-
 	std::vector<std::string>  downloaded_files;
 
 	try
 	{
 		CommonExec  c(fpath_int, this);
-		retval = c.Exec(pyexec.c_str());
+		retval = c.Exec(PythonPath().c_str());
 
 		std::ifstream  datfile(fpath_int);
 		std::string  line;

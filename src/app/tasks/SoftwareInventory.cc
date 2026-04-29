@@ -149,17 +149,10 @@ SoftwareInventoryTask::Invoke()
 		return retval;
 	}
 
-	auto  pyexec = ServiceLocator::Config()->Get(TZK_CVAR_SETTING_PYTHON_EXECUTABLE);
-	if ( pyexec.empty() )
-	{
-		TZK_LOG(LogLevel::Warning, "No python executable configured");
-		return EINVAL;
-	}
-
 	try
 	{
 		CommonExec  c(fpath_int, this);
-		retval = c.Exec(pyexec.c_str());
+		retval = c.Exec(PythonPath().c_str());
 
 
 // this is common registry acquisition, make singular reusable method

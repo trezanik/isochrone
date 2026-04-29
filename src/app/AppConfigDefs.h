@@ -83,7 +83,6 @@ constexpr char  assetdir_sprites[]      = "sprites";
 #define TZK_CVAR_SETTING_LOG_FILE_LEVEL                 "log.file.level.value"
 #define TZK_CVAR_SETTING_LOG_TERMINAL_ENABLED           "log.terminal.enabled"
 #define TZK_CVAR_SETTING_LOG_TERMINAL_LEVEL             "log.terminal.level.value"
-#define TZK_CVAR_SETTING_PYTHON_EXECUTABLE              "python.executable"
 #define TZK_CVAR_SETTING_RSS_DATABASE_ENABLED           "rss.database.enabled"
 #define TZK_CVAR_SETTING_RSS_DATABASE_PATH              "rss.database.path"
 #define TZK_CVAR_SETTING_RSS_ENABLED                    "rss.enabled"
@@ -147,7 +146,6 @@ constexpr char  assetdir_sprites[]      = "sprites";
 #define TZK_CVAR_HASH_LOG_FILE_LEVEL                     TZK_COMPILE_TIME_HASH(TZK_CVAR_SETTING_LOG_FILE_LEVEL)
 #define TZK_CVAR_HASH_LOG_TERMINAL_ENABLED               TZK_COMPILE_TIME_HASH(TZK_CVAR_SETTING_LOG_TERMINAL_ENABLED)
 #define TZK_CVAR_HASH_LOG_TERMINAL_LEVEL                 TZK_COMPILE_TIME_HASH(TZK_CVAR_SETTING_LOG_TERMINAL_LEVEL)
-#define TZK_CVAR_HASH_PYTHON_EXECUTABLE                  TZK_COMPILE_TIME_HASH(TZK_CVAR_SETTING_PYTHON_EXECUTABLE)
 #define TZK_CVAR_HASH_RSS_DATABASE_ENABLED               TZK_COMPILE_TIME_HASH(TZK_CVAR_SETTING_RSS_DATABASE_ENABLED)
 #define TZK_CVAR_HASH_RSS_DATABASE_PATH                  TZK_COMPILE_TIME_HASH(TZK_CVAR_SETTING_RSS_DATABASE_PATH)
 #define TZK_CVAR_HASH_RSS_ENABLED                        TZK_COMPILE_TIME_HASH(TZK_CVAR_SETTING_RSS_ENABLED)
@@ -216,11 +214,6 @@ constexpr char  assetdir_sprites[]      = "sprites";
 #define TZK_CVAR_DEFAULT_LOG_FILE_LEVEL                  "Info"
 #define TZK_CVAR_DEFAULT_LOG_TERMINAL_ENABLED            "true"
 #define TZK_CVAR_DEFAULT_LOG_TERMINAL_LEVEL              "Trace"
-#if TZK_IS_WIN32
-#   define TZK_CVAR_DEFAULT_PYTHON_EXECUTABLE            "" // Windows does not have python installed by default
-#else
-#   define TZK_CVAR_DEFAULT_PYTHON_EXECUTABLE            "/usr/bin/python" // most distributions pre-install python
-#endif
 #define TZK_CVAR_DEFAULT_RSS_DATABASE_ENABLED            "true"
 #define TZK_CVAR_DEFAULT_RSS_DATABASE_PATH               ":memory:"
 #define TZK_CVAR_DEFAULT_RSS_ENABLED                     "true"

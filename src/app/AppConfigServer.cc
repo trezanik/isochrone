@@ -52,7 +52,6 @@ AppConfigServer::AppConfigServer()
 	TZK_CVAR(LOG_FILE_LEVEL, "value");
 	TZK_CVAR(LOG_TERMINAL_ENABLED, "enabled");
 	TZK_CVAR(LOG_TERMINAL_LEVEL, "value");
-	TZK_CVAR(PYTHON_EXECUTABLE, "executable");
 	TZK_CVAR(RSS_DATABASE_ENABLED, "enabled");
 	TZK_CVAR(RSS_DATABASE_PATH, "path");
 	TZK_CVAR(RSS_ENABLED, "enabled");
@@ -128,7 +127,6 @@ AppConfigServer::ValidateForCvar(
 		 */
 		return ErrNONE;
 	case TZK_CVAR_HASH_LOG_FILE_FOLDER_PATH:
-	case TZK_CVAR_HASH_PYTHON_EXECUTABLE:
 	case TZK_CVAR_HASH_RSS_DATABASE_PATH:
 	case TZK_CVAR_HASH_WORKSPACES_PATH:
 		/// @todo valid formatting chars
