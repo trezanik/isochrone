@@ -18,7 +18,7 @@
     <UsingOpenALSoft>1</UsingOpenALSoft>
     <UsingOpenSSL>1</UsingOpenSSL>
     <UsingPugixml>1</UsingPugixml>
-    <UsingPython>1</UsingPython>
+    <UsingPython>0</UsingPython>
     <UsingRCCPP>0</UsingRCCPP>
     <UsingSDL>1</UsingSDL>
     <UsingSDLImage>1</UsingSDLImage>
