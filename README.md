@@ -203,11 +203,3 @@ It's by no means horrible but you will have to handle things like click/drag/con
 With C++17 and NT 6.1 (if Windows) set as our base, these must compile with no warnings at a high level (e.g. MSVC /W4) for releases.
 Warnings caused by lowering configuration to C++14, NT5/6.0 are not sought to be remediated.
 
-Present known flaws/deficiencies not in a transient state - i.e. don't raise bug reports for these:
-
- - Multi-workspace support (not started)
- - Linux images with OpenGL render as plain black. Vulkan or software renderers are fine, as is the entire Windows platform. Fault unknown.
- - NT5 build ping is broken (not investigated beyond binary testing, where discovered)
- - Audio streams spanning multiple buffers replay last buffer contents on start/resume
-
-There's lots more still a work in progress, but figured these are worth calling out explicitly as likely callouts even though we're still in alpha.
