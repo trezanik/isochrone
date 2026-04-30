@@ -341,6 +341,9 @@ TConverter<IPProto>::ToUint8(
 const char  str_os_unspecified[] = "Unspecified";
 const char  str_os_windows[] = "Windows";
 const char  str_os_linux[] = "Linux";
+const char  str_os_freebsd[] = "FreeBSD";
+const char  str_os_openbsd[] = "OpenBSD";
+const char  str_os_netbsd[] = "NetBSD";
 
 template<>
 OperatingSystem
@@ -354,6 +357,12 @@ TConverter<OperatingSystem>::FromString(
 		return OperatingSystem::Windows;
 	if ( STR_compare(str, str_os_linux, case_sensitive) == 0 )
 		return OperatingSystem::Linux;
+	if ( STR_compare(str, str_os_freebsd, case_sensitive) == 0 )
+		return OperatingSystem::FreeBSD;
+	if ( STR_compare(str, str_os_openbsd, case_sensitive) == 0 )
+		return OperatingSystem::OpenBSD;
+	if ( STR_compare(str, str_os_netbsd, case_sensitive) == 0 )
+		return OperatingSystem::NetBSD;
 
 	return OperatingSystem::Invalid;
 }
@@ -378,7 +387,7 @@ TConverter<OperatingSystem>::FromUint8(
 )
 {
 	// the last element
-	if ( uint8 > static_cast<uint8_t>(OperatingSystem::Linux) )
+	if ( uint8 > static_cast<uint8_t>(OperatingSystem::NetBSD) )
 		return OperatingSystem::Invalid;
 
 	return static_cast<OperatingSystem>(uint8);
@@ -395,6 +404,9 @@ TConverter<OperatingSystem>::ToString(
 	{
 	case OperatingSystem::Windows:   return str_os_windows;
 	case OperatingSystem::Linux:     return str_os_linux;
+	case OperatingSystem::FreeBSD:   return str_os_freebsd;
+	case OperatingSystem::OpenBSD:   return str_os_openbsd;
+	case OperatingSystem::NetBSD:    return str_os_netbsd;
 	default:
 		break;
 	}
