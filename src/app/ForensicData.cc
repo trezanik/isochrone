@@ -25,6 +25,9 @@
 #include "core/util/string/STR_funcs.h"
 #include "core/error.h"
 
+#include <algorithm>
+#include <regex>
+
 
 namespace trezanik {
 namespace app {
@@ -302,6 +305,105 @@ MillisecondsToDurationString(
 	return retval;
 }
 
+
+bool
+ISOStringFromSYSTEMTIME(
+	std::string& out,
+	SYSTEMTIME& syst,
+	bool timesep
+)
+{
+	using namespace trezanik::core;
+
+	SYSTEMTIME  empty = { 0 };
+
+	// check for all-zeros, indicating never/start; return false but no log 'failure'
+	if ( memcmp(&syst, &empty, sizeof(SYSTEMTIME)) == 0 )
+		return false;
+
+	if ( syst.wYear < 1601 || syst.wYear > 30827
+	  || syst.wMonth == 0 || syst.wMonth > 12 || syst.wDay == 0 || syst.wDay > 31
+	  || syst.wHour > 23 || syst.wMinute > 59 || syst.wSecond > 59 || syst.wMilliseconds > 999 )
+	{
+		TZK_LOG(LogLevel::Warning, "SYSTEMTIME contains invalid data");
+		return false;
+	}
+
+	// yes, we limit to 4 despite the year going to 5, current norm.
+	char  datetime[32];
+	STR_format(datetime, sizeof(datetime), "%04u-%02u-%02u%c%02u:%02u:%02u.%03u",
+		syst.wYear, syst.wMonth, syst.wDay,
+		timesep ? 'T' : ' ',
+		syst.wHour, syst.wMinute, syst.wSecond, syst.wMilliseconds
+	);
+
+	out = datetime;
+
+	return true;
+}
+
+
+bool
+ISOStringToSYSTEMTIME(
+	const char* isostr,
+	SYSTEMTIME& out
+)
+{
+	std::string  str = isostr;
+	return ISOStringToSYSTEMTIME(str, out);
+}
+
+
+bool
+ISOStringToSYSTEMTIME(
+	std::string& isostr,
+	SYSTEMTIME& out
+)
+{
+	using namespace trezanik::core;
+
+	std::string&  ctime = isostr;
+	// match e.g. '2026-03-06 20:33:12.123', space or 'T' space acceptable for our & ISO8601 format. Accept no milliseconds too
+	std::regex   regex("(\\d{4})-([01]\\d)-([0-3]\\d)[ T]([0-2]\\d):([0-5]\\d):([0-5]\\d)\\.?(\\d+)?");
+	std::smatch  match;
+
+	if ( std::regex_search(ctime, match, regex) )
+	{
+		const char*  errstr = nullptr;
+		/*
+		 * match[0] is the full match, each increment is for each capture
+		 * match is also a vector, so will never be the exact count here; check
+		 * .matched per element, bounds check for final entry
+		 */
+		out.wYear         = static_cast<WORD>(STR_to_unum(match[1].str().c_str(), UINT16_MAX, &errstr));
+		out.wMonth        = static_cast<WORD>(STR_to_unum(match[2].str().c_str(), UINT16_MAX, &errstr));
+		out.wDay          = static_cast<WORD>(STR_to_unum(match[3].str().c_str(), UINT16_MAX, &errstr));
+		out.wHour         = static_cast<WORD>(STR_to_unum(match[4].str().c_str(), UINT16_MAX, &errstr));
+		out.wMinute       = static_cast<WORD>(STR_to_unum(match[5].str().c_str(), UINT16_MAX, &errstr));
+		out.wSecond       = static_cast<WORD>(STR_to_unum(match[6].str().c_str(), UINT16_MAX, &errstr));
+		if ( match.size() < 8 || !match[7].matched )
+		{
+			out.wMilliseconds = 0;
+		}
+		else
+		{
+			out.wMilliseconds = static_cast<WORD>(STR_to_unum(match[7].str().c_str(), UINT16_MAX, &errstr));
+		}
+		// loop all, error for each - regex covers possibility already?
+		if ( errstr )
+		{
+			TZK_LOG_FORMAT(LogLevel::Warning, "STR_to_unum failed: %s", errstr);
+			return false;
+		}
+
+		return true;
+	}
+	else
+	{
+		TZK_LOG_FORMAT(LogLevel::Warning, "Invalid timestamp: %s", ctime.c_str());
+		return false;
+	}
+}
 
 
 std::string

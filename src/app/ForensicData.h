@@ -239,6 +239,54 @@ MillisecondsToDurationString(
 );
 
 
+/**
+ * Converts a SYSTEMTIME input to an ISO8601 format timestamp string
+ * 
+ * @param[out] out
+ *  The output string converted from the input; unmodified unless returns true
+ * @param[in] syst
+ *  The SYSTEMTIME; can be unset (all-zeros), but will have no output
+ * @param[in] timesep
+ *  When successful, if true out string will use 'T' as a time separator (XML
+ *  duration compatible), otherwise will be a space (readable clarity)
+ * @return
+ *  - true if the input is valid and an output string is set
+ *  - false if the input is invalid, or is 'all-zeros'; no output string is set
+ */
+bool
+ISOStringFromSYSTEMTIME(
+	std::string& out,
+	SYSTEMTIME& syst,
+	bool timesep = true
+);
+
+/**
+ * Converts an ISO8601 format string to a SYSTEMTIME structure
+ * 
+ * @param[in] datetime
+ *  An ISO8601-compatible string
+ * @param[out] out
+ *  The SYSTEMTIME structure to be populated
+ * @return
+ *  - true on successful conversion
+ *  - false if the data is invalid or the regex fails the exact match
+ */
+bool
+ISOStringToSYSTEMTIME(
+	std::string& datetime,
+	SYSTEMTIME& out
+);
+
+/**
+ * @copydoc ISOStringToSYSTEMTIME
+ * 
+ * Constructs a std::string and invokes the sibling function
+ */
+bool
+ISOStringToSYSTEMTIME(
+	const char* datetime,
+	SYSTEMTIME& out
+);
 
 
 /**
