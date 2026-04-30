@@ -90,6 +90,219 @@ ExtractPathInfo(
 }
 
 
+bool
+DurationStringToMilliseconds(
+	const char* duration,
+	uint64_t& out
+)
+{
+	std::string  str = duration;
+	return DurationStringToMilliseconds(str, out);
+}
+
+bool
+DurationStringToMilliseconds(
+	std::string& duration,
+	uint64_t& out
+)
+{
+	// PnYnMnDTnHnMnS
+	size_t  len = duration.length();
+
+	/* 
+	 * I just need something basic for now, there's various flaws with this
+	 * implementation that makes some valid data flagged as invalid, and vice
+	 * versa!
+	 * Mainly:
+	 * - No decimal seconds
+	 * - No negative values
+	 */
+	if ( duration.length() < 2 || duration[0] != 'P' )
+		return false;
+
+	size_t  has_year = duration.find_first_of('Y');
+	size_t  has_month = duration.find_first_of('M');
+	size_t  has_day = duration.find_first_of('D');
+	size_t  has_hour = duration.find_first_of('H');
+	size_t  has_minute = duration.find_first_of('M', has_month == std::string::npos ? 0 : has_month + 1);
+	size_t  has_second = duration.find_first_of('S');
+	size_t  has_separator = duration.find_first_of('T');
+
+	uint32_t  yr = 0, mo = 0, dy = 0, hr = 0, mi = 0, sc = 0;
+	
+	size_t  cur_pos = 1; // offset in duration
+	size_t  cur_elem_start = 1;
+
+	auto  fail_if_appears_before = [&](size_t c1, size_t c2)
+	{
+		if ( c1 == std::string::npos || c2 == std::string::npos )
+			return true;
+		if ( c1 < c2 )
+			return false;
+		return true;
+	};
+
+	// validations we do have implemented
+	if ( !has_year && !has_month && !has_day && !has_hour && !has_minute && !has_second )
+		return false;
+	if ( (has_hour || has_minute || has_second) && !has_separator )
+		return false;
+	if ( (!has_hour && !has_minute && !has_second) && has_separator )
+		return false;
+	if ( !fail_if_appears_before(has_second, has_minute) )
+		return false;
+	if ( !fail_if_appears_before(has_minute, has_hour) )
+		return false;
+	if ( !fail_if_appears_before(has_hour, has_day) )
+		return false;
+	if ( !fail_if_appears_before(has_day, has_month) )
+		return false;
+	if ( !fail_if_appears_before(has_month, has_year) )
+		return false;
+
+	try
+	{
+		auto  element_to_num = [&](uint32_t& out) {
+			unsigned long  v = std::stoul(duration.substr(cur_elem_start, cur_pos - cur_elem_start));
+			if ( v > UINT32_MAX )
+				throw std::out_of_range("Greater than UINT32_MAX");
+			out = static_cast<uint32_t>(v);
+			cur_elem_start = cur_pos + 1;
+		};
+
+		while ( cur_pos < len )
+		{
+			     if ( cur_pos == has_year )   { element_to_num(yr); }
+			else if ( cur_pos == has_month )  { element_to_num(mo); }
+			else if ( cur_pos == has_day )    { element_to_num(dy); }
+			else if ( cur_pos == has_hour )   { element_to_num(hr); }
+			else if ( cur_pos == has_minute ) { element_to_num(mi); }
+			else if ( cur_pos == has_second ) { element_to_num(sc); }
+
+			if ( cur_pos == has_separator )
+				cur_elem_start++;
+			cur_pos++;
+		}
+	}
+	catch ( ... )
+	{
+		return false;
+	}
+
+	out = 0;
+	// max total:     18446744073709551615
+	out += ((uint64_t)31556952000 * yr);
+	out += ((uint64_t)2629800000 * mo);
+	out += ((uint64_t)86400000 * dy);
+	out += ((uint64_t)3600000 * hr);
+	out += ((uint64_t)60000 * mi);
+	out += ((uint64_t)1000 * sc);
+
+	return true;
+}
+
+
+std::string
+MillisecondsToDurationString(
+	uint64_t ms
+)
+{
+	std::string  retval = "P";
+
+	uint64_t  yr = 0, mo = 0, dy = 0, hr = 0, mi = 0, sc = 0;
+	uint64_t  rem = ms;
+	auto  ms_in_year   = 31556952000;
+	auto  ms_in_month  = 2629800000;
+	auto  ms_in_day    = 86400000;
+	auto  ms_in_hour   = 3600000;
+	auto  ms_in_minute = 60000;
+	auto  ms_in_second = 1000;
+
+	yr = (rem / ms_in_year);
+	if ( yr > 0 )
+	{
+		rem -= (ms_in_year * yr);
+	}
+	mo = (rem / ms_in_month);
+	if ( mo > 0 )
+	{
+		assert(mo < 12);
+		rem -= (ms_in_month * mo);
+	}
+	dy = (rem / ms_in_day);
+	if ( dy > 0 )
+	{
+		assert(dy < 31);
+		rem -= (ms_in_day * dy);
+	}
+	hr = (rem / ms_in_hour);
+	if ( hr > 0 )
+	{
+		assert(hr < 24);
+		rem -= (ms_in_hour * hr);
+	}
+	mi = (rem / ms_in_minute);
+	if ( mi > 0 )
+	{
+		assert(mi < 60);
+		rem -= (ms_in_minute * mi);
+	}
+	sc = (rem / ms_in_second);
+	if ( sc > 0 )
+	{
+		assert(sc < 60);
+		rem -= (ms_in_second * sc);
+	}
+	// rem = remainder, should be less than 1000 given 1k is 1 second
+	assert(rem < 1000);
+	// we can actually provide this for the decimal part once we support reading it!
+
+	// special case; if input or all elements are 0, use 0 seconds
+	if ( yr == 0 && mo == 0 && dy == 0 && hr == 0 && mi == 0 && sc == 0 )
+	{
+		retval += "T0S";
+		return retval;
+	}
+
+	if ( yr > 0 )
+	{
+		retval += std::to_string(yr);
+		retval += "Y";
+	}
+	if ( mo > 0 )
+	{
+		retval += std::to_string(mo);
+		retval += "M";
+	}
+	if ( dy > 0 )
+	{
+		retval += std::to_string(dy);
+		retval += "D";
+	}
+	if ( hr > 0 || mi > 0 || sc > 0 )
+	{
+		retval += "T";
+	}
+	if ( hr > 0 )
+	{
+		retval += std::to_string(hr);
+		retval += "H";
+	}
+	if ( mi > 0 )
+	{
+		retval += std::to_string(mi);
+		retval += "M";
+	}
+	if ( sc > 0 )
+	{
+		retval += std::to_string(sc);
+		retval += "S";
+	}
+	
+	return retval;
+}
+
+
 
 std::string
 PythonPath()

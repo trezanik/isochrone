@@ -190,6 +190,55 @@ ExtractPathInfo(
 );
 
 
+/**
+ * Converts an XML 'duration' type to milliseconds
+ * 
+ * See https://www.w3.org/TR/xmlschema-2/#duration
+ * 
+ * Input string representing a form of 'PnYnMnDTnHnMnS' - refer to the schema
+ * linked above for full details.
+ * 
+ * Note that we are designed around items such as scheduled tasks values, which
+ * have no concept of negatives or other potentially 'funky' capabilities, so
+ * this is *not* a generic converter
+ * 
+ * Might end up with a ToSYSTEMTIME replacement, will see how need arises
+ * 
+ * @param[in] duration
+ *  Text string representing an XML duration
+ * @param[out] out
+ *  Stores the calculated value on success, otherwise not touched
+ * @return
+ *  False on conversion failure, otherwise true
+ */
+bool
+DurationStringToMilliseconds(
+	std::string& duration,
+	uint64_t& out
+);
+/**
+ * @copydoc DurationStringToMilliseconds
+ * 
+ * Constructs a std::string and invokes the sibling function
+ */
+bool
+DurationStringToMilliseconds(
+	const char* duration,
+	uint64_t& out
+);
+
+/**
+ * For duration values to be written to XML
+ * 
+ * @param[in] ms
+ *  The number of milliseconds to convert
+ */
+std::string
+MillisecondsToDurationString(
+	uint64_t ms
+);
+
+
 
 
 /**
