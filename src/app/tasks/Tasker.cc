@@ -272,6 +272,14 @@ Tasker::ReceiverThread()
 				my_tasks.push(tr_pair);
 			}
 
+			/*
+			 * would love a new update event, all tasks complete - purely for
+			 * audio notifications, so an activity with multiple tasks (which
+			 * is now more common than I originally anticipated) could spam the
+			 * sounds - we can then have a more appropriate all-tasks-finished
+			 * notification sound (all success, partial success, all failed?)
+			 */
+
 			TZK_LOG_FORMAT(LogLevel::Debug,
 				"Notifying workers of %zu task%s",
 				my_tasks_to_execute.size(),
@@ -326,30 +334,27 @@ Tasker::Run()
 		}
 
 		TZK_LOG_FORMAT(LogLevel::Debug, "Executing task %s", task->GetID().GetCanonical());
-		// dispatch event - task starting
+
+		EventData::task_update  evt;
+		evt.task = task;
+		evt.workspace_id = task->GetWorkspaceID();
+		evt.result = ErrNONE;
+		evt.stopped = false;
+		my_evtmgr.DispatchEvent(uuid_task_update, evt);
 
 		try
 		{
-			int  rc;
-
-			if ( (rc = task->Execute()) == ErrNONE )
+			if ( (evt.result = task->Execute()) == ErrNONE )
 			{
 				TZK_LOG_FORMAT(LogLevel::Debug, "Task %s execution complete", task->GetID().GetCanonical());
-				
-				EventData::task_update  evt;
-				evt.task = task;
-				evt.workspace_id;// required, get from task? require in AddTask?
-				my_evtmgr.DispatchEvent(uuid_task_update, evt);
 			}
 			else
 			{
-				TZK_LOG_FORMAT(LogLevel::Warning, "Task %s returned failure: %d", task->GetID().GetCanonical(), rc);
-
-				EventData::task_update  evt;
-				evt.task = task;
-				evt.workspace_id;// required, get from task? require in AddTask?
-				my_evtmgr.DispatchEvent(uuid_task_update, evt);
+				TZK_LOG_FORMAT(LogLevel::Warning, "Task %s returned failure: %d", task->GetID().GetCanonical(), evt.result);
 			}
+
+			evt.stopped = true;
+			my_evtmgr.DispatchEvent(uuid_task_update, evt);
 		}
 		catch ( const std::exception& e )
 		{

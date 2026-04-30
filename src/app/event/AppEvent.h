@@ -346,6 +346,13 @@ struct node_target_state
  */
 struct task_update
 {
+	/** Return code from the task function/command executed. Ignore unless stopped == true */
+	int  result = 0;
+	/** True if the task has ceased execution */
+	bool  stopped = false;
+	
+	// need a general state, need to cover aborted, aborting, ...
+
 	/** The workspace UUID the task is executing within */
 	trezanik::core::UUID   workspace_id;
 	/** The task with an update; up to the implementation for details, if any */
