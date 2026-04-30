@@ -543,6 +543,15 @@ private:
 
 
 	/**
+	 * Handles task update events
+	 */
+	void
+	HandleTaskUpdate(
+		trezanik::app::EventData::task_update evtdat
+	);
+
+
+	/**
 	 * Handles window activation events
 	 */
 	void

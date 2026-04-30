@@ -219,6 +219,7 @@ Application::Application()
 	my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<engine::EventData::window_size>>(uuid_windowsize, std::bind(&Application::HandleWindowSize, this, std::placeholders::_1))));
 	my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<>>(uuid_windowactivate, std::bind(&Application::HandleWindowActivate, this))));
 	my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<>>(uuid_windowdeactivate, std::bind(&Application::HandleWindowDeactivate, this))));
+	my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<app::EventData::task_update>>(uuid_task_update, std::bind(&Application::HandleTaskUpdate, this, std::placeholders::_1))));
 	// tempted to macro this so the types are enforced, less error-prone
 	//EVTREG_DELAYED(engine::EventData::config_change, uuid_configchange, &Application::HandleConfigChange);
 	//EVTREG(engine::EventData::window_move, uuid_windowmove, &Application::HandleWindowMove);
@@ -1103,6 +1104,27 @@ Application::HandleResourceState(
 		break;
 	default:
 		break;
+	}
+}
+
+
+void
+Application::HandleTaskUpdate(
+	trezanik::app::EventData::task_update tup
+)
+{
+	assert(tup.task != nullptr);
+
+	if ( tup.stopped )
+	{
+		if ( tup.result == ErrNONE )
+		{
+			PlaySound(InbuiltSound::TaskComplete);
+		}
+		else
+		{
+			PlaySound(InbuiltSound::TaskFailed);
+		}
 	}
 }
 
