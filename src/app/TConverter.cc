@@ -656,6 +656,275 @@ TConverter<TriggerType>::ToString(
 }
 
 
+
+
+
+//-------------- Architecture
+
+const char  str_arch_x86[] = "x86";
+const char  str_arch_x86_64[] = "x86_64";
+
+template<>
+Architecture
+TConverter<Architecture>::FromString(
+	const char* str
+)
+{
+	bool  case_sensitive = false;
+
+	if ( STR_compare(str, str_arch_x86, case_sensitive) == 0 )     return Architecture::x86;
+	if ( STR_compare(str, str_arch_x86_64, case_sensitive) == 0 )  return Architecture::x86_64;
+	
+	return Architecture::Unspecified;
+}
+
+template<>
+Architecture
+TConverter<Architecture>::FromString(
+	const std::string& str
+)
+{
+	return FromString(str.c_str());
+}
+
+template<>
+std::string
+TConverter<Architecture>::ToString(
+	Architecture arch
+)
+{
+	switch ( arch )
+	{
+	case Architecture::x86:         return str_arch_x86;
+	case Architecture::x86_64:      return str_arch_x86_64;
+	case Architecture::Unspecified: return "Unspecified";
+	default:
+		return text_invalid;
+	}
+}
+
+
+//-------------- OS Build
+
+
+const char  str_osb_1381[]  = "Windows NT 4.0";
+const char  str_osb_2195[]  = "Windows 2000";
+const char  str_osb_2600[]  = "Windows XP";
+const char  str_osb_2700[]  = "Windows XP Media Center 2005";
+const char  str_osb_2710[]  = "Windows XP Media Center 2005 UR2";
+const char  str_osb_3790[]  = "Windows XP x64/Server 2003";
+const char  str_osb_6002[]  = "Windows Vista";
+const char  str_osb_6003[]  = "Windows Server 2008";
+const char  str_osb_7601[]  = "Windows 7/Server 2008 R2";
+const char  str_osb_9200[]  = "Windows 8/Server 2012";
+const char  str_osb_9600[]  = "Windows 8.1/Server 2012 R2";
+const char  str_osb_10240[] = "Windows 10 1507";
+const char  str_osb_10586[] = "Windows 10 1511";
+const char  str_osb_14393[] = "Windows 10 1607 (Anniversary)/Server 2016";
+const char  str_osb_15063[] = "Windows 10 1703 (Creators)";
+const char  str_osb_16299[] = "Windows 10 1709 (Fall Creators)";
+const char  str_osb_17134[] = "Windows 10 1803";
+const char  str_osb_17763[] = "Windows 10 1809/Server 2019";
+const char  str_osb_18362[] = "Windows 10 1903";
+const char  str_osb_18363[] = "Windows 10 1909";
+const char  str_osb_19041[] = "Windows 10 2004";
+const char  str_osb_19042[] = "Windows 10 20H2";
+const char  str_osb_19043[] = "Windows 10 21H1";
+const char  str_osb_19044[] = "Windows 10 21H2";
+const char  str_osb_19045[] = "Windows 10 22H2";
+const char  str_osb_20348[] = "Windows Server 2022";
+const char  str_osb_22000[] = "Windows 11 21H2";
+const char  str_osb_22621[] = "Windows 11 22H2";
+const char  str_osb_22631[] = "Windows 11 23H2";
+const char  str_osb_26100[] = "Windows 11 24H2/Server 2025";
+const char  str_osb_26200[] = "Windows 11 25H2";
+const char  str_osb_28000[] = "Windows 11 26H1";
+
+std::string
+WindowsBuildToString(
+	OSBuild build
+)
+{
+	switch ( build )
+	{
+	case OSBuild::osb_2600:  return str_osb_2600;
+	case OSBuild::osb_2700:  return str_osb_2700;
+	case OSBuild::osb_2710:  return str_osb_2710;
+	case OSBuild::osb_3790:  return str_osb_3790;
+	case OSBuild::osb_6002:  return str_osb_6002;
+	case OSBuild::osb_6003:  return str_osb_6003;
+	case OSBuild::osb_7601:  return str_osb_7601;
+	case OSBuild::osb_9200:  return str_osb_9200;
+	case OSBuild::osb_9600:  return str_osb_9600;
+	case OSBuild::osb_10240: return str_osb_10240;
+	case OSBuild::osb_10586: return str_osb_10586;
+	case OSBuild::osb_14393: return str_osb_14393;
+	case OSBuild::osb_15063: return str_osb_15063;
+	case OSBuild::osb_16299: return str_osb_16299;
+	case OSBuild::osb_17134: return str_osb_17134;
+	case OSBuild::osb_17763: return str_osb_17763;
+	case OSBuild::osb_18362: return str_osb_18362;
+	case OSBuild::osb_18363: return str_osb_18363;
+	case OSBuild::osb_19041: return str_osb_19041;
+	case OSBuild::osb_19042: return str_osb_19042;
+	case OSBuild::osb_19043: return str_osb_19043;
+	case OSBuild::osb_19044: return str_osb_19044;
+	case OSBuild::osb_19045: return str_osb_19045;
+	case OSBuild::osb_20348: return str_osb_20348;
+	case OSBuild::osb_22000: return str_osb_22000;
+	case OSBuild::osb_22621: return str_osb_22621;
+	case OSBuild::osb_22631: return str_osb_22631;
+	case OSBuild::osb_26100: return str_osb_26100;
+	case OSBuild::osb_26200: return str_osb_26200;
+	case OSBuild::osb_28000: return str_osb_28000;
+	default:
+		return text_unknown;
+	}
+}
+
+template<>
+OSBuild
+TConverter<OSBuild>::FromString(
+	const char* str
+)
+{
+	bool  case_sensitive = false;
+
+	if ( STR_compare(str, str_osb_2600, case_sensitive) == 0 )   return OSBuild::osb_2600;
+	if ( STR_compare(str, str_osb_2700, case_sensitive) == 0 )   return OSBuild::osb_2700;
+	if ( STR_compare(str, str_osb_2710, case_sensitive) == 0 )   return OSBuild::osb_2710;
+	if ( STR_compare(str, str_osb_3790, case_sensitive) == 0 )   return OSBuild::osb_3790;
+	if ( STR_compare(str, str_osb_6002, case_sensitive) == 0 )   return OSBuild::osb_6002;
+	if ( STR_compare(str, str_osb_6003, case_sensitive) == 0 )   return OSBuild::osb_6003;
+	if ( STR_compare(str, str_osb_7601, case_sensitive) == 0 )   return OSBuild::osb_7601;
+	if ( STR_compare(str, str_osb_9200, case_sensitive) == 0 )   return OSBuild::osb_9200;
+	if ( STR_compare(str, str_osb_9600, case_sensitive) == 0 )   return OSBuild::osb_9600;
+	if ( STR_compare(str, str_osb_10240, case_sensitive) == 0 )  return OSBuild::osb_10240;
+	if ( STR_compare(str, str_osb_10586, case_sensitive) == 0 )  return OSBuild::osb_10586;
+	if ( STR_compare(str, str_osb_14393, case_sensitive) == 0 )  return OSBuild::osb_14393;
+	if ( STR_compare(str, str_osb_15063, case_sensitive) == 0 )  return OSBuild::osb_15063;
+	if ( STR_compare(str, str_osb_16299, case_sensitive) == 0 )  return OSBuild::osb_16299;
+	if ( STR_compare(str, str_osb_17134, case_sensitive) == 0 )  return OSBuild::osb_17134;
+	if ( STR_compare(str, str_osb_17763, case_sensitive) == 0 )  return OSBuild::osb_17763;
+	if ( STR_compare(str, str_osb_18362, case_sensitive) == 0 )  return OSBuild::osb_18362;
+	if ( STR_compare(str, str_osb_18363, case_sensitive) == 0 )  return OSBuild::osb_18363;
+	if ( STR_compare(str, str_osb_19041, case_sensitive) == 0 )  return OSBuild::osb_19041;
+	if ( STR_compare(str, str_osb_19042, case_sensitive) == 0 )  return OSBuild::osb_19042;
+	if ( STR_compare(str, str_osb_19043, case_sensitive) == 0 )  return OSBuild::osb_19043;
+	if ( STR_compare(str, str_osb_19044, case_sensitive) == 0 )  return OSBuild::osb_19044;
+	if ( STR_compare(str, str_osb_19045, case_sensitive) == 0 )  return OSBuild::osb_19045;
+	if ( STR_compare(str, str_osb_20348, case_sensitive) == 0 )  return OSBuild::osb_20348;
+	if ( STR_compare(str, str_osb_22000, case_sensitive) == 0 )  return OSBuild::osb_22000;
+	if ( STR_compare(str, str_osb_22621, case_sensitive) == 0 )  return OSBuild::osb_22621;
+	if ( STR_compare(str, str_osb_22631, case_sensitive) == 0 )  return OSBuild::osb_22631;
+	if ( STR_compare(str, str_osb_26100, case_sensitive) == 0 )  return OSBuild::osb_26100;
+	if ( STR_compare(str, str_osb_26200, case_sensitive) == 0 )  return OSBuild::osb_26200;
+	if ( STR_compare(str, str_osb_28000, case_sensitive) == 0 )  return OSBuild::osb_28000;
+
+	return OSBuild::Invalid;
+}
+
+template<>
+OSBuild
+TConverter<OSBuild>::FromString(
+	const std::string& str
+)
+{
+	return FromString(str.c_str());
+}
+
+template<>
+std::string
+TConverter<OSBuild>::ToString(
+	OSBuild build
+)
+{
+	return WindowsBuildToString(build);
+}
+
+
+//-------------- NTVersion
+
+const char  str_nt4[] = "Windows NT4";
+const char  str_nt5[] = "Windows 2000";
+const char  str_nt51[] = "Windows XP";
+const char  str_nt52[] = "Windows XPx64/2003";
+const char  str_nt6[] = "Windows Vista/2008";
+const char  str_nt61[] = "Windows 7/2008 R2";
+const char  str_nt62[] = "Windows 8/2012";
+const char  str_nt63[] = "Windows 8.1/2012 R2";
+const char  str_nt10[] = "Windows 10/2016/2019 or 11/2022/2025";
+const char  str_nt_unknown[] = "Windows Unreleased";
+
+template<>
+NTVersion
+TConverter<NTVersion>::FromString(
+	const char* str
+)
+{
+	bool  case_sensitive = false;
+
+	if ( STR_compare(str, str_nt4, case_sensitive) == 0 )
+		return NTVersion::NT4_0;
+	if ( STR_compare(str, str_nt5, case_sensitive) == 0 )
+		return NTVersion::NT5_0;
+	if ( STR_compare(str, str_nt51, case_sensitive) == 0 )
+		return NTVersion::NT5_1;
+	if ( STR_compare(str, str_nt52, case_sensitive) == 0 )
+		return NTVersion::NT5_2;
+	if ( STR_compare(str, str_nt6, case_sensitive) == 0 )
+		return NTVersion::NT6_0;
+	if ( STR_compare(str, str_nt61, case_sensitive) == 0 )
+		return NTVersion::NT6_1;
+	if ( STR_compare(str, str_nt62, case_sensitive) == 0 )
+		return NTVersion::NT6_2;
+	if ( STR_compare(str, str_nt63, case_sensitive) == 0 )
+		return NTVersion::NT6_3;
+	if ( STR_compare(str, str_nt10, case_sensitive) == 0 )
+		return NTVersion::NT10;
+	if ( STR_compare(str, str_nt_unknown, case_sensitive) == 0 )
+		return NTVersion::Newer;
+
+	return NTVersion::Unspecified;
+}
+
+template<>
+NTVersion
+TConverter<NTVersion>::FromString(
+	const std::string& str
+)
+{
+	return FromString(str.c_str());
+}
+
+template<>
+NTVersion
+TConverter<NTVersion>::FromUint16(
+	uint16_t winver
+)
+{
+	return static_cast<NTVersion>(winver);
+}
+
+template<>
+std::string
+TConverter<NTVersion>::ToString(
+	NTVersion winver
+)
+{
+	return WindowsVersionToString(static_cast<uint16_t>(winver));
+}
+
+template<>
+uint16_t
+TConverter<NTVersion>::ToUint16(
+	NTVersion winver
+)
+{
+	return static_cast<uint16_t>(winver);
+}
+
+
 std::string
 WindowsVersionToString(
 	uint16_t winver
@@ -663,19 +932,73 @@ WindowsVersionToString(
 {
 	switch ( winver )
 	{
-		case 0x0400: return "Windows NT4";
-		case 0x0500: return "Windows 2000";
-		case 0x0501: return "Windows XP";
-		case 0x0502: return "Windows XPx64/2003";
-		case 0x0600: return "Windows Vista/2008";
-		case 0x0601: return "Windows 7/2008 R2";
-		case 0x0602: return "Windows 8/2012";
-		case 0x0603: return "Windows 8.1/2016";
-		case 0x0a00: return "Windows 10/2019";
-		case 0x0a01: return "Windows 11/2022/2025"; // need to get the accurate ones for these
-		default:
-			return "Unknown/Invalid";
+	case 0x0400: return str_nt4;
+	case 0x0500: return str_nt5;
+	case 0x0501: return str_nt51;
+	case 0x0502: return str_nt52;
+	case 0x0600: return str_nt6;
+	case 0x0601: return str_nt61;
+	case 0x0602: return str_nt62;
+	case 0x0603: return str_nt63;
+	case 0x0a00: return str_nt10;
+	case 0xffff: return str_nt_unknown;
+	default:
+		// don't want to say explicitly invalid, as it could be valid in future
+		return "Unknown/Invalid";
 	}
+}
+
+
+NTVersion
+NTVersionFromOSBuild(
+	OSBuild build
+)
+{
+	switch ( build )
+	{
+#if 0 // Values here for reference only
+	case OSBuild::osb_528:   return NTVersion::NT3_1;
+	case OSBuild::osb_807:   return NTVersion::NT3_5;
+	case OSBuild::osb_1057:  return NTVersion::NT3_51;
+	case OSBuild::osb_1381:  return NTVersion::NT4_0;
+	case OSBuild::osb_2195:  return NTVersion::NT5_0;
+#endif
+	case OSBuild::osb_2600:  return NTVersion::NT5_1;
+	case OSBuild::osb_2700:  return NTVersion::NT5_1;
+	case OSBuild::osb_2710:  return NTVersion::NT5_1;
+	case OSBuild::osb_3790:  return NTVersion::NT5_2;
+	case OSBuild::osb_6002:  return NTVersion::NT6_0;
+	case OSBuild::osb_6003:  return NTVersion::NT6_0;
+	case OSBuild::osb_7601:  return NTVersion::NT6_1;
+	case OSBuild::osb_9200:  return NTVersion::NT6_2;
+	case OSBuild::osb_9600:  return NTVersion::NT6_3;
+	case OSBuild::osb_10240: // all Win 10+11 are NT10
+	case OSBuild::osb_10586:
+	case OSBuild::osb_14393:
+	case OSBuild::osb_15063:
+	case OSBuild::osb_16299:
+	case OSBuild::osb_17134:
+	case OSBuild::osb_17763:
+	case OSBuild::osb_18362:
+	case OSBuild::osb_18363:
+	case OSBuild::osb_19041:
+	case OSBuild::osb_19042:
+	case OSBuild::osb_19043:
+	case OSBuild::osb_19044:
+	case OSBuild::osb_19045:
+	case OSBuild::osb_20348:
+	case OSBuild::osb_22000:
+	case OSBuild::osb_22621:
+	case OSBuild::osb_22631:
+	case OSBuild::osb_26100:
+	case OSBuild::osb_26200:
+	case OSBuild::osb_28000: return NTVersion::NT10;
+	case OSBuild::Invalid:   return NTVersion::Unspecified;
+	default:
+		if ( build < OSBuild::osb_2600 )  return NTVersion::Older;
+		if ( build > OSBuild::osb_28000 ) return NTVersion::Newer;
+	}
+	return NTVersion::Unspecified;
 }
 
 

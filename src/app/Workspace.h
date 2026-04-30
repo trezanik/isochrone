@@ -39,6 +39,10 @@ namespace pugi {
 #include <typeindex>
 #if !TZK_IS_WIN32  /// @todo move out with single target dns resolution
 #	include <netdb.h>
+#else
+#	if defined(interface)  // combaseapi.h defines this..
+#		undef interface
+#	endif
 #endif
 
 
@@ -787,6 +791,94 @@ enum class OperatingSystem : uint8_t
 	FreeBSD,
 	OpenBSD,
 	NetBSD
+};
+
+
+/**
+ * System (processor) architecture
+ *
+ * Only used for handling 32-bit code on 64-bit systems, where folder paths and
+ * registry keys can be in different locations
+ */
+enum class Architecture : uint8_t
+{
+	Unspecified = 0,
+	x86,    // 32-bit (x86)
+	x86_64  // 64-bit (amd64)
+};
+
+
+/**
+ * Windows version enumeration
+ *
+ * This is to focus on (roughly) feature sets of a task target, so certain
+ * assumptions can be made regarding file/registry paths, data types and the like.
+ *
+ * Use as a uint16_t with real values so we can directly use conversion routines
+ */
+enum class NTVersion : uint16_t
+{
+	Unspecified = 0,
+	Older = 0x0001, // special, non-real value so we can return 'older than supported'
+	NT4_0 = 0x0400, // NT4
+	NT5_0 = 0x0500, // 2000
+	NT5_1 = 0x0501, // XP
+	NT5_2 = 0x0502, // XPx64/2003
+	NT6_0 = 0x0600, // Vista
+	NT6_1 = 0x0601, // 7
+	NT6_2 = 0x0602, // 8
+	NT6_3 = 0x0603, // 8.1
+	NT10  = 0x0a00, // 10, 11 - fuck you Microsoft, screwing well established version numbers
+	Newer = 0xffff
+};
+
+
+/**
+ * 
+ */
+enum class OSBuild : uint32_t
+{
+	Invalid = 0,
+
+	// we're only including 'supported' builds
+	//osb-1381 = 1381,  // NT 4.0
+	//osb_2195 = 2195,  // 2000
+	
+	osb_2600 = 2600,  // XP
+	osb_2700 = 2700,  // XP Media Center 2005
+	osb_2710 = 2710,  // XP Media Center 2005 UR2
+	osb_3790 = 3790,  // XP x64/Server 2003
+
+	osb_6002 = 6002,  // Vista
+	osb_6003 = 6003,  // Server 2008
+
+	osb_7601 = 7601,  // 7/Server 2008 R2
+
+	osb_9200 = 9200,  // 8/Server 2012
+	osb_9600 = 9600,  // 8.1/Server 2012 R2
+
+	osb_10240 = 10240, // 1507
+	osb_10586 = 10586, // 1511
+	osb_14393 = 14393, // 1607 (Anniversary)/Server 2016
+	osb_15063 = 15063, // 1703 (Creators)
+	osb_16299 = 16299, // 1709 (Fall Creators)
+	osb_17134 = 17134, // 1803
+	osb_17763 = 17763, // 1809/Server 2019
+	osb_18362 = 18362, // 1903
+	osb_18363 = 18363, // 1909
+	osb_19041 = 19041, // 2004
+	osb_19042 = 19042, // 20H2
+	osb_19043 = 19043, // 21H1
+	osb_19044 = 19044, // 21H2
+	osb_19045 = 19045, // 22H2
+
+	osb_20348 = 20348, // Server 2022
+	osb_22000 = 22000, // 21H2
+	osb_22621 = 22621, // 22H2
+	osb_22631 = 22631, // 23H2
+	osb_26100 = 26100, // 24H2/Server 2025
+	osb_26200 = 26200, // 25H2
+	osb_28000 = 28000  // 26H1
 };
 
 
