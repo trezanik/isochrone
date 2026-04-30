@@ -268,6 +268,58 @@ ImGuiAboutDialog::DrawAcknowledgements() const
 	ImGui::Indent();
 	ImGui::Spacing();
 
+#if 1
+	/*
+	 * Main goal for this is vertical tabs, since that's not an option for now
+	 * we'll do a listbox and adjacent field
+	 */
+	static std::vector<std::string>  entries = {
+		"OpenBSD", "Ocornut", "Gabriele Torelli (Fattorino)", "SDL", "mpark",
+		"Benoit Blanchon", "ffainelli", "David Capello"
+	};
+	static std::vector<std::string>  dat = {
+		"https://www.openbsd.org/\n\nSecure strings code and general mindset for software security",
+		"https://github.com/ocornut/imgui/\n\ndear imgui, a platform agnostic immediate-mode GUI",
+		"https://github.com/Fattorino/ImNodeFlow/\n\nImNodeFlow - the basis for the custom node graph",
+		"https://www.libsdl.org/\n\nMulti-platform low level windowing and software renderer",
+		"https://github.com/mpark/variant/\n\nC++14 compatible std::variant for NT5 support",
+		"https://blog.benoitblanchon.fr/getprocaddress-like-a-boss/\n\ndllhelper, a modern wrapper around GetProcAddress",
+		"https://indiegamedev.net/2020/01/16/how-to-stream-ogg-files-with-openal-in-c/\n\nOpenAL general usage and streaming",
+		"https://github.com/aseprite/tga/\n\nAseprite TGA Library, for integrated image support"
+	};
+	static ImVec2  lb_size(200.f, 250.f);
+	static int     sel_lb_pos = 0;
+
+	if ( ImGui::BeginListBox("##Acknowledgements", lb_size) )
+	{
+		int  pos = -1;
+
+		for ( auto& t : entries )
+		{
+			const bool  is_selected = (++pos == sel_lb_pos);
+
+			if ( ImGui::Selectable(t.c_str(), is_selected) )
+			{
+				sel_lb_pos = pos;
+			}
+			if ( is_selected )
+			{
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+
+		ImGui::EndListBox();
+	}
+	ImGui::SameLine();
+	if ( ImGui::BeginChild("##AckVwr") )
+	{
+		// nice to add project logos, if none the favicon from their site
+
+		ImGui::Text("%s", dat[sel_lb_pos].c_str());
+	}
+	ImGui::EndChild();
+
+#else
 	/*
 	 * This feels way too complex for what should be a simple thing, but I'm
 	 * conscious of scrolling needs
@@ -344,6 +396,7 @@ ImGuiAboutDialog::DrawAcknowledgements() const
 
 		ImGui::EndTable();
 	}
+#endif
 }
 
 
