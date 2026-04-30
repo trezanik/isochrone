@@ -15,13 +15,16 @@
 #include "app/tasks/Persistence.h"
 #include "app/tasks/PortScan.h"
 #include "app/tasks/SoftwareInventory.h"
-#include "app/Workspace.h"
 #include "app/ForensicData.h"
+#include "app/TConverter.h"  // only for WindowsVersionToString for now
 
 #include "imgui/CustomImGui.h"
 
 #include "core/services/log/Log.h"
+#include "core/util/string/string.h"
 #include "core/util/time.h"
+#include "core/error.h"
+#include "core/UUID.h"
 
 
 namespace trezanik {
@@ -40,7 +43,7 @@ public:
 		std::string  last_key;
 		bool  key_open = false;
 
-		ImGuiTreeNodeFlags  key_tree_node_flags = ImGuiTreeNodeFlags_SpanAllColumns| ImGuiTreeNodeFlags_LabelSpanAllColumns;
+		ImGuiTreeNodeFlags  key_tree_node_flags = ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_LabelSpanAllColumns;
 		ImGuiTreeNodeFlags  viewer_tree_node_flags = ImGuiTreeNodeFlags_Leaf
 			| ImGuiTreeNodeFlags_FramePadding
 			| ImGuiTreeNodeFlags_NoTreePushOnOpen;
@@ -118,6 +121,11 @@ public:
 
 	virtual void Visit(file_autostarts* fa) override
 	{
+		std::string  folder;
+		std::string  last_folder;
+		bool  folder_open = false;
+
+		ImGuiTreeNodeFlags  folder_tree_node_flags = ImGuiTreeNodeFlags_SpanAllColumns | ImGuiTreeNodeFlags_LabelSpanAllColumns;
 		ImGuiTreeNodeFlags  viewer_tree_node_flags = ImGuiTreeNodeFlags_Leaf
 			| ImGuiTreeNodeFlags_SpanFullWidth
 			| ImGuiTreeNodeFlags_FramePadding
@@ -126,26 +134,51 @@ public:
 
 		for ( auto& p : fa->collection )
 		{
-			ImGui::PushID(++i);
+			folder = "Folder: ";
+			folder += p.directory;
+
+			if ( last_folder != folder )
+			{
+				if ( folder_open )
+				{
+					ImGui::TreePop();
+					folder_open = false;
+				}
+				if ( ImGui::TreeNodeEx(p.directory.c_str(), folder_tree_node_flags) )
+				{
+					folder_open = true;
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+				}
+			}
+			if ( folder_open )
+			{
+				ImGui::PushID(++i);
 #if 1
-			ImGui::TreeNodeEx("name", viewer_tree_node_flags, "%s", p.name.c_str());
-			ImGui::TableNextColumn();
-			ImGui::TreeNodeEx("tgt", viewer_tree_node_flags, "%s", p.target.c_str());
-			ImGui::TableNextColumn();
-			ImGui::TreeNodeEx("relp", viewer_tree_node_flags, "%s", p.relative_path.c_str());
-			ImGui::TableNextColumn();
-			ImGui::TreeNodeEx("args", viewer_tree_node_flags, "%s", p.cmdline.c_str());
-			ImGui::TableNextColumn();
-			ImGui::TreeNodeEx("wdir", viewer_tree_node_flags, "%s", p.working_dir.c_str());
-			ImGui::TableNextColumn();
+				ImGui::TreeNodeEx("name", viewer_tree_node_flags, "%s", p.name.c_str());
+				ImGui::TableNextColumn();
+				ImGui::TreeNodeEx("tgt", viewer_tree_node_flags, "%s", p.target.c_str());
+				ImGui::TableNextColumn();
+				ImGui::TreeNodeEx("relp", viewer_tree_node_flags, "%s", p.relative_path.c_str());
+				ImGui::TableNextColumn();
+				ImGui::TreeNodeEx("args", viewer_tree_node_flags, "%s", p.cmdline.c_str());
+				ImGui::TableNextColumn();
+				ImGui::TreeNodeEx("wdir", viewer_tree_node_flags, "%s", p.working_dir.c_str());
+				ImGui::TableNextColumn();
 #endif
-			ImGui::PopID();
+				ImGui::PopID();
+			}
+
+			last_folder = folder;
 		}
+
+		if ( folder_open )
+			ImGui::TreePop();
 	}
 
 	virtual void Visit(folder_contents* fc) override
 	{
-#if 0  // still todo
+#if 1  // still todo
 		ImGuiTreeNodeFlags  viewer_tree_node_flags = ImGuiTreeNodeFlags_Leaf
 			| ImGuiTreeNodeFlags_SpanFullWidth
 			| ImGuiTreeNodeFlags_FramePadding
@@ -156,7 +189,10 @@ public:
 		{
 			ImGui::PushID(++i);
 
-
+			ImGui::TreeNodeEx("name", viewer_tree_node_flags, "%s", p->name.c_str());
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("type", viewer_tree_node_flags, "%s", p->type.c_str());
+			ImGui::TableNextColumn();
 
 			ImGui::PopID();
 		}
@@ -196,7 +232,15 @@ public:
 		{
 			ImGui::PushID(++i);
 
-			
+			ImGui::TreeNodeEx("name", viewer_tree_node_flags, "%s", p.name.c_str());
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("author", viewer_tree_node_flags, "%s", p.author.c_str());
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("description", viewer_tree_node_flags, "%s", p.description.c_str());
+			ImGui::TableNextColumn();
+			auto&  ref = p.commands.front();
+			ImGui::TreeNodeEx("command", viewer_tree_node_flags, "%s %s", std::get<0>(ref).c_str(), std::get<1>(ref).c_str());
+			ImGui::TableNextColumn();
 
 			ImGui::PopID();
 		}
@@ -267,7 +311,6 @@ ImGuiWkspForensics::ImGuiWkspForensics(
 , my_evtmgr(*core::ServiceLocator::EventDispatcher())
 , my_wksp(wksp)
 , my_wksp_data(&wksp->my_wksp_data)
-, my_selected_dataentry_index(-1)
 {
 	using namespace trezanik::core;
 
@@ -287,6 +330,14 @@ ImGuiWkspForensics::ImGuiWkspForensics(
 		browsers.selected_chromium_target = -1;
 		browsers.selected_firefox_target = -1;
 
+		my_operations["Port Scan"] = cth_port_scan;
+		my_operations["File Autostarts"] = cth_windows_file_autostarts;
+		my_operations["Registry Autostarts"] = cth_windows_reg_autostarts;
+		my_operations["Prefetch"] = cth_windows_prefetch;
+		my_operations["Scheduled Tasks"] = cth_scheduled_tasks;
+		my_operations["Software Inventory"] = cth_software_inventory;
+		//my_operations["AMCache"] = cth_amcache;
+		//my_operations["Ping"] = cth_ping;
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
@@ -336,18 +387,6 @@ ImGuiWkspForensics::Draw()
 		return;
 	}
 
-	// not tested if extending this object lifetime impacts anything
-	static std::shared_ptr<workspace_node>  last_node = selected_node;
-
-	/*
-	 * Use this for detection of node changes, so we can invalidate shared_ptrs
-	 * pointing to external data
-	 */
-	if ( selected_node != last_node )
-	{
-		my_selected_dataentry_index = -1;
-		my_selected_fdata.reset();
-	}
 
 	/*
 	 * Option to restrict execution against only a single target, rather than all?
@@ -357,590 +396,900 @@ ImGuiWkspForensics::Draw()
 	 */
 	//if ( selected_node->selected_target == -1 )
 	
-	DrawNodeOps(selected_node);
+	if ( ImGui::CollapsingHeader("Execution", ImGuiTreeNodeFlags_DefaultOpen) )
+	{
+		DrawExecCommon(selected_node);
+	}
+	if ( ImGui::CollapsingHeader("Results", ImGuiTreeNodeFlags_DefaultOpen) )
+	{
+		DrawExecResults(selected_node);
+	}
 }
 
 
 void
-ImGuiWkspForensics::DrawNodeOps(
+ImGuiWkspForensics::DrawExecCommon(
 	std::shared_ptr<workspace_node> node
 )
 {
 	using namespace trezanik::core;
 
-
 	/*
-	 * For now, this will be split into two sections:
-	 * 1) Impacket
-	 *    This is the impacket tooling, which is limited in functionality and
-	 *    requires us to custom parse the output for integration - but does have
-	 *    a substantial amount of support across desired targets and saves us
-	 *    six months of dedicated dev time, using their own source as reference
-	 * 2) Internal
-	 *    Our own C/C++ implementation with direct usage, able to operate in
-	 *    memory for acquisition. Recreation of SMB1/2/3 and all other associated
-	 *    protocol support, to remove all external dependencies and allowing us
-	 *    to say, target Windows 10 from Windows XP - hypothetically!
+	 * sysinfo component for a node used for OS detection and type for defaults
+	 * but we have to still provide an option for specifics as direct, quick
+	 * execution (we must be able to be rapid, if the app is to be used for any
+	 * live investigations).
 	 * 
-	 * I don't realistically expect to have internal available at v1.0 release,
-	 * instead seeking it as a long-term future state.
-	 * I'll still retain the headers and original scope indentation though.
+	 * So, on load we can read in that data for a quick-fill, but otherwise allow
+	 * the user to specify an override, or assign from scratch.
+	 * 
+	 * Based on this - first dev for local options, add in the pickup and session
+	 * state later.
+	 */
+	/*
+	 * Node input, use as a cache, so different nodes can have their configs
+	 * retained while switching around. Again, crucial for developing scenarios.
 	 */
 
-	if ( ImGui::CollapsingHeader("Impacket") )
-	{
-	ImGui::BeginGroup();
-	{
-		auto  avail = ImGui::GetContentRegionAvail();
-		static ImVec2  lb_size(200.f, 250.f);
-		static int   sel_lb_pos = -1;
-		static bool  cb_include_user = false;
-		static char  user_spec[64];
-		static bool  sel_lb_item_has_user = false;
-		static bool  sel_lb_item_requires_user = false;
+	// text existence, if new detect+load options based on node data, components (sysinfo)
+	auto&  cfg = my_cached_node_config[node];
 
-		if ( ImGui::BeginListBox("##AvailableMethods", lb_size) )
+	ImGui::Indent();
+
+	auto  avail = ImGui::GetContentRegionAvail();
+	avail.x *= .5;
+	avail.x -= (ImGui::GetStyle().FramePadding.x * 2);
+	avail.y -= ((ImGui::GetStyle().FramePadding.y * 2) + ImGui::GetTextLineHeightWithSpacing());// only what's needed would be better
+	
+	if ( ImGui::BeginChild("ops_setup", avail, ImGuiChildFlags_FrameStyle | ImGuiChildFlags_AutoResizeY) )
+	{
+		ImVec2  label_size = ImGui::CalcTextSize("Operating System"); // longest length
+		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - label_size.x - (ImGui::GetStyle().ItemInnerSpacing.x * 2));
+
+		static std::vector<std::string>  os_names = {
+			str_os_windows, str_os_linux,
+			str_os_freebsd, str_os_openbsd, str_os_netbsd
+		};
+		if ( cfg.os == OperatingSystem::Invalid )
 		{
-			std::vector<std::string>  available_methods = {
-				"Registry Autostarts [Windows]",
-				"Prefetch [Windows]",
-				"File Autostarts",
-				"Software Inventory",
-				"Port Scan",
-				"Browser Data",
-				"Scheduled Tasks [Windows]"
+			cfg.os = OperatingSystem::Windows;
+			cfg.os_idx = 0;
+		}
+		
+		if ( ImGui::Combo("Operating System", &cfg.os_idx, os_names) )
+		{
+			TZK_LOG_FORMAT(LogLevel::Debug, "Operating System changed: %s", os_names[cfg.os_idx].c_str());
+			cfg.os = TConverter<OperatingSystem>::FromString(os_names[cfg.os_idx]);
+		}
+
+		extern const char  str_arch_x86[];
+		extern const char  str_arch_x86_64[];
+
+		static std::vector<std::string>  arch_names = {
+			str_arch_x86, str_arch_x86_64
+		};
+		if ( cfg.arch == Architecture::Unspecified )
+		{
+			cfg.arch = Architecture::x86_64;
+			cfg.arch_idx = 1;
+		}
+
+		if ( ImGui::Combo("Architecture", &cfg.arch_idx, arch_names) )
+		{
+			TZK_LOG_FORMAT(LogLevel::Debug, "Architecture changed: %s", arch_names[cfg.arch_idx].c_str());
+			cfg.arch = TConverter<Architecture>::FromString(arch_names[cfg.arch_idx]);
+		}
+
+
+
+		if ( cfg.os == OperatingSystem::Windows )
+		{
+#if 0  // OS builds are now preferred due to feature availability/confirmation
+			std::vector<std::string>  nt_versions = {
+				str_nt4, str_nt5, str_nt51, str_nt52,
+				str_nt6, str_nt61, str_nt62, str_nt63,
+				str_nt10
 			};
-			int   pos = -1;
-
-			for ( auto& t : available_methods )
+			if ( cfg.windows.ntver_idx == 0 || cfg.windows.ntver_idx >= nt_versions.size() || cfg.windows.winver == NTVersion::Unspecified )
+				cfg.windows.ntver_idx = static_cast<int>(nt_versions.size()) - 1; // default select the newest version
+			if ( ImGui::Combo("NTVersion", &cfg.windows.ntver_idx, nt_versions) )
 			{
-				const bool  is_selected = (++pos == sel_lb_pos);
-
-				if ( ImGui::Selectable(t.c_str(), is_selected) )
-				{
-					sel_lb_pos = pos;
-					switch ( sel_lb_pos )
-					{
-						// yeah, I know - will sort in future once structure set
-					case 0: // reg
-					case 2: // fauto
-					case 3: // sinv
-					case 6: // task
-						sel_lb_item_has_user = true;
-						sel_lb_item_requires_user = false;
-						break;
-					case 1: // pfetch
-					case 4: // pscan
-						sel_lb_item_has_user = false;
-						sel_lb_item_requires_user = false;
-						break;
-					case 5: // bhist
-						sel_lb_item_has_user = true;
-						sel_lb_item_requires_user = true;
-						break;
-					default:
-						break;
-					}
-				}
-				if ( is_selected )
-				{
-					ImGui::SetItemDefaultFocus();
-				}
+				TZK_LOG_FORMAT(LogLevel::Debug, "NTVersion changed: %s", nt_versions[cfg.windows.ntver_idx].c_str());
+				cfg.windows.winver = TConverter<NTVersion>::FromString(nt_versions[cfg.windows.ntver_idx]);
+				cfg.op_idx = 0;
+				cfg.op_hash = 0;
+			}
+#endif
+			static std::vector<std::string>  osbuild_names = {
+				str_osb_2600, str_osb_2700, str_osb_2710, str_osb_3790,
+				str_osb_6002, str_osb_6003, str_osb_7601, str_osb_9200,
+				str_osb_9600, str_osb_10240, str_osb_10586, str_osb_14393,
+				str_osb_15063, str_osb_16299, str_osb_17134, str_osb_17763,
+				str_osb_18362, str_osb_18363, str_osb_19041, str_osb_19042,
+				str_osb_19043, str_osb_19044, str_osb_19045, str_osb_20348,
+				str_osb_22000, str_osb_22621, str_osb_22631, str_osb_26100,
+				str_osb_26200, str_osb_28000
+			};
+			if ( cfg.windows.osbuild == OSBuild::Invalid )
+			{
+				// just whatever is latest available; make sure to update the index as suited when changing!
+				cfg.windows.osbuild = OSBuild::osb_28000;
+				cfg.windows.osbuild_idx = static_cast<int>(osbuild_names.size()) - 1;
+				cfg.windows.winver = NTVersionFromOSBuild(cfg.windows.osbuild);
 			}
 
-			ImGui::EndListBox();
+			if ( ImGui::Combo("OS Build", &cfg.windows.osbuild_idx, osbuild_names) )
+			{
+				TZK_LOG_FORMAT(LogLevel::Debug, "OS Build changed: %s", osbuild_names[cfg.windows.osbuild_idx].c_str());
+				cfg.windows.osbuild = TConverter<OSBuild>::FromString(osbuild_names[cfg.windows.osbuild_idx]);
+				cfg.windows.winver = NTVersionFromOSBuild(cfg.windows.osbuild);
+
+				// we know in advance 32-bit and 64-bit builds, assist user
+				// Server 2019 is x64-only, but shares its build number with Windows 10 which is 32-bit compatible
+				if ( cfg.windows.osbuild > OSBuild::osb_19045 )
+				{
+					cfg.arch = Architecture::x86_64;
+					cfg.arch_idx = 1;
+				}
+				if ( cfg.windows.osbuild < OSBuild::osb_3790 )
+				{
+					cfg.arch = Architecture::x86;
+					cfg.arch_idx = 0;
+				}
+			}
+			ImGui::SameLine();
+			ImGui::HelpMarker("Determines the feature set available on the target\n"
+				"Mostly not of concern beyond NT5 vs NT6+, so will not need to be set to the specific "
+				"accurate target version, but more the minimum availability desired"
+			);
+
+			/*
+			 * Ok, adjustment to original layout; dealing with the dynamic operations
+			 * population is ridden with bugs and ugly handling, so instead we'll
+			 * allow all operations to be selected, and only check validity at the
+			 * point of execute, disabling the button if no good
+			 */
+
+			static std::vector<std::string>  str_operations;
+			if ( str_operations.empty() )
+			{
+				for ( auto& o : my_operations )
+					str_operations.emplace_back(o.first);
+
+				cfg.op_idx = 0;
+				cfg.op_hash = my_operations.cbegin()->second;
+			}
+			if ( ImGui::Combo("Operation", &cfg.op_idx, str_operations) )
+			{
+				TZK_LOG_FORMAT(LogLevel::Debug, "Operation changed: %s", str_operations[cfg.op_idx].c_str());
+				cfg.op_hash = my_operations[str_operations[cfg.op_idx]];
+			}
+
+
+			/*
+			 * Since impacket doesn't do environment variable expansion and it
+			 * requires explicit paths, here's input parameters to populate to
+			 * get decent lookups.
+			 * If these aren't supplied, the contained values will be used
+			 * instead - including blanks! Easy to break
+			 */
+			ImGui::Text("Environment Variables");
+			ImGui::SameLine();
+			ImGui::HelpMarker("Target paths to acquire are based on these values. They must be populated but are entirely unvalidated!\n"
+				"Use the adjacent table to view the 'expanded' items."
+			);
+
+			if ( cfg.op_hash == cth_windows_file_autostarts )
+			{
+				ImGui::InputText("AllUsersProfile", &cfg.windows.allusersprofile);
+				ImGui::SameLine();
+				ImGui::HelpMarker("All Users profile path\n"
+					"Default = C:\\ProgramData (NT6+), C:\\Documents and Settings\\All Users (NT5)"
+				);
+			}
+
+			if ( cfg.op_hash == cth_windows_file_autostarts )
+			{
+				ImGui::InputText("UserProfile", &cfg.windows.userprofile);
+				ImGui::SameLine();
+				ImGui::HelpMarker("Specific user profile path\n"
+					"Default = C:\\Users\\username (NT6+), C:\\Documents and Settings\\username (NT5)"
+				);
+			}
+
+			if ( cfg.op_hash == cth_windows_file_autostarts )
+			{
+				ImGui::InputText("SystemDrive", &cfg.windows.systemdrive);
+				ImGui::SameLine();
+				ImGui::HelpMarker("Drive letter of the system boot\n"
+					"Default = C:"
+				);
+			}
+
+			if ( cfg.op_hash == cth_windows_prefetch || cfg.op_hash == cth_scheduled_tasks )
+			{
+				ImGui::InputText("SystemRoot", &cfg.windows.systemroot);
+				ImGui::SameLine();
+				ImGui::HelpMarker("Windows installation directory\n"
+					"Default = C:\\WINDOWS"
+				);
+			}
+
+			// registry for user software inventory + autostarts, has to be HKU\<SID>, loaded hive
+		}
+		else if ( cfg.os == OperatingSystem::Linux )
+		{
+			
+		}
+
+		ImGui::PopItemWidth();
+	}
+	ImGui::EndChild();
+	ImGui::Unindent();
+
+	ImGui::SameLine();
+
+	if ( ImGui::BeginChild("ops_exec", avail, ImGuiChildFlags_FrameStyle) )
+	{
+		DrawOperationSettings(node, cfg);
+
+		// disable if settings not lined up
+		bool  exec_disabled = node->targets.empty() || !node->has_component(cth_cmpt_credentials) || cfg.op_hash == 0;
+		// || paths.empty()
+
+		// this is a list of direct invalidity assignments
+		//if ( cfg.op_hash == cth_amcache && (cfg.os != OperatingSystem::Windows || cfg.windows.osbuild < OSBuild::osb_6002) ) exec_disabled = true;
+		if ( cfg.os == OperatingSystem::Windows && (cfg.windows.systemdrive.empty() || cfg.windows.systemroot.empty() || cfg.windows.allusersprofile.empty() || cfg.windows.userprofile.empty()) ) exec_disabled = true;
+
+		if ( exec_disabled ) ImGui::BeginDisabled();
+		// make center, wider
+		if ( ImGui::Button("Execute") )
+		{
+			// task params setup, sync
+			ExecOperation(node, cfg);
+		}
+		if ( exec_disabled ) ImGui::EndDisabled();
+	}
+	ImGui::EndChild();
+}
+
+
+void
+ImGuiWkspForensics::DrawExecResults(
+	std::shared_ptr<workspace_node> node
+)
+{
+	using namespace trezanik::core;
+
+	static bool   show_preview = true;
+
+	ImGui::Indent();
+	//auto   avail = ImGui::GetContentRegionAvail();
+	ImVec2  child_size(0.f, 0.f);
+
+	if ( ImGui::BeginChild("exec_results", child_size, ImGuiChildFlags_FrameStyle) )
+	{
+		float  combo_width = std::min(300.f, (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.3f);
+
+		static time_t  last_refresh = 0;
+		time_t  cur_time = time(nullptr);
+		time_t  refresh_rate = 5;
+
+		static uint32_t  method_type = 0;
+		static int  sel_method = 0;
+		static int  sel_file = -1;
+		static bool  disable_capture_combo = true;
+		static std::vector<uint64_t>  acquired_entries;
+		static std::vector<std::string>  data_files;
+		static std::vector<std::string>  methods = {
+			"Browser Data",
+			"File Autostarts",
+			"Folder Content",
+			"Port Scan",
+			"Prefetch",
+			"Registry Autostarts",
+			"Scheduled Tasks",
+			"Software Inventory",
+			//"WMI"
+		};
+		static std::map<std::string, uint32_t>  data_map = {
+			{ methods[0], cth_browser_data },
+			{ methods[1], cth_windows_file_autostarts },
+			{ methods[2], cth_folder_content },
+			{ methods[3], cth_port_scan },
+			{ methods[4], cth_windows_prefetch },
+			{ methods[5], cth_windows_reg_autostarts },
+			{ methods[6], cth_scheduled_tasks },
+			{ methods[7], cth_software_inventory },
+		};
+		ImGui::SetNextItemWidth(combo_width);
+		if ( ImGui::Combo("Type", &sel_method, methods) )
+		{
+			// always update file index to unselected (not zero, there may be no data)
+			sel_file = -1;
+			method_type = data_map[methods[sel_method]];
+			data_files.clear();
+			my_selected_fdata = nullptr;
+			last_refresh = 0;
 		}
 
 		ImGui::SameLine();
+
+		if ( cur_time > (last_refresh + refresh_rate) )
+		{
+			char  display_time[32];
+
+			auto  data_entries = my_wksp->_gui_interactions.forensic_data.GetAllNodeData(my_wksp->my_wksp_data.id, node->id);
+			// build out display names here so it's not done every frame
+			acquired_entries.clear();
+			data_files.clear();
+			for ( auto& entry : data_entries )
+			{
+				if ( entry->type == method_type )
+				{
+					acquired_entries.emplace_back(entry->acquired);
+					core::aux::get_time_format(entry->acquired, display_time, sizeof(display_time), "%F %T");
+					data_files.emplace_back(display_time);
+				}
+				if ( data_files.size() == INT_MAX )
+				{
+					TZK_LOG_FORMAT(LogLevel::Warning, "Maximum file count reached");
+					break;
+				}
+			}
+			// cover deletions, invalidate selection
+			if ( sel_file >= static_cast<int>(data_files.size()) )
+				sel_file = -1;
+
+			last_refresh = cur_time;
+			disable_capture_combo = data_files.empty();
+
+			if ( !data_files.empty() )
+			{
+				if ( sel_file == -1 )
+				{
+					sel_file = 0;
+					my_selected_fdata = my_wksp->_gui_interactions.forensic_data.Access(
+						my_wksp->my_wksp_data.id, node->id,
+						method_type, acquired_entries[sel_file]
+					);
+				}
+			}
+			else
+			{
+				// imgui won't show an empty combo, even if disabled
+				sel_file = -1;
+				data_files.emplace_back(" ");
+				disable_capture_combo = true;
+			}
+		}
+
+		ImGui::SetNextItemWidth(combo_width);
+		if ( disable_capture_combo )
+		{
+			ImGui::BeginDisabled();
+		}
+		if ( ImGui::Combo("Capture Date", &sel_file, data_files) )
+		{
+			my_selected_fdata = my_wksp->_gui_interactions.forensic_data.Access(
+				my_wksp->my_wksp_data.id, node->id, method_type, acquired_entries[sel_file]
+			);
+		}
+		if ( disable_capture_combo )
+		{
+			ImGui::EndDisabled();
+		}
+
 		ImGui::BeginGroup();
 		{
-			float  midsec_width = 150.f;
-			bool   exec_disabled = sel_lb_pos == -1 || (sel_lb_item_requires_user && user_spec[0] == '\0');
-			
-			if ( exec_disabled )
-				ImGui::BeginDisabled();
-			ImGui::PushItemWidth(midsec_width);
-			if ( ImGui::Button("Execute") )
+			if ( disable_capture_combo )
 			{
-				// %s, method
-				TZK_LOG_FORMAT(LogLevel::Info, "Executing method %zu with user: %s",
-					sel_lb_pos, (sel_lb_item_has_user && cb_include_user) ? user_spec : "<none>"
-				);
-
-				// spawn
+				ImGui::BeginDisabled();
 			}
-			ImGui::PopItemWidth();
-			if ( exec_disabled )
+			if ( ImGui::Button("Delete") )
+			{
+				TZK_LOG(LogLevel::Warning, "Not implemented");
+
+				// common file dialog confirmation
+			}
+			if ( disable_capture_combo )
+			{
 				ImGui::EndDisabled();
-
-			if ( !sel_lb_item_has_user && !sel_lb_item_requires_user )
-			{
-				ImGui::BeginDisabled();
 			}
-			ImGui::Checkbox("Include User", &cb_include_user);
-			ImGui::PushItemWidth(midsec_width);
-			ImGui::InputText("##user", user_spec, sizeof(user_spec));//, flags);
 			ImGui::SameLine();
-			ImGui::HelpMarker("When omitted, only system-scope items are included");
-			ImGui::PopItemWidth();
-			if ( !sel_lb_item_has_user && !sel_lb_item_requires_user )
+			if ( ImGui::Button("Open in dedicated viewer") )
 			{
-				ImGui::EndDisabled();
+				TZK_LOG(LogLevel::Warning, "Not implemented");
+			}
+			ImGui::SameLine();
+			if ( ImGui::Checkbox("Preview Content", &show_preview) )
+			{
+				TZK_LOG_FORMAT(LogLevel::Info, "Preview toggled: %u", show_preview);
 			}
 		}
 		ImGui::EndGroup();
-		ImGui::SameLine();
+	}
+	ImGui::EndChild();
 
+	if ( show_preview && my_selected_fdata != nullptr )
+	{
+		auto   avail = ImGui::GetContentRegionAvail();
+		FDataPrinter  printer;
 
-		static time_t  last_refresh = 0;
-		int  column_count = 2;
-		ImGuiTableFlags  table_flags
-			= ImGuiTableFlags_BordersV
+		ImGuiTableFlags  viewer_table_flags = ImGuiTableFlags_NoSavedSettings
+			| ImGuiTableFlags_SizingFixedSame//FixedFit
+			| ImGuiTableFlags_BordersV
 			| ImGuiTableFlags_BordersOuterH
 			| ImGuiTableFlags_Resizable
 			| ImGuiTableFlags_RowBg
-			| ImGuiTableFlags_NoBordersInBody;
+			| ImGuiTableFlags_NoBordersInBody
+			| ImGuiTableFlags_ScrollX
+			| ImGuiTableFlags_ScrollY;
 
-		time_t  cur_time = time(nullptr);
-		time_t  refresh_rate = 5;
-		std::string  unused_str = "";
-
-		auto  reset_selection = [this]() {
-			my_selected_dataentry_index = -1;
-			my_selected_fdata = nullptr;
-		};
-
-		auto  table_size = ImVec2(300.f, 300.f);
-		//table_size.x /= 2;  // 50:50 for table and preview
-		//table_size.y -= ImGui::GetTextLineHeightWithSpacing() * 3; // lower button, main button, separator
-
-		if ( ImGui::BeginTable("DataList", column_count, table_flags, table_size) )
+		ImVec2  viewer_table_size(avail.x, 400.f); // full width, needed height
+		int  num_columns = 1;
+		// argh, I hate this! only because we must know the column count in advance
+		switch ( my_selected_fdata->type )
 		{
-			ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_NoHide);
-			ImGui::TableSetupColumn("Timestamp", ImGuiTableColumnFlags_NoHide);
-			ImGui::TableHeadersRow();
-			ImGui::TableNextRow();
-			ImGui::TableNextColumn();
-
-			static std::vector<std::shared_ptr<fdata>>  data_entries; // held longer only for type access
-			static std::vector<std::string>  display_names;
-			static std::vector<std::string>  display_times;
-
-			if ( cur_time > (last_refresh + refresh_rate) )
-			{
-				char  display_time[32];
-
-				data_entries = my_wksp->_gui_interactions.forensic_data.GetAllNodeData(my_wksp->my_wksp_data.id, node->id);
-				// build out display names here so it's not done every frame
-				display_names.clear();
-				display_times.clear();
-				for ( auto& entry : data_entries )
-				{
-					std::string  dname;
-					switch ( entry->type )
-					{
-					case cth_software_inventory:      dname = "softinv##"; break;
-					case cth_windows_prefetch:        dname = "winprefetch##"; break;
-					case cth_windows_reg_autostarts:  dname = "winregauto##"; break;
-					case cth_windows_file_autostarts: dname = "winfileauto##"; break;
-					case cth_folder_content:          dname = "fldrcontent##"; break;
-					case cth_port_scan:               dname = "portscan##"; break;
-					case cth_browser_data:            dname = "browser##"; break;
-					case cth_scheduled_tasks:         dname = "stasks##"; break;
-					default: dname = "unknown##"; break;
-					}
-					dname += std::to_string(entry->acquired);
-					display_names.emplace_back(dname);
-					core::aux::get_time_format(entry->acquired, display_time, sizeof(display_time), "%F %T");
-					display_times.emplace_back(display_time);
-				}
-			}
-
-			int  pos = -1;
-
-			// ensure index always points towards a valid entry
-			if ( my_selected_dataentry_index > static_cast<int>(display_names.size()) )
-			{
-				reset_selection();
-			}
-
-			for ( auto& entry : display_names )
-			{
-				const bool  is_selected = (++pos == my_selected_dataentry_index);
-
-				if ( ImGui::Selectable(entry.c_str(), is_selected, ImGuiSelectableFlags_SpanAllColumns) )
-				{
-					// since there's no trivial 'deselect', re-selection will clear
-					if ( my_selected_dataentry_index == pos )
-					{
-						TZK_LOG_FORMAT(LogLevel::Trace, "Unselected %s: %d (%s)", "Data Entry", pos, entry.c_str());
-						reset_selection();
-					}
-					else
-					{
-						TZK_LOG_FORMAT(LogLevel::Trace, "Selected %s: %d (%s)", "Data Entry", pos, entry.c_str());
-						my_selected_dataentry_index = pos;
-						my_selected_fdata = my_wksp->_gui_interactions.forensic_data.Access(
-							my_wksp->my_wksp_data.id, node->id, data_entries[pos]->type, data_entries[pos]->acquired
-						);
-					}
-				}
-				if ( is_selected )
-				{
-					ImGui::SetItemDefaultFocus();
-				}
-
-				ImGui::TableNextColumn();
-				ImGui::Text("%s", display_times[pos].c_str());
-				ImGui::TableNextRow();
-				ImGui::TableNextColumn();
-			}
-
-			ImGui::EndTable();
+		case cth_windows_file_autostarts: num_columns = 5; break;
+		case cth_windows_reg_autostarts: num_columns = 3; break;
+		case cth_windows_prefetch: num_columns = 6; break;
+		case cth_scheduled_tasks: num_columns = 4; break;
+		case cth_port_scan: num_columns = 4; break;
+		case cth_software_inventory: num_columns = 5; break; // !if linux, 1!
+		default:
+			break;
 		}
 
-
-		FDataPrinter  printer;
-		std::vector<std::string>  table_cols;
-
-		if ( my_selected_fdata != nullptr )
+		if ( ImGui::BeginTable("DataViewer##", num_columns, viewer_table_flags, viewer_table_size) )
 		{
-			ImGuiTableFlags  viewer_table_flags = ImGuiTableFlags_NoSavedSettings
-				| ImGuiTableFlags_SizingFixedSame//FixedFit
-				| ImGuiTableFlags_BordersV
-				| ImGuiTableFlags_BordersOuterH
-				| ImGuiTableFlags_Resizable
-				| ImGuiTableFlags_RowBg
-				| ImGuiTableFlags_NoBordersInBody
-				| ImGuiTableFlags_ScrollX
-				| ImGuiTableFlags_ScrollY;
+			ImGuiTableColumnFlags  col_flags = ImGuiTableColumnFlags_WidthStretch
+				| ImGuiTableColumnFlags_NoSort
+				| ImGuiTableColumnFlags_NoHide;
 
-			ImVec2  viewer_table_size(avail.x, 400.f); // full width, needed height
-			int  num_columns = 1;
-			// argh, I hate this! only because we must know the column count in advance
 			switch ( my_selected_fdata->type )
 			{
-			case cth_windows_file_autostarts: num_columns = 5; break;
-			case cth_windows_reg_autostarts: num_columns = 3; break;
-			case cth_windows_prefetch: num_columns = 6; break;
-			case cth_port_scan: num_columns = 4; break;
-			case cth_software_inventory: num_columns = 5; break; // !if linux, 1!
+			case cth_windows_file_autostarts:
+				ImGui::TableSetupColumn("Name", col_flags);
+				ImGui::TableSetupColumn("Target", col_flags);
+				ImGui::TableSetupColumn("RelativePath", col_flags);
+				ImGui::TableSetupColumn("CommandLine", col_flags);
+				ImGui::TableSetupColumn("WorkingDir", col_flags);
+				ImGui::TableHeadersRow();
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				printer.Visit((file_autostarts*)my_selected_fdata.get());
+				break;
+			case cth_windows_reg_autostarts:
+				ImGui::TableSetupColumn("Value", col_flags);
+				ImGui::TableSetupColumn("Type", col_flags);
+				ImGui::TableSetupColumn("Data", col_flags);
+				ImGui::TableHeadersRow();
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				printer.Visit((registry_autostarts*)my_selected_fdata.get());
+				break;
+			case cth_software_inventory:
+				// target windows - table, x columns
+				// target linux - listbox or 1 column table
+				ImGui::TableSetupColumn("Name", col_flags);
+				ImGui::TableSetupColumn("Version", col_flags);
+				ImGui::TableSetupColumn("InstallDate", col_flags);
+				ImGui::TableSetupColumn("InstallDir", col_flags);
+				ImGui::TableSetupColumn("InstallSrc", col_flags);
+				ImGui::TableHeadersRow();
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				printer.Visit((software_inventory*)my_selected_fdata.get());
+				break;
+			case cth_windows_prefetch:
+				ImGui::TableSetupColumn("Version", col_flags);
+				ImGui::TableSetupColumn("Executed", col_flags);
+				ImGui::TableSetupColumn("Hash", col_flags);
+				ImGui::TableSetupColumn("Modules", col_flags);
+				ImGui::TableSetupColumn("LastRunTimes", col_flags);
+				ImGui::TableSetupColumn("RunCount", col_flags);
+				ImGui::TableHeadersRow();
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				printer.Visit((prefetch_data*)my_selected_fdata.get());
+				break;
+			case cth_port_scan:
+				ImGui::TableSetupColumn("Service", col_flags);
+				ImGui::TableSetupColumn("Version", col_flags);
+				ImGui::TableSetupColumn("Port", col_flags);
+				ImGui::TableSetupColumn("Protocol", col_flags);
+				ImGui::TableHeadersRow();
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				printer.Visit((port_scan_data*)my_selected_fdata.get());
+				break;
+			case cth_browser_data:
+				ImGui::TableSetupColumn("Folder", col_flags);
+				ImGui::TableSetupColumn("Name", col_flags);
+				ImGui::TableHeadersRow();
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				printer.Visit((browser_data*)my_selected_fdata.get());
+				break;
+			case cth_scheduled_tasks:
+				ImGui::TableSetupColumn("Name", col_flags);
+				ImGui::TableSetupColumn("Author", col_flags);
+				ImGui::TableSetupColumn("Description", col_flags);
+				ImGui::TableSetupColumn("Command", col_flags);
+				ImGui::TableHeadersRow();
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				printer.Visit((scheduled_tasks*)my_selected_fdata.get());
+				break;
+			case cth_unixlike_cronjobs:  // fall through
+			case cth_folder_content:
 			default:
 				break;
 			}
 
-			if ( ImGui::BeginTable("DataViewer##", num_columns, viewer_table_flags, viewer_table_size) )
+			ImGui::EndTable();
+		}
+	}
+
+	ImGui::Unindent();
+}
+
+
+void
+ImGuiWkspForensics::DrawOperationSettings(
+	std::shared_ptr<workspace_node> node,
+	node_exec_config& cfg
+)
+{
+	assert(node != nullptr);
+
+	if ( cfg.op_hash == 0 )
+		return;
+
+	ImGuiTableFlags  table_flags = ImGuiTableFlags_NoSavedSettings
+		| ImGuiTableFlags_SizingFixedFit
+		| ImGuiTableFlags_BordersV
+		| ImGuiTableFlags_BordersOuterH
+		| ImGuiTableFlags_Resizable
+		| ImGuiTableFlags_RowBg
+		| ImGuiTableFlags_NoBordersInBody;
+
+	char  column1[] = "Setting";
+	char  column2[] = "Value";
+	int   num_columns = 2;
+
+	std::vector<std::pair<std::string, std::string>>  keyvals;
+
+	if ( ImGui::BeginTable("Settings##", num_columns, table_flags) )
+	{
+		ImGuiTableColumnFlags  col_flags = ImGuiTableColumnFlags_NoResize
+			| ImGuiTableColumnFlags_WidthFixed
+			| ImGuiTableColumnFlags_NoSort
+			| ImGuiTableColumnFlags_NoHide;
+		ImGui::TableSetupColumn(column1, col_flags);
+		ImGui::TableSetupColumn(column2, col_flags);
+		ImGui::TableHeadersRow();
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+
+		std::shared_ptr<credentials_config> ccfg = nullptr;
+		for ( auto& c : node->components )
+		{
+			if ( c->component_id == cth_cmpt_credentials )
 			{
-				ImGuiTableColumnFlags  col_flags = ImGuiTableColumnFlags_WidthStretch
-					| ImGuiTableColumnFlags_NoSort
-					| ImGuiTableColumnFlags_NoHide;
-
-				switch ( my_selected_fdata->type )
+				auto  cc = dynamic_cast<node_component_credentials*>(c.get());
+				if ( cc->id != core::blank_uuid )
 				{
-				case cth_windows_file_autostarts:
-					ImGui::TableSetupColumn("Name", col_flags); 
-					ImGui::TableSetupColumn("Target", col_flags);
-					ImGui::TableSetupColumn("RelativePath", col_flags);
-					ImGui::TableSetupColumn("CommandLine", col_flags);
-					ImGui::TableSetupColumn("WorkingDir", col_flags);
-					ImGui::TableHeadersRow();
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn();
-					printer.Visit((file_autostarts*)my_selected_fdata.get());
-					break;
-				case cth_windows_reg_autostarts:
-					ImGui::TableSetupColumn("Value", col_flags);
-					ImGui::TableSetupColumn("Type", col_flags);
-					ImGui::TableSetupColumn("Data", col_flags);
-					ImGui::TableHeadersRow();
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn();
-					printer.Visit((registry_autostarts*)my_selected_fdata.get());
-					break;
-				case cth_software_inventory:
-					// target windows - table, x columns
-					// target linux - listbox or 1 column table
-					ImGui::TableSetupColumn("Name", col_flags);
-					ImGui::TableSetupColumn("Version", col_flags);
-					ImGui::TableSetupColumn("InstallDate", col_flags);
-					ImGui::TableSetupColumn("InstallDir", col_flags);
-					ImGui::TableSetupColumn("InstallSrc", col_flags);
-					ImGui::TableHeadersRow();
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn();
-					printer.Visit((software_inventory*)my_selected_fdata.get());
-					break;
-				case cth_windows_prefetch:
-					ImGui::TableSetupColumn("Version", col_flags);
-					ImGui::TableSetupColumn("Executed", col_flags);
-					ImGui::TableSetupColumn("Hash", col_flags);
-					ImGui::TableSetupColumn("Modules", col_flags);
-					ImGui::TableSetupColumn("LastRunTimes", col_flags);
-					ImGui::TableSetupColumn("RunCount", col_flags);
-					ImGui::TableHeadersRow();
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn();
-					printer.Visit((prefetch_data*)my_selected_fdata.get());
-					break;
-				case cth_port_scan:
-					ImGui::TableSetupColumn("Service", col_flags);
-					ImGui::TableSetupColumn("Version", col_flags);
-					ImGui::TableSetupColumn("Port", col_flags);
-					ImGui::TableSetupColumn("Protocol", col_flags);
-					ImGui::TableHeadersRow();
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn();
-					printer.Visit((port_scan_data*)my_selected_fdata.get());
-					break;
-				case cth_browser_data:
-					ImGui::TableSetupColumn("Folder", col_flags);
-					ImGui::TableSetupColumn("Name", col_flags);
-					ImGui::TableHeadersRow();
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn();
-					printer.Visit((browser_data*)my_selected_fdata.get());
-					break;
-				case cth_scheduled_tasks:
-					ImGui::TableSetupColumn("Location", col_flags);
-					ImGui::TableSetupColumn("Name", col_flags);
-					ImGui::TableSetupColumn("RunAs", col_flags);
-					ImGui::TableSetupColumn("Execute", col_flags);
-					ImGui::TableSetupColumn("LastRun", col_flags);
-					ImGui::TableHeadersRow();
-					ImGui::TableNextRow();
-					ImGui::TableNextColumn();
-					printer.Visit((scheduled_tasks*)my_selected_fdata.get());
-					break;
-				case cth_unixlike_cronjobs:  // fall through
-				case cth_folder_content:
-				default:
-					break;
+					for ( auto& creds : my_wksp->GetWorkspace()->GetWorkspaceData().configs.credentials )
+					{
+						if ( creds->id == cc->id )
+						{
+							ccfg = creds;
+							break;
+						}
+					}
 				}
-
-				ImGui::EndTable();
+				break;
 			}
 		}
 		
-	}
-	ImGui::EndGroup();
-	}
+#if 0  // Not needed for display, this is always the current workspace and node
+		ImGui::Text("Workspace");
+		ImGui::TableNextColumn();
+		ImGui::Text("%s", my_wksp->GetWorkspace()->GetID().GetCanonical());
+		ImGui::TableNextColumn();
 
-	/*
-	 * Would like all these group-based left-to-right adjacent.
-	 * Obviously there's likely to be too many to fit on all screens, so those
-	 * too small would need to determine if clipping and ignore same-line
-	 * handling, dropping down as needed.
-	 * 
-	 * Not yet looked into it, purely a note for now.
-	 */
-	
-	
-	if ( ImGui::CollapsingHeader("Internal (future only)") )
-	{
-	ImGui::BeginGroup();
-	{
-		// want a Win32-style group box, text integrated
-		ImGui::Text("Local Settings");
-		ImGui::Separator();
+		ImGui::Text("Node");
+		ImGui::TableNextColumn();
+		ImGui::Text("%s [%s]", node->id.GetCanonical(), node->name.c_str());
+		ImGui::TableNextColumn();
+#endif
 
-		ImGui::Combo("Windows Version", (int*)&local_settings.winver, " XP / 2003\0 Vista / 2008\0 7 / 2008 R2\0 8.1 / 2012 R2\0 10 / 2016 / 2019\0 11 / 2022 / 2025");
-		ImGui::SameLine();
-		ImGui::HelpMarker("NT5 (XP/2003) will use fallback APIs/methods and binaries due to operating system capabilities");
+		ImGui::Text("Target");
+		ImGui::TableNextColumn();
+		ImGui::Text("%s", node->targets.empty() ? "none" : node->targets.front().target.c_str());
+		ImGui::TableNextColumn();
 
-		ImGui::Checkbox("x86", &local_settings.x86);
-		ImGui::Checkbox("Use existing/send secfuncs.dll", &local_settings.acquire_via_secfuncsdll);
+		// could do if ( cfg.ophash == <list> ), don't show these where they're not relevant (e.g. port scan)
+		ImGui::Text("Credentials");
+		ImGui::TableNextColumn();
+		if ( ccfg == nullptr )
+			ImGui::Text("none");
+		else
+			ImGui::Text("%s [%s]", ccfg->name.c_str(), ccfg->id.GetCanonical());
+		ImGui::TableNextColumn();
 
-		if ( !local_settings.acquire_via_secfuncsdll )
+		ImGui::Text("Operation Hash");
+		ImGui::TableNextColumn();
+		ImGui::Text("%u", cfg.op_hash);
+		ImGui::TableNextColumn();
+
+		// and likewise here, port scan doesn't care about any of these. Flags/traits or just explicit..
+		if ( cfg.os == OperatingSystem::Windows )
 		{
-			ImGui::BeginDisabled();
-		}
-		ImGui::TextDisabled("Credentials are required to connect to the remote system. Same will be used for invocation, must be high-privileged to work");
-		ImGui::InputText("Username", &local_settings.username);
-		ImGui::InputText("Password", &local_settings.password, ImGuiInputTextFlags_Password);
-		if ( !local_settings.acquire_via_secfuncsdll )
-		{
-			ImGui::EndDisabled();
-		}
+			ImGui::Text("Architecture");
+			ImGui::TableNextColumn();
+			ImGui::Text("%s", TConverter<Architecture>::ToString(cfg.arch).c_str());
+			ImGui::TableNextColumn();
 
-		
-	}
-	ImGui::EndGroup();
+			ImGui::Text("NTVersion");
+			ImGui::TableNextColumn();
+			ImGui::Text("%s [%u]", WindowsVersionToString(static_cast<uint16_t>(cfg.windows.winver)).c_str(), static_cast<uint16_t>(cfg.windows.winver));
+			ImGui::TableNextColumn();
 
-	ImGui::BeginGroup();
-	{
-		const char  group_text[] = "Prefetch";
-		ImGui::Text(group_text);
-		ImGui::Separator();
-
-		ImGui::PushID(group_text);
-
-		ImGui::Checkbox("Acquire", &prefetch.acquire);
-
-		ImGui::PopID();
-	}
-	ImGui::EndGroup();
-
-	ImGui::BeginGroup();
-	{
-		ImGui::Text("Persistence");
-		ImGui::Separator();
-
-		ImGui::Checkbox("Filesystem", &persistence.get_filesystem);
-		ImGui::Checkbox("Registry", &persistence.get_registry);
-		ImGui::Checkbox("Services", &persistence.get_services);
-		ImGui::Checkbox("Task Scheduler", &persistence.get_task_scheduler);
-		ImGui::Checkbox("WMI", &persistence.get_wmi);
-	}
-	ImGui::EndGroup();
-
-	ImGui::BeginGroup();
-	{
-		const char  group_text[] = "Browsers";
-		ImGui::Text(group_text);
-		ImGui::Separator();
-
-		ImGui::PushID(group_text);
-
-		ImGui::Checkbox("Acquire", &browsers.acquire);
-		if ( !browsers.acquire )
-		{
-			ImGui::BeginDisabled();
+			ImGui::Text("OSBuild");
+			ImGui::TableNextColumn();
+			ImGui::Text("%s [%u]", TConverter<OSBuild>::ToString(cfg.windows.osbuild).c_str(), static_cast<uint32_t>(cfg.windows.osbuild));
+			ImGui::TableNextColumn();
 		}
 
-		ImGui::Checkbox("Acquire All Users", &browsers.acquire_all_users);
 
-		if ( browsers.acquire_all_users )
-		{
-			ImGui::BeginDisabled();
-		}
-		ImGui::InputText("Username", &browsers.target_username);
-		if ( browsers.acquire_all_users )
-		{
-			ImGui::EndDisabled();
-		}
+		int  num = 0;
 
-		ImGui::InputText("Browser Local UserData Path", &browsers.input_path);
-		ImGui::SameLine();
-		ImGui::HelpMarker("This is the folder path AFTER the users AppData\\Local folder, that contains the 'User Data' folder (Chromium-based).\n"
-			"e.g. Microsoft Edge is added as 'Microsoft\\Edge', as it's path would be 'C:\\Users\\username\\AppData\\Local\\Microsoft\\Edge'"
-		);
-		bool  disable_add = true;
-		if ( !browsers.input_path.empty() ) disable_add = false;
-		if ( disable_add )
+		switch ( cfg.op_hash )
 		{
-			ImGui::BeginDisabled();
-		}
-		if ( ImGui::Button("Add Chromium-based Browser") )
-		{
-			browsers.chromium_targets.emplace_back(false, browsers.input_path);
-			browsers.input_path.clear();
-		}
-		ImGui::SameLine();
-		if ( ImGui::Button("Add Firefox-based Browser") )
-		{
-			browsers.firefox_targets.emplace_back(false, browsers.input_path);
-			browsers.input_path.clear();
-		}
-		if ( disable_add )
-		{
-			ImGui::EndDisabled();
-		}
-
-		if ( ImGui::BeginListBox("Chromium Browsers") )
-		{
-			int   pos = -1;
-			for ( auto& t : browsers.chromium_targets )
+		case cth_port_scan:
+			break;
+		case cth_browser_data:
+			break;
+		case cth_software_inventory:
+			break;
+		case cth_scheduled_tasks:
 			{
-				const bool  is_selected = (++pos == browsers.selected_chromium_target);
+				ImGui::Text("Tasks Path");
+				ImGui::TableNextColumn();
+				
+				std::string  expanded = cfg.windows.systemroot;
+				core::aux::FindAndReplace(expanded, "%SystemRoot%", cfg.windows.systemroot);
+				if ( cfg.windows.winver < NTVersion::NT6_0 )
+				{
+					ImGui::Text("%s\\Tasks", expanded.c_str());
+				}
+				else
+				{
+					ImGui::Text("%s\\System32\\Tasks", expanded.c_str());
 
-				ImGui::PushID(t.second.c_str());
-				ImGui::ToggleButton("###Enabled_", &t.first);
-				ImGui::SameLine();
-				if ( ImGui::Selectable(t.second.c_str(), is_selected) )
-				{
-					browsers.selected_chromium_target = pos;
+					if ( cfg.arch == Architecture::x86_64 )
+					{
+						ImGui::TableNextColumn();
+						ImGui::Text("Tasks Path");
+						ImGui::TableNextColumn();
+						ImGui::Text("%s\\SysWOW64\\Tasks", expanded.c_str());
+					}
 				}
-				if ( is_selected )
-				{
-					ImGui::SetItemDefaultFocus();
-				}
-				ImGui::PopID();
+				ImGui::TableNextColumn();
 			}
-
-			ImGui::EndListBox();
-		}
-		bool disable_remove = browsers.selected_chromium_target == -1;
-		if ( disable_remove )
-		{
-			ImGui::BeginDisabled();
-		}
-		if ( ImGui::Button("Remove selected") )
-		{
-			browsers.chromium_targets.erase(browsers.chromium_targets.cbegin() + browsers.selected_chromium_target);
-			browsers.selected_chromium_target = -1;
-		}
-		if ( disable_remove )
-		{
-			ImGui::EndDisabled();
-		}
-
-		if ( ImGui::BeginListBox("Firefox-based Browsers") )
-		{
-			int   pos = -1;
-			for ( auto& t : browsers.firefox_targets )
+			break;
+		case cth_windows_prefetch:
 			{
-				const bool  is_selected = (++pos == browsers.selected_firefox_target);
-
-				ImGui::PushID(t.second.c_str());
-				ImGui::ToggleButton("###Enabled_", &t.first);
-				ImGui::SameLine();
-				if ( ImGui::Selectable(t.second.c_str(), is_selected) )
-				{
-					browsers.selected_firefox_target = pos;
-				}
-				if ( is_selected )
-				{
-					ImGui::SetItemDefaultFocus();
-				}
-				ImGui::PopID();
+				ImGui::Text("Prefetch Path");
+				ImGui::TableNextColumn();
+				
+				std::string  expanded = cfg.windows.systemroot;
+				core::aux::FindAndReplace(expanded, "%SystemRoot%", cfg.windows.systemroot);
+				ImGui::Text("%s\\Prefetch", expanded.c_str());
+				ImGui::TableNextColumn();
 			}
+			break;
+		case cth_windows_file_autostarts:
+			{
+				auto& file_as = _gui_interactions.forensic_data.GetFileAutostarts(cfg.windows.winver, cfg.arch);
+				for ( auto& as : file_as )
+				{
+					ImGui::Text("Path#%d", ++num);
+					ImGui::TableNextColumn();
 
-			ImGui::EndListBox();
+					// ugh, every frame; locally store in node cfg cache? more memory but faster
+					std::string  expanded = as;
+					core::aux::FindAndReplace(expanded, "%ALLUSERSPROFILE%", cfg.windows.allusersprofile);
+					core::aux::FindAndReplace(expanded, "%USERPROFILE%", cfg.windows.userprofile);
+					core::aux::FindAndReplace(expanded, "%SystemDrive%", cfg.windows.systemdrive);
+					core::aux::FindAndReplace(expanded, "%SystemRoot%", cfg.windows.systemroot);
+					ImGui::Text("%s", expanded.c_str());
+					ImGui::TableNextColumn();
+				}
+			}
+			break;
+		case cth_windows_reg_autostarts:
+			{
+				auto& reg_as = _gui_interactions.forensic_data.GetRegistryAutostarts(cfg.windows.winver, cfg.arch);
+				for ( auto& as : reg_as )
+				{
+					ImGui::Text("Key#%d | Value", ++num);
+					ImGui::TableNextColumn();
+					if ( as.second.empty() )
+						ImGui::Text("%s", as.first.c_str());
+					else
+						ImGui::Text("%s | %s", as.first.c_str(), as.second.c_str());
+					ImGui::TableNextColumn();
+				}
+			}
+			break;
+		default:
+			TZK_DEBUG_BREAK;
+			break;
 		}
-		disable_remove = browsers.selected_firefox_target == -1;
-		if ( disable_remove )
-		{
-			ImGui::BeginDisabled();
-		}
-		if ( ImGui::Button("Remove selected") )
-		{
-			browsers.firefox_targets.erase(browsers.firefox_targets.cbegin() + browsers.selected_firefox_target);
-			browsers.selected_firefox_target = -1;
-		}
-		if ( disable_remove )
-		{
-			ImGui::EndDisabled();
-		}
-		
 
-		if ( !browsers.acquire )
-		{
-			ImGui::EndDisabled();
-		}
-
-		ImGui::PopID();
+		ImGui::EndTable();
 	}
-	ImGui::EndGroup();
+}
 
-	
-	if ( ImGui::Button("Acquire Forensic Data") )
+
+void
+ImGuiWkspForensics::ExecOperation(
+	std::shared_ptr<workspace_node> node,
+	node_exec_config cfg
+)
+{
+	core::aux::ip_address  ipaddr;
+
+	auto task_common = [&](trezanik::core::UUID* cred_id)
 	{
-		TZK_LOG(LogLevel::Info, "Invoking forensic data acquisition");
+		if ( cred_id == nullptr )
+		{
+			return (errno_ext)EINVAL;
+		}
+		if ( core::aux::string_to_ipaddr(node->targets.front().target.c_str(), ipaddr) > 0 )
+		{
+			for ( auto& c : node->components )
+			{
+				if ( c->component_id == cth_cmpt_credentials )
+				{
+					auto  cc = dynamic_cast<node_component_credentials*>(c.get());
+					*cred_id = cc->id;
+					break;
+				}
+			}
+			if ( *cred_id != core::blank_uuid )
+			{
+				return ErrNONE;
+			}
+		}
+		return ErrFAILED;
+	};
 
+	switch ( cfg.op_hash )
+	{
+	case cth_port_scan:
+		break;
+	case cth_browser_data:
+		break;
+	case cth_software_inventory:
+		break;
+	case cth_scheduled_tasks:
+		{
+			scheduled_tasks_task_params  params;
+			params.wksp = my_wksp->GetWorkspace();
+			params.node_uuid = node->id;
+			params.os = OperatingSystem::Windows;
+			
+			std::string  expanded = cfg.windows.systemroot;
+			core::aux::FindAndReplace(expanded, "%SystemRoot%", cfg.windows.systemroot);
+			params.path = cfg.windows.systemroot;
 
-		// validation, stuff like if !all users for browser, that a user is specified - sanity checks
+			if ( task_common(&params.creds) == ErrNONE )
+			{
+				params.target_addr = ipaddr;
+
+				if ( cfg.windows.winver < NTVersion::NT6_0 )
+				{
+					params.path += "\\Tasks";
+
+					auto  task = std::make_shared<ScheduledTasksTask>(params);
+					_gui_interactions.task_runner.AddTask(task);
+				}
+				else
+				{
+					params.path += "\\System32\\Tasks";
+
+					auto  task = std::make_shared<ScheduledTasksTask>(params);
+					_gui_interactions.task_runner.AddTask(task);
+
+					if ( cfg.arch == Architecture::x86_64 )
+					{
+						params.path = cfg.windows.systemroot;
+						params.path += "\\SysWOW64\\Tasks";
+						
+						auto  task64 = std::make_shared<ScheduledTasksTask>(params);
+						_gui_interactions.task_runner.AddTask(task64);
+					}
+				}
+			}
+		}
+		break;
+	case cth_windows_prefetch:
+		{
+			prefetch_task_params  params;
+			params.wksp = my_wksp->GetWorkspace();
+			params.node_uuid = node->id;
+			params.os = OperatingSystem::Windows;
+			params.path = cfg.windows.systemroot;
+			params.path += "\\Prefetch";
+			params.file; /// @todo make optional
+
+			if ( task_common(&params.creds) == ErrNONE )
+			{
+				params.target_addr = ipaddr;
+				auto  task = std::make_shared<WindowsPrefetchTask>(params);
+				_gui_interactions.task_runner.AddTask(task);
+			}
+		}
+		break;
+	case cth_windows_file_autostarts:
+		{
+			auto& file_as = _gui_interactions.forensic_data.GetFileAutostarts(cfg.windows.winver, cfg.arch);
+			for ( auto& as : file_as )
+			{
+				file_autostarts_task_params  params;
+				params.wksp = my_wksp->GetWorkspace();
+				params.node_uuid = node->id;
+				params.os = OperatingSystem::Windows;
+
+				std::string  expanded = as;
+				core::aux::FindAndReplace(expanded, "%ALLUSERSPROFILE%", cfg.windows.allusersprofile);
+				core::aux::FindAndReplace(expanded, "%USERPROFILE%", cfg.windows.userprofile);
+				core::aux::FindAndReplace(expanded, "%SystemDrive%", cfg.windows.systemdrive);
+				core::aux::FindAndReplace(expanded, "%SystemRoot%", cfg.windows.systemroot);
+				params.path = expanded;
+				//params.is_file?
+
+				if ( task_common(&params.creds) == ErrNONE )
+				{
+					params.target_addr = ipaddr;
+					auto  task = std::make_shared<WindowsFileAutostartsTask>(params);
+					_gui_interactions.task_runner.AddTask(task);
+				}
+			}
+		}
+		break;
+	case cth_windows_reg_autostarts:
+		{
+			auto& reg_as = _gui_interactions.forensic_data.GetRegistryAutostarts(cfg.windows.winver, cfg.arch);
+			for ( auto& as : reg_as )
+			{
+				registry_autostarts_task_params  params;
+				params.wksp = my_wksp->GetWorkspace();
+				params.node_uuid = node->id;
+				params.os = OperatingSystem::Windows;
+				params.key = as.first;
+				params.value = as.second;
+
+				if ( task_common(&params.creds) == ErrNONE )
+				{
+					params.target_addr = ipaddr;
+					auto  task = std::make_shared<WindowsRegistryAutostartsTask>(params);
+					_gui_interactions.task_runner.AddTask(task);
+				}
+			}
+		}
+		break;
+	default:
+		TZK_DEBUG_BREAK;
+		return;
 	}
-	}
+
+	_gui_interactions.task_runner.Sync();
 }
 
 

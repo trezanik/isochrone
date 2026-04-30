@@ -13,9 +13,11 @@
 #if TZK_USING_IMGUI
 
 #include "app/IImGui.h"
+#include "app/Workspace.h"
 
 #include "imgui/dear_imgui/imgui.h"
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -32,6 +34,73 @@ class ImGuiWorkspace;
 struct fdata;
 struct workspace_data;
 struct workspace_node;
+
+/**
+ * Generic operating system interaction settings
+ * 
+ * Defaults are for 64-bit Windows; if the node specifies systeminfo, then these
+ * will be overwritten with available values
+ */
+struct node_exec_config
+{
+	Architecture     arch = Architecture::Unspecified;
+	int  arch_idx = 0;
+	OperatingSystem  os = OperatingSystem::Invalid;
+	int  os_idx = 0;
+
+	/** compile-time hash value of the active operation */
+	uint32_t  op_hash = 0;
+	/** Holds the current operation index selection within imgui */
+	int  op_idx = 0;
+
+	struct {
+
+
+
+	} linux;  // unix-like if we share enough?
+
+	struct {
+		
+		OSBuild  osbuild = OSBuild::Invalid;
+		int  osbuild_idx = 0;
+
+		NTVersion    winver = NTVersion::Unspecified;
+		
+		/** Holds the current winver index selection within imgui */
+		int  ntver_idx = 0;
+
+
+		/**
+		 * Path to the all users profile
+		 *
+		 * MUST be the equivalent of the environment variable 'ALLUSERSPROFILE'
+		 */
+		std::string  allusersprofile = "C:\\ProgramData";
+
+		/**
+		 * Path to the user profiles directory
+		 * 
+		 * MUST be the equivalent of the environment variable 'USERPROFILE'
+		 */
+		std::string  userprofile = "C:\\Users\\username";
+
+		/**
+		 * Path to the system drive
+		 *
+		 * MUST be the equivalent of the environment variable 'SystemDrive'
+		 */
+		std::string  systemdrive = "C:";
+
+		/**
+		 * Path to the Windows directory
+		 * 
+		 * MUST be the equivalent of the environment variable 'SystemRoot'
+		 */
+		std::string  systemroot = "C:\\WINDOWS";
+
+	} windows;
+};
+
 
 /**
  * GUI tab for workspace forensics
@@ -56,11 +125,15 @@ private:
 	/** Pointer to the ImGuiWorkspace workspace_data, used for ImGui operations */
 	workspace_data*  my_wksp_data;
 
-	/** . */
-	int  my_selected_dataentry_index;
-
-	/** . */
+	/** The forensic data item selected, used for preview, opening and deletion */
 	std::shared_ptr<fdata>  my_selected_fdata;
+
+	/**
+	 * Cached settings for custom overrides/first-setup execution options
+	 * against a node. These allow switching between nodes, all with custom
+	 * settings, for as long as the workspace remains open.
+	 */
+	std::map<std::shared_ptr<workspace_node>, node_exec_config>  my_cached_node_config;
 
 	/*
 	 * For now, one set of options to apply on each execution.
@@ -120,7 +193,7 @@ private:
 		 * on the new version, targeting 6x0. This will only work for so long
 		 * though.
 		 * Current plan is to have a DLL per version, though 10+11 SaaS with
-		 * feature updates makes this a likel shitshow too.
+		 * feature updates makes this a likely shitshow too.
 		 */
 		int   winver = 0;
 		// default to x64, x86 must be explicitly enabled
@@ -133,6 +206,25 @@ private:
 		std::string  password;
 
 	} local_settings;
+
+
+	/** Map of operation names to their compile-time hashes */
+	std::map<std::string, uint32_t>  my_operations;
+
+	
+	/**
+	 * Intitates execution of a task based on input
+	 *
+	 * @param[in] node
+	 *  The selected workspace node
+	 * @param[in] cfg
+	 *  Execution configuration
+	 */
+	void
+	ExecOperation(
+		std::shared_ptr<workspace_node> node,
+		node_exec_config cfg
+	);
 
 protected:
 public:
@@ -162,11 +254,45 @@ public:
 
 
 	/**
-	 * .
+	 * Draws the common execution operations setup
+	 *
+	 * @param[in] node
+	 *  The selected workspace node
 	 */
 	void
-	DrawNodeOps(
+	DrawExecCommon(
 		std::shared_ptr<workspace_node> node
+	);
+
+
+	/**
+	 * Draws the resulting data from prior operations
+	 *
+	 * Optional preview for displaying basic file contents via visitor pattern
+	 *
+	 * @param[in] node
+	 *  The selected workspace node
+	 */
+	void
+	DrawExecResults(
+		std::shared_ptr<workspace_node> node
+	);
+
+
+	/**
+	 * Draws the execution operation settings in tabular form
+	 * 
+	 * Does nothing if no op hash is set
+	 * 
+	 * @param[in] node
+	 *  The selected workspace node
+	 * @param[in] cfg
+	 *  Execution configuration
+	 */
+	void
+	DrawOperationSettings(
+		std::shared_ptr<workspace_node> node,
+		node_exec_config& cfg
 	);
 };
 
