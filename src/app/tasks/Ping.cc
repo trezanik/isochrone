@@ -40,6 +40,11 @@ constexpr uint16_t  max_pingpacket_size = max_pingdata_size + sizeof(core::aux::
 
 
 Pinger::Pinger()
+#if TZK_IS_WIN32
+: sock(INVALID_SOCKET)
+#else
+: sock(-1)
+#endif
 {
 	using namespace trezanik::core;
 
@@ -55,6 +60,11 @@ Pinger::Pinger(
 	core::aux::ip_address& target_addr
 )
 : my_target(target_addr)
+#if TZK_IS_WIN32
+, sock(INVALID_SOCKET)
+#else
+, sock(-1)
+#endif
 {
 	using namespace trezanik::core;
 

@@ -524,8 +524,6 @@ PortScanParser::Parse(
 
 #if TZK_USING_PUGIXML
 
-	bool  case_sens = true;
-
 	pugi::xml_document  doc;
 	pugi::xml_parse_result  parse_res = doc.load_string(str_buf.c_str());
 

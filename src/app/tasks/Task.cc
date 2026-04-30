@@ -43,6 +43,7 @@ Task::Task(
 , my_end(0)
 , my_inbuilt_task(t)
 , my_type(TaskType::Function)
+, my_data_fp(nullptr)
 , _stop(false)
 {
 	using namespace trezanik::core;
@@ -63,6 +64,7 @@ Task::Task(
 , my_end(0)
 , my_command(command)
 , my_type(TaskType::SystemCommand)
+, my_data_fp(nullptr)
 , _stop(false)
 {
 	using namespace trezanik::core;

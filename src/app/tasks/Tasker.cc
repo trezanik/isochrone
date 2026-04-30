@@ -27,6 +27,8 @@ namespace app {
 
 Tasker::Tasker()
 : my_evtmgr(*core::ServiceLocator::EventDispatcher())
+, my_stop_trigger(false)
+, my_queue_if_full(false)  // unused so far
 {
 	using namespace trezanik::core;
 

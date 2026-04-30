@@ -1046,7 +1046,7 @@ PingMonitor::Send(
 #else
 	int  sock = my_sockisdatagram ? sys.sock : my_sockets[1];
 #endif
-	uint64_t  wait = (my_config.interval * 1000);
+	uint64_t  wait = (1000 * my_config.interval);
 	uint64_t  diff = (core::aux::get_ms_since_epoch() - sys.stats.last_send);
 
 	// only send if enough time has passed since the last

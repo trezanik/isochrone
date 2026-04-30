@@ -28,6 +28,7 @@ ImGuiPingMonitor::ImGuiPingMonitor(
 	GuiInteractions& gui_interactions
 )
 : IImGui(gui_interactions)
+, my_last_refresh(0)
 {
 	using namespace trezanik::core;
 

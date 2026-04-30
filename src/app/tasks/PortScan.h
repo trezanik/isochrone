@@ -52,10 +52,10 @@ public:
 struct open_port_info
 {
 	// proto
-	IPProto  proto;
+	IPProto  proto = IPProto::Invalid;
 
 	// port number
-	uint16_t  port;
+	uint16_t  port = 0;
 
 	// service
 	std::string  svc_name;

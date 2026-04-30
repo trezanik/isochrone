@@ -44,10 +44,10 @@ struct search_result
 	std::string  context;
 
 	/** Raw pointer to the containing object. Useless for users */
-	void*  object;
+	void*  object = nullptr;
 
 	/** The raw string (start, if not already) of the found text */
-	const char*  strptr;
+	const char*  strptr = nullptr;
 
 	/**
 	 * Identifier aid

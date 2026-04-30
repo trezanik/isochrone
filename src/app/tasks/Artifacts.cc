@@ -660,6 +660,7 @@ BrowserDataTask::BrowserDataTask(
 )
 : Task(std::bind(&BrowserDataTask::Invoke, this))
 , my_params(params)
+, my_tmpfile(nullptr)
 {
 	using namespace trezanik::core;
 

@@ -4358,6 +4358,7 @@ ImGuiWorkspace::HandleLoadedComponentConfig(
 			cc->name = loaded.name;
 			my_loading_wksp_data.configs.credentials.push_back(cc);
 		}
+		break;
 	default:
 		break;
 	}

@@ -167,19 +167,19 @@ struct ShellLinkHeader
 
 struct LinkTargetIDList
 {
-	uint16_t  idlist_size;  // size of the IDList
+	uint16_t  idlist_size = 0;  // size of the IDList
 	std::vector<unsigned char>  idlist;  // IDList structure
 };
 
 struct IDList
 {
 	std::vector<unsigned char>  itemids;  // list of zero or more ItemID structures
-	uint16_t  terminalid;  // indicates end of item ids. Must be 0.
+	uint16_t  terminalid = 0;  // indicates end of item ids. Must be 0.
 };
 
 struct ItemID
 {
-	uint16_t  itemid_size;  // size of the ItemID structure in bytes, including this field
+	uint16_t  itemid_size = 0;  // size of the ItemID structure in bytes, including this field
 	std::vector<unsigned char>  data;
 };
 
@@ -270,7 +270,7 @@ struct LinkInfo
 struct StringData
 {
 	// number of characters in string; can be 0
-	uint16_t  character_count;
+	uint16_t  character_count = 0;
 
 	// NOT nul-terminated
 	std::vector<unsigned char>  string;
