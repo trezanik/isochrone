@@ -583,52 +583,52 @@ AppImGui::HandleResourceState(
 	switch ( res_state.state )
 	{
 	case ResourceState::Ready:
-	{
-		if ( res_state.resource->GetResourceID() == my_loading_workspace_resid )
 		{
-			auto  reswksp = std::dynamic_pointer_cast<Resource_Workspace>(res_state.resource);
-			auto  wksp = reswksp->GetWorkspace();
-			auto  imwksp = reswksp->GetImGuiWorkspace();
-
-			// should be impossible conventionally
-			assert(wksp != nullptr);
-			assert(imwksp != nullptr);
-
-			const UUID&  id = wksp->GetID();
-
-			std::lock_guard<std::mutex>  lock(my_gui.mutex);
-
-			/// @todo check if we can just use the ResourceID here
-			/*
-			 * Update the key to reflect the loaded UUID.
-			 * We could always use the resource ID as the key permanently instead,
-			 * since we're already using it as a stop-gap! Certain other code I
-			 * believe expects this to be the wksp UUID though
-			 * 
-			 * C++17 - use extract for efficiency
-			 */
+			if ( res_state.resource->GetResourceID() == my_loading_workspace_resid )
+			{
+				auto  reswksp = std::dynamic_pointer_cast<Resource_Workspace>(res_state.resource);
+				auto  wksp = reswksp->GetWorkspace();
+				auto  imwksp = reswksp->GetImGuiWorkspace();
+	
+				// should be impossible conventionally
+				assert(wksp != nullptr);
+				assert(imwksp != nullptr);
+	
+				const UUID&  id = wksp->GetID();
+	
+				std::lock_guard<std::mutex>  lock(my_gui.mutex);
+	
+				/// @todo check if we can just use the ResourceID here
+				/*
+				 * Update the key to reflect the loaded UUID.
+				 * We could always use the resource ID as the key permanently instead,
+				 * since we're already using it as a stop-gap! Certain other code I
+				 * believe expects this to be the wksp UUID though
+				 * 
+				 * C++17 - use extract for efficiency
+				 */
 #if __cplusplus < 201703L // C++14 workaround
-			 /*
-			 * Resource holds the shared_ptrs open, so they won't be destroyed.
-			 * Remove the element, and a new entry re-using the existing
-			 * variables
-			 */
-			my_gui.workspaces.erase(my_loading_workspace_resid);
-			my_gui.workspaces[id] = std::make_pair<>(imwksp, wksp);
+				/*
+				 * Resource holds the shared_ptrs open, so they won't be destroyed.
+				 * Remove the element, and a new entry re-using the existing
+				 * variables
+				 */
+				my_gui.workspaces.erase(my_loading_workspace_resid);
+				my_gui.workspaces[id] = std::make_pair<>(imwksp, wksp);
 #else
-			auto  x = my_gui.workspaces.extract(my_loading_workspace_resid);
-			x.key() = id;
-			my_gui.workspaces.insert(std::move(x));
-#endif			
+				auto  x = my_gui.workspaces.extract(my_loading_workspace_resid);
+				x.key() = id;
+				my_gui.workspaces.insert(std::move(x));
+#endif
 
-			my_gui.active_workspace = id;
+				my_gui.active_workspace = id;
 
-			// make available for future load calls
-			my_loading_workspace_resid = blank_uuid;
-			imwksp->SetWorkspace(wksp);
+				// make available for future load calls
+				my_loading_workspace_resid = blank_uuid;
+				imwksp->SetWorkspace(wksp);
+			}
 		}
-	}
-	break;
+		break;
 	case ResourceState::Loading:
 		if ( res_state.resource->GetResourceID() == my_loading_workspace_resid )
 		{
@@ -642,21 +642,22 @@ AppImGui::HandleResourceState(
 			my_gui.workspaces[my_loading_workspace_resid] = std::make_pair<>(imwksp, wksp);
 		}
 		break;
-	case ResourceState::Failed:
+	case ResourceState::Failed: // same op
 	case ResourceState::Invalid:
-	{
-		if ( res_state.resource->GetResourceID() == my_loading_workspace_resid )
 		{
-			std::lock_guard<std::mutex>  lock(my_gui.mutex);
-			my_gui.workspaces.erase(my_loading_workspace_resid);
-			my_loading_workspace_resid = blank_uuid;
+			if ( res_state.resource->GetResourceID() == my_loading_workspace_resid )
+			{
+				std::lock_guard<std::mutex>  lock(my_gui.mutex);
+				my_gui.workspaces.erase(my_loading_workspace_resid);
+				my_loading_workspace_resid = blank_uuid;
+			}
 		}
-	}
-	break;
+		break;
 	case ResourceState::Unloaded:
-	{
-		// no actions needed
-	}
+		{
+			// no actions needed
+		}
+		break;
 	default:
 		break;
 	}

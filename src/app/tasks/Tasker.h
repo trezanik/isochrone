@@ -70,6 +70,9 @@ class Tasker
 
 private:
 
+	/** Reference to the event manager, to save needless reacquisition */
+	trezanik::core::EventDispatcher&  my_evtmgr;
+
 	/** Thread that awaits sync and initiates child tasks */
 	std::thread  my_receiver;
 
@@ -113,9 +116,6 @@ private:
 	// track completed
 	std::vector<std::shared_ptr<Task>>  my_completed_tasks;
 	// track by receiving event with uuid_taskfinished, then move it from all into completed
-
-	/** Reference to the event manager, to save needless reacquisition */
-	trezanik::core::EventDispatcher&  my_evtmgr;
 
 	/**
 	 * Set of all the registered event callback IDs

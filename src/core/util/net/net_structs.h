@@ -146,7 +146,7 @@ struct mac_address
  */
 struct ip_address
 {
-	uint16_t  family;  /**< Either AF_INET or AF_INET6 */
+	uint16_t  family = 0;  /**< Either AF_INET or AF_INET6 */
 
 	union
 	{
