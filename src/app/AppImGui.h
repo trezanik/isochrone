@@ -595,6 +595,22 @@ private:
 
 
 	/**
+	 * Handles task update events
+	 * 
+	 * Used to dynamically populate the forensic data list for clients
+	 * (workspaces, nodes) to make fresh content automatically available; more
+	 * capability in future too
+	 * 
+	 * @param[in] evtdat
+	 *  The update data
+	 */
+	void
+	HandleTaskUpdate(
+		app::EventData::task_update evtdat
+	);
+
+
+	/**
 	 * Handles userdata update events
 	 */
 	void

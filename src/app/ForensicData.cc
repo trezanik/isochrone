@@ -730,7 +730,8 @@ ForensicData::Preload(
 
 		if ( vec.size() != 4 )
 		{
-			TZK_LOG_FORMAT(LogLevel::Warning, "Unexpected filename format: %s", entry.c_str());
+			// omit this for now, we leave lots of temporaries until closure, spam isn't worth it
+			//TZK_LOG_FORMAT(LogLevel::Warning, "Unexpected filename format: %s", entry.c_str());
 			continue;
 		}
 
@@ -784,7 +785,7 @@ ForensicData::Preload(
 		case cth_browser_data:            fentry = std::make_shared<browser_data>(); break;
 		case cth_folder_content:          fentry = std::make_shared<folder_contents>(); break;
 		case cth_scheduled_tasks:         fentry = std::make_shared<scheduled_tasks>(); break;
-		case cth_unixlike_cronjobs:   break;//
+		case cth_unixlike_cronjobs:       break;//
 		default:
 			// indicates an addition we forgot, or a user doing random stuff
 			TZK_LOG_FORMAT(LogLevel::Warning, "Found unhandled datatype hash: %s", dataid.c_str());
@@ -798,7 +799,11 @@ ForensicData::Preload(
 			fentry->node_id = nodeid.c_str();
 			fentry->type = type;
 
-			// don't add duplicates; only needed if we're not clearing on workspace closure
+			/*
+			 * don't add duplicates; originally only needed if we're not
+			 * clearing on workspace closure, but now we call this for dynamic
+			 * additions (re-adding in bulk) so it makes sense to have
+			 */
 			bool  unique = true;
 			
 			for ( auto& e : my_wksp_data[wksp->GetID()] )
@@ -808,14 +813,13 @@ ForensicData::Preload(
 				  && e->node_id == fentry->node_id
 				  && e->type == fentry->type )
 				{
-					// shouldn't ever hit, so include warning
-					TZK_LOG(LogLevel::Warning, "Attempting to add duplicate forensic data entry");
 					unique = false;
 					break;
 				}
 			}
 			if ( unique )
 			{
+				TZK_LOG_FORMAT(LogLevel::Trace, "Adding forensic data item: %s", fentry->fpath.c_str());
 				my_wksp_data[wksp->GetID()].push_back(fentry);
 			}
 		}

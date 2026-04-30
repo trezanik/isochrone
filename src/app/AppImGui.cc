@@ -12,6 +12,7 @@
 #include "app/AppImGui.h"
 #include "app/AppConfigDefs.h"
 #include "app/Application.h"
+#include "app/ForensicData.h"
 #include "app/ImGuiAboutDialog.h"
 #include "app/ImGuiActiveTasks.h"
 #include "app/ImGuiFileDialog.h"
@@ -246,6 +247,8 @@ AppImGui::AppImGui(
 		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<>>(uuid_windowdeactivate, std::bind(&AppImGui::HandleWindowDeactivate, this))));
 		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<engine::EventData::window_size>>(uuid_windowsize, std::bind(&AppImGui::HandleWindowSize, this, std::placeholders::_1))));
 		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<>>(uuid_userdata_update, std::bind(&AppImGui::HandleUserdataUpdate, this))));
+
+		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<app::EventData::task_update>>(uuid_task_update, std::bind(&AppImGui::HandleTaskUpdate, this, std::placeholders::_1))));
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
@@ -656,6 +659,42 @@ AppImGui::HandleResourceState(
 	}
 	default:
 		break;
+	}
+}
+
+
+void
+AppImGui::HandleTaskUpdate(
+	trezanik::app::EventData::task_update evtdat
+)
+{
+	using namespace trezanik::core;
+
+	if ( evtdat.task == nullptr )
+	{
+		TZK_LOG(LogLevel::Warning, "No task provided");
+		return;
+	}
+	if ( evtdat.workspace_id == core::blank_uuid )
+	{
+		TZK_LOG(LogLevel::Warning, "No workspace ID provided");
+		return;
+	}
+
+	/*
+	 * We could set this up properly and more efficiently, but this method does
+	 * everything we need to safely, so just preload again
+	 */
+	if ( !evtdat.task->IsRunning() )// && evtdat.task->Result() ) /// @todo check result, only do if needed
+	{
+		for ( auto& w : my_gui.workspaces )
+		{
+			if ( evtdat.workspace_id == w.first.GetCanonical() )
+			{
+				my_gui.forensic_data.Preload(w.second.second);
+				break;
+			}
+		}
 	}
 }
 
