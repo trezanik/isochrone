@@ -7,14 +7,16 @@
 
 #include "app/definitions.h"
 
+#include "app/AppConfigDefs.h"
 #include "app/ForensicData.h"
 #include "app/Workspace.h"
 // structure types and ids for everything that is forensic-data based
 #include "app/tasks/SoftwareInventory.h"
 #include "app/tasks/Artifacts.h"
-//#include "app/tasks/WindowsFileAutostarts.h"
 #include "app/tasks/Persistence.h"
 #include "app/tasks/PortScan.h"
+
+#include "engine/Context.h"
 
 #include "core/services/event/EventDispatcher.h"
 #include "core/services/log/Log.h"
@@ -543,6 +545,22 @@ ForensicData::ForensicData()
 	{
 		my_reg_ids.emplace(my_evtmgr.Register(std::make_shared<core::Event<app::EventData::closed_workspace>>(uuid_closed_workspace, std::bind(&ForensicData::HandleWorkspaceClosed, this, std::placeholders::_1))));
 
+
+		my_x86_registry_autostarts.emplace_back("HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", "");
+		my_x86_registry_autostarts.emplace_back("HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce", "");
+		my_x86_registry_autostarts.emplace_back("HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx", "");
+		my_x86_registry_autostarts.emplace_back("HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "Shell");
+		my_x86_registry_autostarts.emplace_back("HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "Userinit");
+		my_x86_64_registry_autostarts = my_x86_registry_autostarts; // this ever flawed?
+		my_x86_64_registry_autostarts.emplace_back("HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run", "");
+		my_x86_64_registry_autostarts.emplace_back("HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnce", "");
+		my_x86_64_registry_autostarts.emplace_back("HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx", "");
+
+		//my_windows_nt5_file_autostarts.emplace_back("%SystemDrive%\\AUTOEXEC.BAT"); // how to handle standalone files...
+		my_windows_nt5_file_autostarts.emplace_back("%USERPROFILE%\\Start Menu\\Programs\\Startup");
+		my_windows_nt5_file_autostarts.emplace_back("%ALLUSERSPROFILE%\\Start Menu\\Programs\\Startup");
+		my_windows_nt6_file_autostarts.emplace_back("%USERPROFILE%\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup");
+		my_windows_nt6_file_autostarts.emplace_back("%ALLUSERSPROFILE%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup");
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
@@ -644,6 +662,37 @@ ForensicData::GetAllNodeData(
 	}
 
 	return retval;
+}
+
+
+const std::vector<std::string>&
+ForensicData::GetFileAutostarts(
+	NTVersion winver,
+	Architecture TZK_UNUSED(arch)
+) const
+{
+	switch ( winver )
+	{
+	case NTVersion::NT5_0:
+	case NTVersion::NT5_1:
+	case NTVersion::NT5_2:
+		return my_windows_nt5_file_autostarts;
+	default:
+		return my_windows_nt6_file_autostarts;
+	}
+}
+
+
+const std::vector<std::pair<std::string, std::string>>&
+ForensicData::GetRegistryAutostarts(
+	NTVersion TZK_UNUSED(winver),
+	Architecture arch
+) const
+{
+	if ( arch == Architecture::x86 )
+		return my_x86_registry_autostarts;
+
+	return my_x86_64_registry_autostarts;
 }
 
 

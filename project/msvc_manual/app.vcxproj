@@ -47,6 +47,7 @@
     <ClCompile Include="..\..\src\app\Pong.cc" />
     <ClCompile Include="..\..\src\app\private\Lnk.cc" />
     <ClCompile Include="..\..\src\app\private\Prefetch.cc" />
+    <ClCompile Include="..\..\src\app\private\ScheduledTask.cc" />
     <ClCompile Include="..\..\src\app\private\Workspace_cc47a409_fbfe_49fc_846a_c36045257a00.cc" />
     <ClCompile Include="..\..\src\app\resources\Resource_Workspace.cc" />
     <ClCompile Include="..\..\src\app\resources\TypeLoader_Workspace.cc" />
@@ -95,6 +96,7 @@
     <ClInclude Include="..\..\src\app\Pong.h" />
     <ClInclude Include="..\..\src\app\private\Lnk.h" />
     <ClInclude Include="..\..\src\app\private\Prefetch.h" />
+    <ClInclude Include="..\..\src\app\private\ScheduledTask.h" />
     <ClInclude Include="..\..\src\app\private\WindowsTypes.h" />
     <ClInclude Include="..\..\src\app\private\Workspace_cc47a409_fbfe_49fc_846a_c36045257a00.h" />
     <ClInclude Include="..\..\src\app\resources\contf.h" />

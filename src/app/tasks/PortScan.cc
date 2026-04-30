@@ -95,7 +95,12 @@ PortScanTask::PortScanTask(
 
 	TZK_LOG(LogLevel::Trace, "Constructor starting");
 	{
-
+		// this task must be initiated from a workspace
+		if ( my_params.wksp == nullptr )
+		{
+			throw std::runtime_error("No workspace provided");
+		}
+		_wksp_id = my_params.wksp->GetID();
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }

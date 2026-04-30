@@ -168,6 +168,9 @@
     <ClCompile Include="..\..\src\app\tasks\PortScan.cc">
       <Filter>Source Files\tasks</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\app\private\ScheduledTask.cc">
+      <Filter>Source Files\private</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\app\definitions.h">
@@ -328,6 +331,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\app\tasks\PortScan.h">
       <Filter>Header Files\tasks</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\private\ScheduledTask.h">
+      <Filter>Header Files\private</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\app\private\WindowsTypes.h">
       <Filter>Header Files\private</Filter>

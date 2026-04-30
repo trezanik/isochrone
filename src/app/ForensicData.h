@@ -326,6 +326,13 @@ std::string
 ReadFileToString(
 	FILE* fp
 );
+
+/**
+ * @copydoc ReadFileToString
+ * 
+ * ReadFileToString but with a UTF-16 awareness and handling. Primarily useful
+ * for Windows data
+ */
 std::u16string
 ReadFileToUTF16String(
 	FILE* fp
@@ -386,6 +393,30 @@ private:
 		std::shared_ptr<fdata> data
 	);
 
+
+
+	/*
+	 * I really dislike this, but need a single reference point that will be
+	 * obtained every frame ideally without regenerating each time...
+	 */
+
+	std::vector<std::pair<std::string, std::string>>  my_x86_registry_autostarts;
+	std::vector<std::pair<std::string, std::string>>  my_x86_64_registry_autostarts;
+
+	std::vector<std::string>  my_windows_nt5_file_autostarts;
+	std::vector<std::string>  my_windows_nt6_file_autostarts;
+#if 0
+	std::vector<std::string>  my_x86_windows_nt5_file_autostarts;
+	std::vector<std::string>  my_x86_64_windows_nt5_file_autostarts;
+	std::vector<std::string>  my_x86_windows_nt6_file_autostarts;
+	std::vector<std::string>  my_x86_64_windows_nt6_file_autostarts;
+#endif
+
+	// bool for recursion. needs registry and also user *folders*, otherwise we only pickup registry items
+	std::vector<std::pair<std::string, bool>>  my_x86_windows_softinv;
+	std::vector<std::pair<std::string, bool>>  my_x86_64_windows_softinv;
+
+
 protected:
 public:
 	/**
@@ -439,9 +470,49 @@ public:
 		const trezanik::core::UUID& node_id
 	);
 
+
 	/**
-	 * Hook into node saving to write all available forensic data
+	 * Obtains the collection of file autostarts for the supplied system
+	 * 
+	 * The list is created from hardcoded entries, with the option of user
+	 * supplied customised additions
+	 * 
+	 * @todo
+	 *  Consideration required for file-only items, such as AUTOEXEC.BAT.
+	 *  Likely to be a full path, while others are directories
+	 * 
+	 * @param[in] winver
+	 *  The Windows NT version
+	 * @param[in] arch
+	 *  The system architecture
+	 * @return
+	 *  Collection of file-based autostart paths
 	 */
+	const std::vector<std::string>&
+	GetFileAutostarts(
+		NTVersion winver,
+		Architecture arch
+	) const;
+
+
+	/**
+	 * Obtains the collection of registry autostarts for the supplied system
+	 *
+	 * The list is created from hardcoded entries, with the option of user
+	 * supplied customised additions
+	 *
+	 * @param[in] winver
+	 *  The Windows NT version
+	 * @param[in] arch
+	 *  The system architecture
+	 * @return
+	 *  Collection of registry-based autostart paths
+	 */
+	const std::vector<std::pair<std::string, std::string>>&
+	GetRegistryAutostarts(
+		NTVersion winver,
+		Architecture arch
+	) const;
 
 
 	/**

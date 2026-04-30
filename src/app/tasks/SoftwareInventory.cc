@@ -70,7 +70,12 @@ SoftwareInventoryTask::SoftwareInventoryTask(
 
 	TZK_LOG(LogLevel::Trace, "Constructor starting");
 	{
-		
+		// this task must be initiated from a workspace
+		if ( my_params.wksp == nullptr )
+		{
+			throw std::runtime_error("No workspace provided");
+		}
+		_wksp_id = my_params.wksp->GetID();
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
@@ -91,33 +96,10 @@ SoftwareInventoryTask::~SoftwareInventoryTask()
 std::string
 SoftwareInventoryTask::GenerateCommandArgs() const
 {
-// this is all common code, need to prevent repeating self
-	auto& ctx = engine::Context::GetSingleton();
-	auto wdat = my_params.wksp->GetWorkspaceData();
+	TZK_CREDENTIAL_LOOKUP;
+	TZK_IMPACKET_EXEC_SETUP("reg.py");
 
-	std::stringstream  ss;
-
-	std::string   empty;
-	std::string* user = &empty;
-	std::string* pass = &empty;
-	//std::string* hash = &empty;
-	auto  targetstr = core::aux::ipaddr_to_string(my_params.target_addr);
-
-	for ( auto& c : wdat.configs.credentials )
-	{
-		if ( c->id == my_params.creds )
-		{
-			user = &c->username;
-			pass = &c->password;
-			// hash
-			break;
-		}
-	}
-// end common code
-
-	ss << "\"" << ctx.AssetPath() << "scripts" << TZK_PATH_CHARSTR << "bin" << TZK_PATH_CHARSTR << "reg.py\" ";
-	ss << *user << ":" << *pass << "@" << targetstr;
-	ss << " query -keyName HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall -s";
+	ss << "query -keyName HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall -s";
 
 	return ss.str();
 }
@@ -277,8 +259,11 @@ SoftwareInventoryTask::Invoke()
 			entry_node.append_attribute(attrstr_data).set_value(r.data.c_str());
 		}
 
-		pugi::xml_writer_file  writer(fp);
-		doc.save(writer);
+		if ( reg.size() > 0 )
+		{
+			pugi::xml_writer_file  writer(fp);
+			doc.save(writer);
+		}
 
 		core::aux::file::close(fp);
 	}

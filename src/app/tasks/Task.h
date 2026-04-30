@@ -17,6 +17,10 @@
 #else
 #endif
 
+#if TZK_USING_PUGIXML
+#	include <pugixml.hpp>
+#endif
+
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -25,6 +29,50 @@
 
 namespace trezanik {
 namespace app {
+
+
+/**
+ * This is here because of another python atrocious design choice
+ */
+#if TZK_IS_WIN32
+#	define TZK_PYTHON_VENV_DIR  TZK_PATH_CHARSTR "Scripts" TZK_PATH_CHARSTR
+#else
+#	define TZK_PYTHON_VENV_DIR  TZK_PATH_CHARSTR "bin" TZK_PATH_CHARSTR
+#endif
+
+
+// yeah, macros are awful, but these enforce consistency and achieve DRY without setting up functions that take just as long & noise to setup
+// in header because they're used by Artifacts,Persistence, multiple source files
+
+#define TZK_CREDENTIAL_LOOKUP \
+	using namespace trezanik::core; \
+	std::string   empty; \
+	std::string*  user = &empty; \
+	std::string*  pass = &empty; \
+	std::string*  hash = &empty; \
+	auto  wdat =  my_params.wksp->GetWorkspaceData(); \
+	for ( auto& c : wdat.configs.credentials ) \
+	{ \
+		if ( c->id == my_params.creds ) \
+		{ \
+			user = &c->username; \
+			pass = &c->password; \
+			hash = &c->hash; \
+			break; \
+		} \
+	} \
+	if ( (user->empty() || pass->empty()) && hash->empty() ) \
+	{ \
+		TZK_LOG(LogLevel::Error, "No credentials found for connection"); \
+		return ""; \
+	} \
+
+#define TZK_IMPACKET_EXEC_SETUP(script) \
+	auto& ctx = engine::Context::GetSingleton(); \
+	auto  targetstr = core::aux::ipaddr_to_string(my_params.target_addr); \
+	std::stringstream  ss; \
+	ss << "\"" << ctx.AssetPath() << "scripts" << TZK_PYTHON_VENV_DIR << (script) << "\" "; \
+	ss << *user << ":" << *pass << "@" << targetstr << " "; \
 
 
 /**
@@ -188,6 +236,19 @@ private:
 	/** The type of task this is */
 	TaskType  my_type;
 
+#if TZK_USING_PUGIXML
+	/** Output datafile */
+	pugi::xml_document  my_data_file;
+
+	/** Document root, frequent access */
+	pugi::xml_node  my_root_node;
+#endif
+	/** Pointer to the data file; nullptr unless CreateDataFile called successfully */
+	FILE*  my_data_fp;
+
+	/** File path to the data file in my_data_fp; only retained for deletion on cleanup */
+	std::string  my_data_filename;
+
 protected:
 
 	/** Stop flag; valid if mid-execution, ignored if pre or post execution */
@@ -203,6 +264,15 @@ protected:
 	std::string  _detail;
 
 	/**
+	 * Optional unique identifier for the workspace id this task came from.
+	 * 
+	 * We could do a child type that has it mandatory that the necessary ones
+	 * inherit from - maybe in future
+	 */
+	trezanik::core::UUID   _wksp_id;
+
+
+	/**
 	 * Generates the command arguments
 	 * 
 	 * Called by the CommonExec
@@ -212,6 +282,58 @@ protected:
 	 */
 	virtual std::string
 	GenerateCommandArgs() const;
+
+#if 0  // Code Disabled: don't think this will be needed
+	/**
+	 * Appends data supplied to the root element as another child sibling
+	 */
+	void
+	AppendData(
+#if TZK_USING_PUGIXML
+		pugi::xml_node node
+#endif
+	);
+#endif
+
+	/**
+	 * Creates the XML data file to hold task output
+	 * 
+	 * @param[in] path
+	 *  Absolute or relative (former recommended) to the data file
+	 * @param[in] docroot
+	 *  The name of the document root element
+	 * @return
+	 *  - ErrNONE if the file is created and AppendData now usable
+	 *  - ErrFAILED if the creation failed
+	 *  - EEXIST if the file already exists
+	 */
+	int
+	CreateDataFile(
+		const char* path,
+		const char* docroot
+	);
+
+#if TZK_USING_PUGIXML
+	/**
+	 * Gets the document root XML node
+	 * 
+	 * @sa CreateDataFile, SaveDataFile
+	 * 
+	 * @return
+	 *  The root node, or failtype on error/CreateDataFile not called
+	 */
+	pugi::xml_node
+	GetRootNode();
+#endif
+
+	/**
+	 * Saves the data file previously opened
+	 * 
+	 * Even if no data has been written, the baseline XML elements will exist
+	 * and the file will not be empty; check before invoking
+	 */
+	void
+	SaveDataFile();
 
 public:
 	/**
@@ -298,6 +420,16 @@ public:
 	 */
 	TaskType
 	GetType() const;
+
+
+	/**
+	 * Gets the unique identifier of the workspace linked with this task, if any
+	 * 
+	 * @return
+	 *  A reference to the workspace UUID, or a blank_uuid if not set
+	 */
+	const trezanik::core::UUID&
+	GetWorkspaceID() const;
 
 
 	/**

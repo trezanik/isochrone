@@ -34,7 +34,9 @@ namespace trezanik {
 namespace app {
 
 
-const char  nodestr_docroot[] = "PrefetchData"; 
+const char  nodestr_docroot_prefetch[] = "PrefetchData"; 
+const char  nodestr_docroot_browserdata[] = "BrowserData";
+
 const char  nodestr_entry[] = "entry";
 const char  attrstr_file[] = "file";
 const char  attrstr_hash[] = "hash";
@@ -68,14 +70,25 @@ WindowsPrefetchTask::WindowsPrefetchTask(
 		{
 			my_params.tmpfile_name = aux::GenRandomString(64, 8);
 		}
-		if ( my_params.windir.empty() )
+		if ( my_params.path.empty() )
 		{
-			my_params.windir = "C:\\WINDOWS\\";
+			my_params.path = "C:\\WINDOWS\\";
 		}
-		if ( !aux::EndsWith(my_params.windir, "Prefetch") )
+		if ( !aux::EndsWith(my_params.path, "Prefetch") )
 		{
-			my_params.windir += "Prefetch";
+			my_params.path += "Prefetch\\";
 		}
+		if ( !aux::EndsWith(my_params.path, "\\") )
+		{
+			my_params.path += "\\";
+		}
+
+		// this task must be initiated from a workspace
+		if ( my_params.wksp == nullptr )
+		{
+			throw std::runtime_error("No workspace provided");
+		}
+		_wksp_id = my_params.wksp->GetID();
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
@@ -100,27 +113,8 @@ WindowsPrefetchTask::~WindowsPrefetchTask()
 std::string
 WindowsPrefetchTask::GenerateCommandArgs() const
 {
-// this is all common code, need to prevent repeating self
-	auto& ctx = engine::Context::GetSingleton();
-	auto wdat = my_params.wksp->GetWorkspaceData();
-	
-	std::string   empty;
-	std::string*  user = &empty;
-	std::string*  pass = &empty;
-	//std::string*  hash = &empty;
-	auto  targetstr = core::aux::ipaddr_to_string(my_params.target_addr);
-
-	for ( auto& c : wdat.configs.credentials )
-	{
-		if ( c->id == my_params.creds )
-		{
-			user = &c->username;
-			pass = &c->password;
-			// hash
-			break;
-		}
-	}
-// end common code
+	TZK_CREDENTIAL_LOOKUP;
+	TZK_IMPACKET_EXEC_SETUP("smbclient.py");
 
 	// use the workspaces data folder as the temporary ground
 	std::string  outdir;
@@ -135,7 +129,7 @@ WindowsPrefetchTask::GenerateCommandArgs() const
 	std::string  sharename;
 	std::string  childpath;
 
-	if ( ExtractPathInfo(my_params.windir, sharename, childpath) != ErrNONE )
+	if ( ExtractPathInfo(my_params.path, sharename, childpath) != ErrNONE )
 	{
 		return "";
 	}
@@ -148,7 +142,19 @@ WindowsPrefetchTask::GenerateCommandArgs() const
 		// 'use' switches to the share folder; cd if a child path was desired
 		smbclient_cmds << "cd " << childpath << "\n";
 	}
-	smbclient_cmds << "mget *.pf" << "\n";
+	if ( my_params.file.empty() )
+	{
+		smbclient_cmds << "mget *.pf" << "\n";
+	}
+	else
+	{
+		smbclient_cmds << "get " << my_params.file;
+		
+		if ( !aux::EndsWith(my_params.file, ".pf") )
+			smbclient_cmds << ".pf";
+
+		smbclient_cmds << "\n";
+	}
 
 	// lock the file open, permit other processes to read it
 
@@ -168,10 +174,7 @@ WindowsPrefetchTask::GenerateCommandArgs() const
 	core::aux::file::write(my_tmpfile, dat.c_str(), dat.length());
 	core::aux::file::flush(my_tmpfile);
 
-	std::stringstream  ss;
-	ss << "\"" << ctx.AssetPath() << "scripts" << TZK_PATH_CHARSTR << "bin" << TZK_PATH_CHARSTR << "smbclient.py\" ";
-	ss << *user << ":" << *pass << "@" << targetstr;
-	ss << " -inputfile " << my_tmpfile_path;
+	ss << "-inputfile " << my_tmpfile_path;
 
 	return ss.str();
 }
@@ -232,29 +235,20 @@ WindowsPrefetchTask::Invoke()
 		::CloseHandle(c.entry_file);
 		c.entry_file = INVALID_HANDLE_VALUE;
 #endif
-		int  openflags = core::aux::file::OpenFlag_WriteOnly
-			// windows-only
-			| core::aux::file::OpenFlag_DenyW
-			// unix-only
-			| core::aux::file::OpenFlag_CreateUserR
-			| core::aux::file::OpenFlag_CreateUserW;
-		FILE*  fp = core::aux::file::open(fpath.c_str(), openflags);
-
-		if ( fp == nullptr )
-		{
-			core::aux::file::remove(fpath_int.c_str());
-			throw std::runtime_error("file open failed");
-		}
-
-		pugi::xml_document  doc;
 		pugi::xml_node  root_node;
 
-		// create starting xml structure
-		auto  decl_node = doc.append_child(pugi::node_declaration);
-		decl_node.append_attribute("version") = "1.0";
-		decl_node.append_attribute("encoding") = "UTF-8";
+		if ( CreateDataFile(fpath.c_str(), nodestr_docroot_prefetch) == ErrFAILED )
+		{
+			core::aux::file::remove(fpath_int.c_str());
+			throw std::runtime_error("file creation failed");
+		}
+		else
+		{
+			root_node = GetRootNode();
+		}
 
-		root_node = doc.append_child(nodestr_docroot);
+		size_t  failed = 0;
+		size_t  successful = 0;
 
 		for ( auto& fname : downloaded_files )
 		{
@@ -269,6 +263,7 @@ WindowsPrefetchTask::Invoke()
 			if ( ReadPrefetch(pfpath.c_str(), entry) != ErrNONE )
 			{
 				TZK_LOG_FORMAT(LogLevel::Warning, "Failed parsing '%s', will be omitted from output", fname.c_str());
+				failed++;
 			}
 			else
 			{
@@ -327,13 +322,11 @@ WindowsPrefetchTask::Invoke()
 				}
 
 				node_runcount.text().set(entry.run_count);
+				successful++;
 			}
 		}
 
-		pugi::xml_writer_file  writer(fp);
-		doc.save(writer);
-
-		core::aux::file::close(fp);
+		TZK_LOG_FORMAT(LogLevel::Info, "Parsing results: %zu successful, %zu failed of %zu files", successful, failed, downloaded_files.size());
 	}
 	catch ( std::exception& e )
 	{
@@ -383,12 +376,12 @@ WindowsPrefetchParser::Parse(
 		return ErrEXTERN;
 	}
 
-	pugi::xml_node  xml_root = doc.child(nodestr_docroot);
+	pugi::xml_node  xml_root = doc.child(nodestr_docroot_prefetch);
 
 	if ( !xml_root )
 	{
 		auto  fc = doc.first_child();
-		TZK_LOG_FORMAT(LogLevel::Error, "[pugixml] Mismatched document root element: %s != %s", nodestr_docroot, fc ? fc.name() : "<none>");
+		TZK_LOG_FORMAT(LogLevel::Error, "[pugixml] Mismatched document root element: %s != %s", nodestr_docroot_prefetch, fc ? fc.name() : "<none>");
 		return EINVAL;
 	}
 
@@ -566,33 +559,8 @@ WindowsPrefetchParser::Parse(
 	
 				stvol  vol;
 	
-				std::string  ctime = attr_created.value();
-				// match e.g. '2026-03-06 20:33:12.123'
-				std::regex   regex("(\\d{4})-([01]\\d)-([0-3]\\d) ([0-2]\\d):([0-5]\\d):([0-5]\\d)\\.(\\d+)");
-				std::smatch  match;
-	
-				if ( std::regex_search(ctime, match, regex) )
-				{
-					const char*  errstr = nullptr;
-					// match[0] is the full match, each increment is for each capture
-					vol.created_time.wYear         = static_cast<WORD>(STR_to_unum(match[1].str().c_str(), UINT16_MAX, &errstr));
-					vol.created_time.wMonth        = static_cast<WORD>(STR_to_unum(match[2].str().c_str(), UINT16_MAX, &errstr));
-					vol.created_time.wDay          = static_cast<WORD>(STR_to_unum(match[3].str().c_str(), UINT16_MAX, &errstr));
-					vol.created_time.wHour         = static_cast<WORD>(STR_to_unum(match[4].str().c_str(), UINT16_MAX, &errstr));
-					vol.created_time.wMinute       = static_cast<WORD>(STR_to_unum(match[5].str().c_str(), UINT16_MAX, &errstr));
-					vol.created_time.wSecond       = static_cast<WORD>(STR_to_unum(match[6].str().c_str(), UINT16_MAX, &errstr));
-					vol.created_time.wMilliseconds = static_cast<WORD>(STR_to_unum(match[7].str().c_str(), UINT16_MAX, &errstr));
-					// loop all, error for each - regex covers possibility already?
-					if ( errstr )
-					{
-						TZK_LOG_FORMAT(LogLevel::Warning, "STR_to_unum failed: %s", errstr);
-					}
-				}
-				else
-				{
-					TZK_LOG_FORMAT(LogLevel::Warning, "Invalid creation timestamp: %s", ctime.c_str());
-				}
-	
+				ISOStringToSYSTEMTIME(attr_created.value(), vol.created_time);
+
 				vol.device_name = attr_device.value();
 				vol.serial = attr_serial.value();
 	
@@ -674,6 +642,13 @@ BrowserDataTask::BrowserDataTask(
 		{
 			my_params.profiles_path = "C:\\Users\\";
 		}
+
+		// this task must be initiated from a workspace
+		if ( my_params.wksp == nullptr )
+		{
+			throw std::runtime_error("No workspace provided");
+		}
+		_wksp_id = my_params.wksp->GetID();
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
@@ -698,29 +673,8 @@ BrowserDataTask::~BrowserDataTask()
 std::string
 BrowserDataTask::GenerateCommandArgs() const
 {
-	using namespace trezanik::core;
-
-	// this is all common code, need to prevent repeating self
-	auto& ctx = engine::Context::GetSingleton();
-	auto wdat = my_params.wksp->GetWorkspaceData();
-
-	std::string   empty;
-	std::string* user = &empty;
-	std::string* pass = &empty;
-	//std::string*  hash = &empty;
-	auto  targetstr = core::aux::ipaddr_to_string(my_params.target_addr);
-
-	for ( auto& c : wdat.configs.credentials )
-	{
-		if ( c->id == my_params.creds )
-		{
-			user = &c->username;
-			pass = &c->password;
-			// hash
-			break;
-		}
-	}
-	// end common code
+	TZK_CREDENTIAL_LOOKUP;
+	TZK_IMPACKET_EXEC_SETUP("smbclient.py");
 
 	std::string  outdir;
 	std::stringstream  smbclient_cmds;
@@ -777,6 +731,7 @@ BrowserDataTask::GenerateCommandArgs() const
 		smbclient_cmds << "User Data" << "\n";
 		smbclient_cmds << "get Preferences" << "\n";
 		smbclient_cmds << "get History" << "\n";
+		smbclient_cmds << "get Web Data" << "\n";
 		smbclient_cmds << "cd " << childpath << "\n";
 	}
 	for ( auto& b : my_params.firefox_targets )
@@ -800,16 +755,20 @@ BrowserDataTask::GenerateCommandArgs() const
 	{
 		// have only setup XP for browser testing so far, will adjust when Vista+ present
 		// I also have no compatible sites to browse to, even internally :D
-		// if ( NT5 )
-		smbclient_cmds << "cd " << childpath << "Local Settings\\Temporary Internet Files\\" << "\n";
-		smbclient_cmds << "get Content.ie5" << "\n";
-		smbclient_cmds << "cd " << childpath << "Local Settings\\History\\" << "\n";
-		smbclient_cmds << "get history.ie5" << "\n";
-		// if ( NT6+ )
-		smbclient_cmds << "cd " << childpath << "AppData\\Local\\Microsoft\\Windows\\Temporary Internet Files\\" << "\n";
-		smbclient_cmds << "get Content.ie5" << "\n";
-		smbclient_cmds << "cd Low" << "\n";
-		smbclient_cmds << "get history.ie5" << "\n";
+		if ( my_params.winver == NTVersion::NT5_0 || my_params.winver == NTVersion::NT5_1 || my_params.winver == NTVersion::NT5_2 )
+		{
+			smbclient_cmds << "cd " << childpath << "Local Settings\\Temporary Internet Files\\" << "\n";
+			smbclient_cmds << "get Content.ie5" << "\n";
+			smbclient_cmds << "cd " << childpath << "Local Settings\\History\\" << "\n";
+			smbclient_cmds << "get history.ie5" << "\n";
+		}
+		else
+		{
+			smbclient_cmds << "cd " << childpath << "AppData\\Local\\Microsoft\\Windows\\Temporary Internet Files\\" << "\n";
+			smbclient_cmds << "get Content.ie5" << "\n";
+			smbclient_cmds << "cd Low" << "\n";
+			smbclient_cmds << "get history.ie5" << "\n";
+		}
 	}
 
 
@@ -831,10 +790,7 @@ BrowserDataTask::GenerateCommandArgs() const
 	core::aux::file::write(my_tmpfile, dat.c_str(), dat.length());
 	core::aux::file::flush(my_tmpfile);
 
-	std::stringstream  ss;
-	ss << "\"" << ctx.AssetPath() << "scripts" << TZK_PATH_CHARSTR << "bin" << TZK_PATH_CHARSTR << "smbclient.py\" ";
-	ss << *user << ":" << *pass << "@" << targetstr;
-	ss << " -inputfile " << my_tmpfile_path;
+	ss << "-inputfile " << my_tmpfile_path;
 
 	return ss.str();
 }
@@ -889,6 +845,18 @@ BrowserDataTask::Invoke()
 			}
 		}
 
+
+		pugi::xml_node  root_node;
+
+		if ( CreateDataFile(fpath.c_str(), nodestr_docroot_browserdata) == ErrFAILED )
+		{
+			core::aux::file::remove(fpath_int.c_str());
+			throw std::runtime_error("file creation failed");
+		}
+		else
+		{
+			root_node = GetRootNode();
+		}
 	}
 	catch ( std::exception& e )
 	{

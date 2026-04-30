@@ -14,6 +14,7 @@
 #include "core/services/log/Log.h"
 #include "core/services/memory/Memory.h"
 #include "core/services/ServiceLocator.h"
+#include "core/util/filesystem/file.h"
 #include "core/util/time.h"
 #include "core/error.h"
 
@@ -86,10 +87,72 @@ Task::~Task()
 
 	TZK_LOG(LogLevel::Trace, "Destructor starting");
 	{
-		
-
+		// Cleanup if this task was writing data; not all tasks do
+		if ( my_data_fp != nullptr )
+		{
+			// don't write out empty files
+			if ( !my_data_file.children().empty() )
+			{
+				SaveDataFile();
+				core::aux::file::close(my_data_fp);
+			}
+			else
+			{
+				core::aux::file::close(my_data_fp);
+				core::aux::file::remove(my_data_filename.c_str());
+			}
+		}
 	}
 	TZK_LOG(LogLevel::Trace, "Destructor finished");
+}
+
+
+#if 0// TZK_USING_PUGIXML
+void
+Task::AppendData(
+	pugi::xml_node node
+)
+{
+	my_root_node.append_move(node);
+}
+#endif
+
+
+int
+Task::CreateDataFile(
+	const char* path,
+	const char* docroot
+)
+{
+	if ( core::aux::file::exists(path) == EEXIST )
+	{
+		return EEXIST;
+	}
+
+	int  openflags = core::aux::file::OpenFlag_WriteOnly
+		// windows-only
+		| core::aux::file::OpenFlag_DenyW
+		// unix-only
+		| core::aux::file::OpenFlag_CreateUserR
+		| core::aux::file::OpenFlag_CreateUserW;
+	if ( (my_data_fp = core::aux::file::open(path, openflags)) == nullptr )
+	{
+		return ErrFAILED;
+	}
+
+#if TZK_USING_PUGIXML
+	// create starting xml structure
+	auto  decl_node = my_data_file.append_child(pugi::node_declaration);
+	decl_node.append_attribute("version") = "1.0";
+	decl_node.append_attribute("encoding") = "UTF-8";
+
+	my_root_node = my_data_file.append_child(docroot);
+	my_data_filename = path;
+#else
+	return ErrIMPL;
+#endif
+
+	return ErrNONE;
 }
 
 
@@ -131,6 +194,23 @@ Task::Execute()
 
 	TZK_LOG(LogLevel::Debug, "Task execution complete");
 
+	if ( my_data_fp != nullptr )
+	{
+		// don't write out empty files
+		if ( !my_data_file.children().empty() )
+		{
+			SaveDataFile();
+			core::aux::file::close(my_data_fp);
+		}
+		else
+		{
+			core::aux::file::close(my_data_fp);
+			core::aux::file::remove(my_data_filename.c_str());
+		}
+
+		my_data_fp = nullptr;
+	}
+
 	return retval;
 }
 
@@ -156,6 +236,15 @@ Task::GetID() const
 }
 
 
+#if TZK_USING_PUGIXML
+pugi::xml_node
+Task::GetRootNode()
+{
+	return my_root_node;
+}
+#endif
+
+
 async_task
 Task::GetTask() const
 {
@@ -167,6 +256,13 @@ TaskType
 Task::GetType() const
 {
 	return my_type;
+}
+
+
+const trezanik::core::UUID&
+Task::GetWorkspaceID() const
+{
+	return _wksp_id;
 }
 
 
@@ -191,6 +287,17 @@ Task::RunningTime() const
 		return my_end - my_start;
 
 	return core::aux::get_ms_since_epoch() - my_start;
+}
+
+
+void
+Task::SaveDataFile()
+{
+#if TZK_USING_PUGIXML
+	pugi::xml_writer_file  writer(my_data_fp);
+
+	my_data_file.save(writer);
+#endif
 }
 
 

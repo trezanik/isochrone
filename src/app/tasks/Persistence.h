@@ -11,14 +11,17 @@
 #include "app/definitions.h"
 
 #include "app/tasks/Task.h"
+#include "app/private/ScheduledTask.h"
 #include "app/ForensicData.h"  // we're a forensic data item
 
 #include "core/UUID.h"
 #include "core/util/net/net_structs.h"
 
 #if TZK_USING_PUGIXML
-#	include <pugixml.hpp>
+#	include <pugixml.hpp>  // for scheduled tasks, as they're xml
 #endif
+
+#include <vector>
 
 
 namespace trezanik {
@@ -84,6 +87,12 @@ struct registry_autostarts : public fdata
  * 
  * Holds all requirements, including the target system and the credentials &
  * method needed to access it
+ * 
+ * Amendment:
+ * This is a plain registry getter, since we can't chain anything in reg.py and
+ * therefore you have to supply the key explicitly. Rename in future.
+ * Also results in the caller needing to prepare the environment if they want to
+ * get anything for a specific user.
  */
 struct registry_autostarts_task_params
 {
@@ -107,6 +116,15 @@ struct registry_autostarts_task_params
 
 	// redundant as this should only be invoked if pre-determined to be Windows?
 	OperatingSystem  os = OperatingSystem::Invalid;
+
+	/** No known difference in registry autostarts locations between versions */
+	NTVersion  winver = NTVersion::Unspecified;
+
+	/** The key to retrieve */
+	std::string  key;
+
+	/** The value within the key to retrieve; if blank, all values are obtained */
+	std::string  value;
 };
 
 
@@ -266,6 +284,17 @@ struct file_autostarts_task_params
 	// redundant as this should only be invoked if pre-determined to be Windows?
 	OperatingSystem  os = OperatingSystem::Invalid;
 
+	/** Primarily to determine users path if not provided */
+	NTVersion  winver = NTVersion::Unspecified;
+
+	/**
+	 * Directory on the target to extract
+	 *
+	 * Any file in this directory will be acquired and copied, being associated
+	 * with filesystem autostarts. Cannot be empty.
+	 */
+	std::string  path;
+
 	/**
 	 * Temporary file the smbclient commands are written to.
 	 * 
@@ -276,14 +305,6 @@ struct file_autostarts_task_params
 	 * the task destructor (task retention will keep file presence)
 	 */
 	std::string  tmpfile_name;
-
-	/**
-	 * Directory on the target to extract
-	 * 
-	 * Any file in this directory will be acquired and copied, being associated
-	 * with filesystem autostarts. Cannot be empty.
-	 */
-	std::string  path;
 };
 
 
@@ -514,49 +535,6 @@ public:
 };
 
 
-/**
- * Holds details for a Windows scheduled task
- * 
- * All members are strings to save per-frame conversion (or extra memory holding)
- * in combination with us not knowing the explicit types
- * 
- * @todo complete population
- */
-struct scheduled_task
-{
-	/** The task name */
-	std::string  name;
-
-	/** The command executed, including any arguments */
-	std::string  command;
-	std::string  arguments;
-	// note: possible to have more than one, handle
-
-	/** The working directory */
-	std::string  wkdir;
-
-	/** Time of the last execution */
-	std::string  last_run;
-
-	
-	// boolean as string; for settings.enabled, not triggers
-	std::string  enabled;
-
-	std::string  hidden;
-	std::string  allow_hard_terminate;
-	std::string  start_when_available;
-
-	// triggers
-
-	std::string  author;
-	std::string  user_id;
-	std::string  logon_type;
-	std::string  run_level;
-
-	/** Windows task version */
-	std::string  task_version;
-};
-
 
 struct scheduled_tasks : public fdata
 {
@@ -601,14 +579,24 @@ struct scheduled_tasks_task_params
 	// redundant as this should only be invoked if pre-determined to be Windows?
 	OperatingSystem  os = OperatingSystem::Invalid;
 
-	/** Path to the V1 API directory */
-	std::string  v1_path;
+	/** Used to check between Task Scheduler 1.0 and 2.0 location */
+	NTVersion  winver = NTVersion::Unspecified;
+
+	/** Processor architecture of the target */
+	Architecture  arch = Architecture::Unspecified;
 
 	/**
-	 * Path to the V2 API directory; should contain v1 files too. Deemed the
-	 * primary as it is the live location since 2007.
+	 * Indicates usage of an NT5 operating system, which will restrict content
+	 * to the v1 path and expect .job files. All files will still be interpreted
+	 * however!
+	 * Otherwise, will use both but interpret the v2 structure as the source of
+	 * truth as per how Windows handles them.
 	 */
-	std::string  v2_path;
+	bool  nt5;
+	
+
+	/** Path to the tasks directory */
+	std::string  path;
 
 	/**
 	 * Temporary file the smbclient commands are written to.
@@ -622,59 +610,6 @@ struct scheduled_tasks_task_params
 	std::string  tmpfile_name;
 };
 
-
-/**
- * Enumeration covering the different types of scheduled task determined
- * 
- * Binary is a v1 job, while XML is v2. RegBinary is still v2 due to its found
- * location on Windows 8+ as a form of backup.
- * 
- * If not found to be anything, will always be NotATask
- */
-enum class ScheduledTaskType
-{
-	Binary,
-	XML,
-	RegBinary,
-	NotATask
-};
-
-
-enum class WindowsPriorityClass : uint32_t
-{
-	Normal = NORMAL_PRIORITY_CLASS,
-	Idle = IDLE_PRIORITY_CLASS,
-	High = HIGH_PRIORITY_CLASS,
-	Realtime = REALTIME_PRIORITY_CLASS
-};
-
-enum class WindowsTaskStatus : uint32_t
-{
-	Ready = SCHED_S_TASK_READY,
-	Running = SCHED_S_TASK_RUNNING,
-	Disabled = SCHED_S_TASK_DISABLED,
-	HasNotRun = SCHED_S_TASK_HAS_NOT_RUN,
-	NoMoreRuns = SCHED_S_TASK_NO_MORE_RUNS,
-	NotScheduled = SCHED_S_TASK_NOT_SCHEDULED,
-	Terminated = SCHED_S_TASK_TERMINATED,
-	NoValidTriggers = SCHED_S_TASK_NO_VALID_TRIGGERS,
-	Queued = SCHED_S_TASK_QUEUED
-};
-
-/**
- * Enumeration covering the different type of scheduled task triggers
- */
-enum class TriggerType : uint32_t
-{
-	Once = 0x00000000,
-	Daily = 0x00000001,
-	Weekly = 0x00000002,
-	MonthlyDate = 0x00000003,
-	MonthlyDow = 0x00000004,
-	EventOnIdle = 0x00000005,
-	EventAtSystemStart = 0x00000006,
-	EventAtLogon = 0x00000007
-};
 
 
 /**
@@ -704,44 +639,6 @@ private:
 	/** Temporary file absolute path; retained here for deletion */
 	mutable std::string  my_tmpfile_path;
 
-#if TZK_USING_PUGIXML
-	/**
-	 * Document used for writing all merged tasks into a single file - the one
-	 * used as the actual parse item
-	 */
-	pugi::xml_document  my_xml_doc;
-#endif
-
-
-	/**
-	 *
-	 *
-	 * @param[in] fp
-	 *
-	 * @return
-	 *  The determined task type, or NotATask if not matching
-	 */
-	ScheduledTaskType
-	GetTaskType(
-		FILE* fp
-	);
-
-
-	/**
-	 * Parses a binary (v1 API) task
-	 * 
-	 * These are sourced from %windir%\Tasks, .job files (which may not always
-	 * have an extension)
-	 * 
-	 * @param[in] fpath
-	 *  Absolute or relative path to the job file
-	 * @return
-	 *  An error code on failure, otherwise ErrNONE
-	 */
-	int
-	ParseTaskJob(
-		const char* fpath
-	);
 
 
 	/**
@@ -754,7 +651,8 @@ private:
 	 * just have a single data stream given we extract content. For a live system
 	 * we can and will do
 	 * 
-	 * @todo not yet implemented, not essential as duplicate of file-based
+	 * @todo not yet implemented, not essential as duplicate of file-based.
+	 * Code done historically so far exists in secfuncs
 	 * 
 	 * @param[in] fpath
 	 *  Absolute or relative path to the registry file
@@ -768,43 +666,9 @@ private:
 
 
 	/**
-	 * Parses an XML (v2 API) task
-	 * 
-	 * These are sourced from %windir%\System32\Tasks, .xml files
-	 * 
-	 * XML is the only way to get full data from Vista and 7 systems, as there's
-	 * no copy in the registry. It's duplicated in the registry for Windows 8+
-	 * 
-	 * @param[in] fpath
-	 *  Absolute or relative path to the XML file
-	 * @return
-	 *  An error code on failure, otherwise ErrNONE
-	 */
-	int
-	ParseTaskXML(
-		const char* fpath
-	);
-
-
-	/**
-	 * Merges the v1 binary job into our custom XML
-	 *
-	 * @param[in] fpath
-	 *  The file path for name extraction
-	 * @param[in] fp
-	 *  The open file pointer to acquire from
-	 * @return
-	 *  An error code on failure, otherwise ErrNONE
-	 */
-	int
-	MergeTaskBinary(
-		std::string& fpath,
-		FILE* fp
-	);
-
-
-	/**
 	 * Merges the v2 registry binary job into our custom XML
+	 * 
+	 * @todo not yet implemented
 	 *
 	 * @param[in] fpath
 	 *  The file path for name extraction
@@ -820,21 +684,26 @@ private:
 	);
 
 
+#if TZK_USING_PUGIXML
 	/**
 	 * Merges the XML task into our custom XML
 	 *
 	 * @param[in] fpath
 	 *  The file path for name extraction
-	 * @param[in] fp
-	 *  The open file pointer to acquire from
+	 * @param[in] xml_task
+	 *  The task XML element to merge. Will have our custom name attribute added
+	 * @param[in] parent
+	 *  The parent XML element to append xml_task as an additional child
 	 * @return
 	 *  An error code on failure, otherwise ErrNONE
 	 */
 	int
 	MergeTaskXML(
 		std::string& fpath,
-		FILE* fp
+		pugi::xml_node xml_task,
+		pugi::xml_node parent
 	);
+#endif
 
 protected:
 

@@ -92,8 +92,14 @@ struct prefetch_task_params
 	// redundant as this should only be invoked if pre-determined to be Windows?
 	OperatingSystem  os = OperatingSystem::Invalid;
 
-	/** Path to the Windows directory. If empty, automatically sets C:\\Windows */
-	std::string  windir;////////// to add
+	/**
+	 * No known difference in Prefetch locations between versions, but do have
+	 * different formats
+	 */
+	NTVersion  winver = NTVersion::Unspecified;
+
+	/** Path to the Windows directory. Subfolder of 'Prefetch' assumed */
+	std::string  path;
 
 	/**
 	 * Temporary file the smbclient commands are written to.
@@ -109,9 +115,10 @@ struct prefetch_task_params
 	/**
 	 * The prefetch filename to extract and parse through
 	 * 
-	 * Will always be obtained from the %windir%/prefetch folder. If empty,
-	 * every found prefetch file (.pf) will be acquired - beware that this can
-	 * be hundreds of items!
+	 * Will always be obtained from the %windir%/prefetch folder (specified in
+	 * the path member).
+	 * If empty, every found prefetch file (.pf) will be acquired - beware that
+	 * this can be hundreds of items!
 	 */
 	std::string  file;
 };
@@ -284,7 +291,13 @@ struct browser_data_task_params
 	// redundant as this should only be invoked if pre-determined to be Windows?
 	OperatingSystem  os = OperatingSystem::Invalid;
 
-	/** Path to the user profiles location. If empty, automatically sets C:\\Users */
+	/** Offsets may vary, however profiles path should cover */
+	NTVersion  winver = NTVersion::Unspecified;
+
+	/**
+	 * Path to the user profiles location. If empty, specified winver will be
+	 * used to automatically set. With no specification, uses C:\\Users
+	 */
 	std::string  profiles_path;
 
 	/** Folder containing the user profile to run through. Cannot be unset */
