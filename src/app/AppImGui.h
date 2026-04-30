@@ -13,6 +13,7 @@
 #if TZK_USING_IMGUI
 
 #include "app/event/AppEvent.h"
+#include "app/tasks/Tasker.h"
 
 #include "core/util/SingularInstance.h"
 #include "core/util/hash/compile_time_hash.h"
@@ -316,9 +317,10 @@ struct GuiInteractions
 #if 1//TZK_USING_FORENSICDATA || HAS_SECOPS
 	ForensicData&  forensic_data;
 #endif
-
 	/** Thread-safety mutex reference; is the Application class workspace_mutex */
 	std::mutex&  mutex;
+
+	Tasker  task_runner;
 
 	// self-explanatory pointer to windows/dialogs
 	ImGuiAboutDialog*        about_dialog = nullptr;

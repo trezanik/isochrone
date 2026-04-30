@@ -342,6 +342,11 @@ Application::Cleanup()
 	 */
 	CloseAllWorkspaces();
 
+	if ( my_gui_interactions != nullptr )
+	{
+		my_gui_interactions->task_runner.Stop();
+	}
+
 
 	// engine cleanup
 	{
@@ -420,6 +425,9 @@ Application::Cleanup()
 #if TZK_IS_WIN32
 	::WSACleanup();
 #endif
+
+
+	my_gui_interactions.reset();
 
 
 	auto cfg = core::ServiceLocator::Config();

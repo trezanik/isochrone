@@ -619,20 +619,7 @@ public:
 
 
 	/**
-	 * Gets the tasker object from the private implementation
-	 * 
-	 * Don't like this here, could be application-wide in context. For now, is
-	 * one per workspace
-	 * 
-	 * @return
-	 *  Raw pointer to the Tasker class
-	 */
-	Tasker*
-	GetTasker() const;
-
-
-	/**
-	 *
+	 * Retrieves the topology tab object
 	 * 
 	 * Public as app Pin implementations need to acquire for performing link
 	 * creations, which is topology-specific.

@@ -111,24 +111,15 @@ ImGuiActiveTasks::Draw()
 
 	//auto tss = ImGui::TableGetSortSpecs();
 
-	Tasker*  tasker = nullptr;
-
-	for ( auto& wksp : _gui_interactions.workspaces )
-	{
-		if ( wksp.first != _gui_interactions.active_workspace )
-			continue;
-
-		tasker = wksp.second.first->GetTasker(); // ?
-		break;
-	}
 	std::vector<std::shared_ptr<Task>>  tasks;
-	if ( tasker != nullptr )
-	{
-		tasks = tasker->GetAllTasks();
-	}
+	tasks = _gui_interactions.task_runner.GetAllTasks();
 
 	for ( auto& t : tasks )
 	{
+		// potentially works in a roundabout way, subject to additional refactoring
+		if ( t->GetWorkspaceID() != _gui_interactions.active_workspace )
+			continue;
+
 		ImGui::TableNextRow();
 
 		if ( show_id )
@@ -136,7 +127,7 @@ ImGuiActiveTasks::Draw()
 			ImGui::TableNextColumn();
 			ImGui::Text("%s", t->GetID().GetCanonical());
 		}
-
+		
 		ImGui::TableNextColumn();
 		// type
 		ImGui::Text("%u", static_cast<uint8_t>(t->GetType()));

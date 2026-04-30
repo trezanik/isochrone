@@ -261,7 +261,7 @@ public:
 
 		TZK_LOG(LogLevel::Trace, "Destructor starting");
 		{
-			task_runner.Stop();
+
 		}
 		TZK_LOG(LogLevel::Trace, "Destructor finished");
 	}
@@ -752,8 +752,8 @@ public:
 			if ( core::aux::string_to_ipaddr(node->targets.front().target.c_str(), ipaddr) > 0 )
 			{
 				auto  pinger = std::make_shared<Ping>(ipaddr);
-				task_runner.AddTask(pinger);
-				task_runner.Sync();
+				wksp->_gui_interactions.task_runner.AddTask(pinger);
+				wksp->_gui_interactions.task_runner.Sync();
 			}
 		}
 #if 0
@@ -1740,8 +1740,6 @@ public:
 
 	bool  debug_edit;
 	bool  edit_current_node_name;
-
-	Tasker  task_runner;
 };
 
 
@@ -4266,13 +4264,6 @@ ImGuiWorkspace::GetSelectedNode()
 }
 
 
-Tasker*
-ImGuiWorkspace::GetTasker() const
-{
-	return &my_impl->task_runner;
-}
-
-
 std::shared_ptr<Workspace>
 ImGuiWorkspace::GetWorkspace()
 {
@@ -5062,8 +5053,8 @@ ImGuiWorkspace::UpdateTrackingState(
 			}
 		}
 
-		my_impl->task_runner.AddTask(my_pingmon);
-		my_impl->task_runner.Sync();
+		_gui_interactions.task_runner.AddTask(my_pingmon);
+		_gui_interactions.task_runner.Sync();
 	}
 	else
 	{
@@ -5081,7 +5072,7 @@ ImGuiWorkspace::UpdateTrackingState(
 			}
 		}
 
-		my_impl->task_runner.StopTask(my_pingmon);
+		_gui_interactions.task_runner.StopTask(my_pingmon);
 		// drop our reference, task runner should hold remainder and auto-delete it
 		my_pingmon.reset();
 	}
