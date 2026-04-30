@@ -95,6 +95,7 @@
     <ClInclude Include="..\..\src\app\Pong.h" />
     <ClInclude Include="..\..\src\app\private\Lnk.h" />
     <ClInclude Include="..\..\src\app\private\Prefetch.h" />
+    <ClInclude Include="..\..\src\app\private\WindowsTypes.h" />
     <ClInclude Include="..\..\src\app\private\Workspace_cc47a409_fbfe_49fc_846a_c36045257a00.h" />
     <ClInclude Include="..\..\src\app\resources\contf.h" />
     <ClInclude Include="..\..\src\app\resources\error_wav.h" />

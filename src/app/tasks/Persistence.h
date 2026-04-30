@@ -639,24 +639,6 @@ enum class ScheduledTaskType
 	NotATask
 };
 
-#if !TZK_IS_WIN32
-// non-Windows - provide definitions as copied from the Microsoft headers. We make no attempt to handle duplicate definitions!
-
-#define NORMAL_PRIORITY_CLASS             0x00000020
-#define IDLE_PRIORITY_CLASS               0x00000040
-#define HIGH_PRIORITY_CLASS               0x00000080
-#define REALTIME_PRIORITY_CLASS           0x00000100
-
-#define SCHED_S_TASK_READY               (0x00041300L)
-#define SCHED_S_TASK_RUNNING             (0x00041301L)
-#define SCHED_S_TASK_DISABLED            (0x00041302L)
-#define SCHED_S_TASK_HAS_NOT_RUN         (0x00041303L)
-#define SCHED_S_TASK_NO_MORE_RUNS        (0x00041304L)
-#define SCHED_S_TASK_NOT_SCHEDULED       (0x00041305L)
-#define SCHED_S_TASK_TERMINATED          (0x00041306L)
-#define SCHED_S_TASK_NO_VALID_TRIGGERS   (0x00041307L)
-#define SCHED_S_TASK_QUEUED              (0x00041325L)
-#endif
 
 enum class WindowsPriorityClass : uint32_t
 {

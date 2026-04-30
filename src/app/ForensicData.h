@@ -11,6 +11,7 @@
 #include "app/definitions.h"
 
 #include "app/Workspace.h"  // can forward declare except for OperatingSystem - WorkspaceTypes.h?
+#include "app/private/WindowsTypes.h"
 
 #include "core/UUID.h"
 #include "core/util/net/net.h"

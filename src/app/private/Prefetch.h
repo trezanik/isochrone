@@ -13,23 +13,11 @@
 #if TZK_IS_WIN32
 #	include <Windows.h>
 #else
+#	include "app/ForensicData.h"  // SYSTEMTIME
 
  // these are just copied from visual studio for simplicity, but we could reimplement. Added initializers
 
 typedef uint32_t      DWORD;
-typedef uint16_t      WORD;
-
-typedef struct _SYSTEMTIME
-{
-	WORD wYear = 0;
-	WORD wMonth = 0;
-	WORD wDayOfWeek = 0;
-	WORD wDay = 0;
-	WORD wHour = 0;
-	WORD wMinute = 0;
-	WORD wSecond = 0;
-	WORD wMilliseconds = 0;
-} SYSTEMTIME, *PSYSTEMTIME, *LPSYSTEMTIME;
 
 typedef struct _FILETIME
 {

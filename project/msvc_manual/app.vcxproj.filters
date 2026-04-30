@@ -329,6 +329,9 @@
     <ClInclude Include="..\..\src\app\tasks\PortScan.h">
       <Filter>Header Files\tasks</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\app\private\WindowsTypes.h">
+      <Filter>Header Files\private</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="app.rc">
