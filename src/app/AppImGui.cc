@@ -149,6 +149,7 @@ AppImGui::AppImGui(
 , my_pause_on_nofocus(trezanik::core::TConverter<bool>::FromString(core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_PAUSE_ON_FOCUS_LOSS_ENABLED)))
 , my_has_focus(true)
 , my_skip_next_frame(false)
+, my_dimensions_dirty(true)
 , my_udata_loaded(false)
 , main_menu_bar(std::make_unique<ImGuiMenuBar>(gui_interactions)) // menu exists from the outset
 , console_window(nullptr)
@@ -243,6 +244,7 @@ AppImGui::AppImGui(
 		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<app::EventData::drawclient_location>>(uuid_drawclient_location, std::bind(&AppImGui::HandleWindowLocation, this, std::placeholders::_1))));
 		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<>>(uuid_windowactivate, std::bind(&AppImGui::HandleWindowActivate, this))));
 		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<>>(uuid_windowdeactivate, std::bind(&AppImGui::HandleWindowDeactivate, this))));
+		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<engine::EventData::window_size>>(uuid_windowsize, std::bind(&AppImGui::HandleWindowSize, this, std::placeholders::_1))));
 		my_reg_ids.emplace(evtdsp->Register(std::make_shared<core::Event<>>(uuid_userdata_update, std::bind(&AppImGui::HandleUserdataUpdate, this))));
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
@@ -739,6 +741,16 @@ AppImGui::HandleWindowLocation(
 	}
 
 	UpdateDrawClientLocation(draw_client, dcl.location, old);
+}
+
+
+void
+AppImGui::HandleWindowSize(
+	trezanik::engine::EventData::window_size TZK_UNUSED(wndsiz)
+)
+{
+	// Application handles everything already, we just need to refresh
+	my_dimensions_dirty = true;
 }
 
 
@@ -2116,12 +2128,10 @@ AppImGui::SaveUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
 void
 AppImGui::UpdateDimensions()
 {
-	/*
-	 * ideally, once executed successfully this should only be recalled whenever
-	 * a size adjustment occurs; there's no need to be doing it every frame!
-	 */
-	//bool  dimensions_dirty = false;
-	// if ( !dimensions_dirty ) return;
+	if ( !my_dimensions_dirty )
+		return;
+
+	my_dimensions_dirty = false;
 
 	auto cfg = core::ServiceLocator::Config();
 
@@ -2390,6 +2400,9 @@ AppImGui::UpdateDrawClientLocation(
 	case WindowLocation::Top:    my_gui.dock_top->AddDrawClient(dc); break;
 	default: break;
 	}
+
+	// ensure dock changes trigger recalculation
+	my_dimensions_dirty = true;
 }
 
 

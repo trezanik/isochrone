@@ -526,6 +526,8 @@ private:
 	bool  my_has_focus;
 	/** Flag if the next frame to render should be skipped */
 	bool  my_skip_next_frame;
+	/** Flag to refresh the dimensions @sa UpdateDimensions */
+	bool  my_dimensions_dirty;
 
 	/** ID of the resource presently marked for/being loaded */
 	trezanik::engine::ResourceID  my_loading_workspace_resid;
@@ -629,6 +631,18 @@ private:
 	void
 	HandleWindowLocation(
 		app::EventData::drawclient_location dcl
+	);
+
+
+	/**
+	 * Handles window resize events
+	 * 
+	 * @param[in] wndsiz
+	 *  The window size data
+	 */
+	void
+	HandleWindowSize(
+		trezanik::engine::EventData::window_size wndsiz
 	);
 
 
