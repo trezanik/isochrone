@@ -1327,10 +1327,13 @@ public:
 
 			ImGui::EndTabItem();
 		}
-#if 1  // quick debugging and proof of concept only
+#if 0  // quick debugging and proof of concept only
 		if ( ImGui::BeginTabItem("TestExec") )
 		{
 			static bool  override = false;
+			static bool  nt5 = false;
+			static std::string  exec_path;
+			static std::string  user_only;
 			
 			core::aux::ip_address  ipaddr;
 
@@ -1358,16 +1361,26 @@ public:
 				return ErrFAILED;
 			};
 
+			// note: impacket has no feedback for things like lcd failing, leading to
+			// potential issues like pulling down all the content in the root of C:
+
 			ImGui::Checkbox("Override OS restrictions", &override);
+			/// @todo make this a dropdown, clearer for the state it'll function as
+			ImGui::Checkbox("Function for NT5", &nt5);
+			ImGui::InputText("Path", &exec_path);
+			ImGui::SameLine();
+			ImGui::HelpMarker("Use for non-defaults or pointing to aware disk");
+
 			if ( ImGui::Button("File Autostarts") )
 			{
 				file_autostarts_task_params  params;
 				params.wksp = wksp->GetWorkspace();
 				params.node_uuid = node->id;
 				params.os = OperatingSystem::Windows;  // grab from node, hardcoded for now
-				params.path = "C$\\Users\\t\\Start Menu\\Programs\\Startup";  /// @todo listed, non-default aware
-				// iterate all paths, read in user-specific too if stated. Permit custom paths?
-				//params.path = "C:\\Users\\All Users\\Start Menu\\Programs\\Startup";
+				params.winver = nt5 ? NTVersion::NT5_0 : NTVersion::NT6_0;
+				params.path = params.winver >= NTVersion::NT6_0 ? 
+					exec_path.empty() ? "C$\\Users\\t\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup" : exec_path :
+					exec_path.empty() ? "C$\\Documents and Settings\\t\\Start Menu\\Programs\\Startup" : exec_path;
 
 				if ( task_common(&params.creds) == ErrNONE )
 				{
@@ -1386,6 +1399,7 @@ public:
 				// multi-path
 				params.profiles_path = "C$\\Users\\t\\";
 				// chrome local user install? I don't have a system-wide installer to check!
+				// nt5 ? 
 				params.chromium_targets.push_back("Local Settings\\Application Data\\Google\\Chrome");
 				params.firefox_targets.push_back("Application Data\\Mozilla\\Firefox\\Profiles\\*.default");
 
@@ -1402,6 +1416,7 @@ public:
 				folder_content_task_params  params;
 				params.wksp = wksp->GetWorkspace();
 				params.node_uuid = node->id;
+				params.path = exec_path;
 
 				if ( task_common(&params.creds) == ErrNONE )
 				{
@@ -1443,18 +1458,33 @@ public:
 			{
 				if ( ImGui::Button("Registry Autostarts") )
 				{
-					registry_autostarts_task_params  params;
-					params.wksp = wksp->GetWorkspace();
-					params.node_uuid = node->id;
-					params.os = OperatingSystem::Windows;  // grab from node, hardcoded for now
+					std::vector<std::pair<std::string, std::string>>  reg_autostarts;
 
-					if ( task_common(&params.creds) == ErrNONE )
+					// there's others, limiting to the variation types we need. Have this user customisable too, user-config
+					reg_autostarts.emplace_back("HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
+					reg_autostarts.emplace_back("HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "Shell");
+					reg_autostarts.emplace_back("HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "Userinit");
+					// if arch == x64, add WOW6432Node
+
+					for ( auto& e : reg_autostarts )
 					{
-						params.target_addr = ipaddr;
-						auto  rauto = std::make_shared<WindowsRegistryAutostartsTask>(params);
-						task_runner.AddTask(rauto);
-						task_runner.Sync();
+						registry_autostarts_task_params  params;
+						params.wksp = wksp->GetWorkspace();
+						params.node_uuid = node->id;
+						params.os = OperatingSystem::Windows;  // grab from node, hardcoded for now
+						params.key = e.first;
+						params.value = e.second;
+						//params.arch;
+
+						if ( task_common(&params.creds) == ErrNONE )
+						{
+							params.target_addr = ipaddr;
+							auto  rauto = std::make_shared<WindowsRegistryAutostartsTask>(params);
+							task_runner.AddTask(rauto);
+						}
 					}
+
+					task_runner.Sync();
 				}
 				if ( ImGui::Button("Scheduled Tasks") )
 				{
@@ -1462,6 +1492,8 @@ public:
 					params.wksp = wksp->GetWorkspace();
 					params.node_uuid = node->id;
 					params.os = OperatingSystem::Windows;
+					params.nt5 = nt5;
+					params.path = exec_path;
 
 					if ( task_common(&params.creds) == ErrNONE )
 					{
@@ -1477,6 +1509,7 @@ public:
 					params.wksp = wksp->GetWorkspace();
 					params.node_uuid = node->id;
 					params.os = OperatingSystem::Windows;
+					params.path = exec_path.empty() ? "C:\\WINDOWS\\Prefetch" : exec_path;
 
 					if ( task_common(&params.creds) == ErrNONE )
 					{
