@@ -92,6 +92,9 @@ ImGuiSemiFixedDock::AddDrawClient(
 
 		// restore intended location if we were hidden before due to no entries
 		my_location = _location;
+
+		// ensure dock visibility changes trigger recalculation
+		_gui_interactions.dimensions_dirty = true;
 	}
 
 	client->dock = _location;
@@ -114,7 +117,12 @@ ImGuiSemiFixedDock::Draw()
 
 	if ( !my_enabled || my_draw_clients.size() == 0 )
 	{
-		my_location = WindowLocation::Hidden;
+		if ( my_location != WindowLocation::Hidden )
+		{
+			_gui_interactions.dimensions_dirty = true;
+			my_location = WindowLocation::Hidden;
+		}
+
 		return;
 	}
 

@@ -150,7 +150,6 @@ AppImGui::AppImGui(
 , my_pause_on_nofocus(trezanik::core::TConverter<bool>::FromString(core::ServiceLocator::Config()->Get(TZK_CVAR_SETTING_UI_PAUSE_ON_FOCUS_LOSS_ENABLED)))
 , my_has_focus(true)
 , my_skip_next_frame(false)
-, my_dimensions_dirty(true)
 , my_udata_loaded(false)
 , main_menu_bar(std::make_unique<ImGuiMenuBar>(gui_interactions)) // menu exists from the outset
 , console_window(nullptr)
@@ -790,7 +789,7 @@ AppImGui::HandleWindowSize(
 )
 {
 	// Application handles everything already, we just need to refresh
-	my_dimensions_dirty = true;
+	my_gui.dimensions_dirty = true;
 }
 
 
@@ -2168,10 +2167,10 @@ AppImGui::SaveUserData_783d1279_05ca_40af_b1c2_cfc40c212658(
 void
 AppImGui::UpdateDimensions()
 {
-	if ( !my_dimensions_dirty )
+	if ( !my_gui.dimensions_dirty )
 		return;
 
-	my_dimensions_dirty = false;
+	my_gui.dimensions_dirty = false;
 
 	auto cfg = core::ServiceLocator::Config();
 
@@ -2440,9 +2439,6 @@ AppImGui::UpdateDrawClientLocation(
 	case WindowLocation::Top:    my_gui.dock_top->AddDrawClient(dc); break;
 	default: break;
 	}
-
-	// ensure dock changes trigger recalculation
-	my_dimensions_dirty = true;
 }
 
 

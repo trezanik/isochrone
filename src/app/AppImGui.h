@@ -436,6 +436,14 @@ struct GuiInteractions
 	/** The bottom dock window */
 	std::unique_ptr<ImGuiSemiFixedDock>  dock_bottom;
 
+	/**
+	 * Flag to refresh the dimensions @sa AppImGui::UpdateDimensions
+	 * Generally, any dock changes should set this, if not adding/removing when
+	 * the total client count > 1.
+	 * Here so the docks themselves can set this flag.
+	 */
+	bool  dimensions_dirty = true;
+
 	/** Core application dimensions, generally known as the client area or content region */
 	ImRect  app_rect {};
 	/** The usable dimensions, excludes main menu and status bars */
@@ -528,8 +536,6 @@ private:
 	bool  my_has_focus;
 	/** Flag if the next frame to render should be skipped */
 	bool  my_skip_next_frame;
-	/** Flag to refresh the dimensions @sa UpdateDimensions */
-	bool  my_dimensions_dirty;
 
 	/** ID of the resource presently marked for/being loaded */
 	trezanik::engine::ResourceID  my_loading_workspace_resid;
