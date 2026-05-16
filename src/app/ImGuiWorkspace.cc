@@ -4913,7 +4913,8 @@ ImGuiWorkspace::UpdateTrackingState(
 			}
 		}
 
-		_gui_interactions.task_runner.StopTask(my_pingmon);
+		// call task stop directly to avoid potential deadlock routes in task runner
+		my_pingmon->Stop();
 		// drop our reference, task runner should hold remainder and auto-delete it
 		my_pingmon.reset();
 	}

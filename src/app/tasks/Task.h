@@ -455,6 +455,21 @@ public:
 
 
 	/**
+	 * Gets whether the task has actually started execution yet
+	 *
+	 * Execution begins upon successful invocation of Execute(), with the start
+	 * timer the first variable updated. Until then, the task IsRunning() will
+	 * return false, which could be problematic for TaskUpdate handlers that
+	 * need to base decisions around state. This covers immediate needs.
+	 *
+	 * @return
+	 *  Boolean state; true if the task has started running, otherwise false
+	 */
+	bool
+	IsStarted() const;
+
+
+	/**
 	 * Gets the duration the task has been running for, in milliseconds
 	 * 
 	 * @return

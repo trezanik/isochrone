@@ -51,6 +51,8 @@ Tasker::~Tasker()
 
 	TZK_LOG(LogLevel::Trace, "Destructor starting");
 	{
+		TZK_LOG_FORMAT(LogLevel::Trace, "Running Tasks: %zu, Workers: %zu", my_all_tasks.size(), my_workers.size());
+
 		// trigger all thread termination
 		my_stop_trigger = true;
 		my_tasks_condvar.notify_all();
@@ -194,7 +196,11 @@ Tasker::HandleTaskUpdate(
 {
 	auto&  task = update.task;
 	
-	if ( !task->IsRunning() )
+	/*
+	 * Now that we dispatch event *prior* to the task execution, IsRunning()
+	 * plain here is no longer suitable, since it will always have never started.
+	 */
+	if ( task->IsStarted() && !task->IsRunning() )
 	{
 		// add for reference
 		my_completed_tasks.push_back(task);

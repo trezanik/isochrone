@@ -280,9 +280,19 @@ Task::IsRunning() const
 }
 
 
+bool
+Task::IsStarted() const
+{
+	return my_start != 0;
+}
+
+
 uint64_t
 Task::RunningTime() const
 {
+	if ( my_start == 0 )
+		return my_start;
+
 	if ( my_end != 0 )
 		return my_end - my_start;
 
