@@ -207,14 +207,10 @@ Link::DrawDirect()
 
 
 void
-Link::DrawMultiLineAuto()
+Link::DrawMultiLinePoint()
 {
-}
 
 
-void
-Link::DrawMultiLineHybrid()
-{
 }
 
 
@@ -289,11 +285,8 @@ Link::Update()
 	case LinkMethod::CubicBezier:
 		DrawCubicBezier();
 		break;
-	case LinkMethod::MultiLineAuto:
-		DrawMultiLineAuto();
-		break;
-	case LinkMethod::MultiLineHybrid:
-		DrawMultiLineHybrid();
+	case LinkMethod::MultiLinePoint:
+		DrawMultiLinePoint();
 		break;
 	default:
 		TZK_DEBUG_BREAK;

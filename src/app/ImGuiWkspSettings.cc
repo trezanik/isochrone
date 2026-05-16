@@ -309,8 +309,7 @@ ImGuiWkspSettings::Draw()
 			ImGui::RadioButton("Direct", &link_method, static_cast<int>(imgui::LinkMethod::Direct));
 			ImGui::RadioButton("Cubic Bezier", &link_method, static_cast<int>(imgui::LinkMethod::CubicBezier));
 			ImGui::RadioButton("Quadratic Bezier", &link_method, static_cast<int>(imgui::LinkMethod::QuadraticBezier));
-			ImGui::RadioButton("Multi-line Auto", &link_method, static_cast<int>(imgui::LinkMethod::MultiLineAuto));
-			ImGui::RadioButton("Multi-line Hybrid", &link_method, static_cast<int>(imgui::LinkMethod::MultiLineHybrid));
+			ImGui::RadioButton("Multi-line Point", &link_method, static_cast<int>(imgui::LinkMethod::MultiLinePoint));
 			if ( link_method != ng_settings.link_default_method )
 			{
 				my_wksp->ApplySetting(settingname_link_defaultmethod,

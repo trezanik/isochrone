@@ -40,18 +40,12 @@ enum class LinkMethod : int
 	Invalid = 0,
 	/** Exact point-to-point straight line */
 	Direct,
-	/** Quadratic bezier curve (3 control points) */
+	/** Quadratic bezier curve (3 control points) - not implemented properly yet */
 	QuadraticBezier,
 	/** Cubic bezier curve (4 control points) */
 	CubicBezier,
-	/*
-	 * No, I do not know the correct names of these, and modern search engines
-	 * are nigh-useless to find out
-	 */
-	/** Straight line navigation to target (min 2 control points, max 6) */
-	MultiLineAuto,
-	/** Straight line navigation to target with user additions (min 2 control points, limit to max 16) */
-	MultiLineHybrid
+	/** Straight line navigation to target with user specified control points */
+	MultiLinePoint
 };
 
 
@@ -101,7 +95,7 @@ private:
 	/**
 	 * Draws the link as a Cubic Bezier curve
 	 *
-	 * @sa DrawDirect, DrawMultiLineAuto, DrawMultiLineHybrid, DrawQuadraticBezier
+	 * @sa DrawDirect, DrawMultiLinePoint, DrawQuadraticBezier
 	 */
 	void
 	DrawCubicBezier();
@@ -109,31 +103,23 @@ private:
 	/**
 	 * Draws the link as plain straight line
 	 *
-	 * @sa DrawCubicBezier, DrawMultiLineAuto, DrawMultiLineHybrid, DrawQuadraticBezier
+	 * @sa DrawCubicBezier, DrawMultiLinePoint, DrawQuadraticBezier
 	 */
 	void
 	DrawDirect();
 
 	/**
-	 * Draws the link as multiple straight lines with automatic control points
-	 *
-	 * @sa DrawCubicBezier, DrawDirect, DrawMultiLineHybrid, DrawQuadraticBezier
-	 */
-	void
-	DrawMultiLineAuto();
-
-	/**
 	 * Draws the link as multiple straight lines with manual control points
 	 *
-	 * @sa DrawCubicBezier, DrawDirect, DrawMultiLineAuto, DrawQuadraticBezier
+	 * @sa DrawCubicBezier, DrawDirect, DrawQuadraticBezier
 	 */
 	void
-	DrawMultiLineHybrid();
+	DrawMultiLinePoint();
 
 	/**
-	 * Draws the link as a Quadratic Bezier curve
+	 * Draws the link as a Quadratic Bezier curve - not yet implemented properly
 	 *
-	 * @sa DrawCubicBezier, DrawDirect, DrawMultiLineAuto, DrawMultiLineHybrid
+	 * @sa DrawCubicBezier, DrawDirect, DrawMultiLinePoint
 	 */
 	void
 	DrawQuadraticBezier();

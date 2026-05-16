@@ -180,8 +180,7 @@ TConverter<trezanik::imgui::PinStyleDisplay>::ToUint8(
 const char  str_direct[]          = "direct";
 const char  str_quadbezier[]      = "quadratic-bezier";
 const char  str_cubicbezier[]     = "cubic-bezier";
-const char  str_multilineauto[]   = "multiline-auto";
-const char  str_multilinehybrid[] = "multiline-hybrid";
+const char  str_multilinepoint[]  = "multiline-point";
 
 template<>
 LinkMethod
@@ -197,10 +196,8 @@ TConverter<LinkMethod>::FromString(
 		return LinkMethod::QuadraticBezier;
 	if ( STR_compare(str, str_cubicbezier, case_sensitive) == 0 )
 		return LinkMethod::CubicBezier;
-	if ( STR_compare(str, str_multilineauto, case_sensitive) == 0 )
-		return LinkMethod::MultiLineAuto;
-	if ( STR_compare(str, str_multilinehybrid, case_sensitive) == 0 )
-		return LinkMethod::MultiLineHybrid;
+	if ( STR_compare(str, str_multilinepoint, case_sensitive) == 0 )
+		return LinkMethod::MultiLinePoint;
 
 	return LinkMethod::Invalid;
 }
@@ -224,7 +221,7 @@ TConverter<LinkMethod>::FromUint8(
 )
 {
 	// the last element
-	if ( uint8 > static_cast<uint8_t>(LinkMethod::MultiLineHybrid) )
+	if ( uint8 > static_cast<uint8_t>(LinkMethod::MultiLinePoint) )
 		return LinkMethod::Invalid;
 
 	return static_cast<LinkMethod>(uint8);
@@ -242,8 +239,7 @@ TConverter<LinkMethod>::ToString(
 	case LinkMethod::Direct:           return str_direct;
 	case LinkMethod::QuadraticBezier:  return str_quadbezier;
 	case LinkMethod::CubicBezier:      return str_cubicbezier;
-	case LinkMethod::MultiLineAuto:    return str_multilineauto;
-	case LinkMethod::MultiLineHybrid:  return str_multilinehybrid;
+	case LinkMethod::MultiLinePoint:   return str_multilinepoint;
 	default:
 		break;
 	}
