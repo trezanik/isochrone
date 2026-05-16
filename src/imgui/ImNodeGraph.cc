@@ -986,6 +986,7 @@ ImNodeGraph::UpdateLinkDragging()
 	if ( my_drag_out_pin != nullptr )
 	{
 		/// @todo handle line thickness from style with consistency
+		/// @todo use default link method rather than always bezier
 
 		if ( my_drag_out_pin->Type() == PinType_Server )
 		{

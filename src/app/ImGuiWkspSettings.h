@@ -70,6 +70,9 @@ public:
 	 * 
 	 * @param[in] gui_interactions
 	 *  The shared interaction structure
+	 * @param[in] wksp
+	 *  Pointer to the ImGuiWorkspace we are held within; direct ownership,
+	 *  its lifetime is guaranteed to exceed this object
 	 */
 	ImGuiWkspSettings(
 		GuiInteractions& gui_interactions,

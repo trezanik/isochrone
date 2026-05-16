@@ -78,7 +78,7 @@ class IsochroneNode : public trezanik::imgui::BaseNode
 
 private:
 
-	/** . */
+	/** The application workspace node type we correlate with */
 	std::shared_ptr<workspace_node>  my_wksp_node;
 
 protected:
@@ -285,8 +285,9 @@ public:
 	/**
 	 * Adds a ServerPin with an existing ID to this node
 	 * 
-	 * If both a service group and service are supplied, the service group
-	 * takes precedence
+	 * @note
+	 *  If both a service group and service are supplied, the service group
+	 *  takes precedence
 	 *
 	 * @param[in] pos
 	 *  Relative position of the pin on the node (x+y 0..1)
@@ -363,6 +364,12 @@ public:
 	}
 
 
+	/**
+	 * Obtains the eorkspace_node data object for this visual Node
+	 *
+	 * @return
+	 *  A shared_ptr to the workspace_node held in the workspace data structure
+	 */
 	std::shared_ptr<workspace_node>
 	GetWorkspaceNode()
 	{
@@ -462,8 +469,19 @@ private:
 	 */
 	std::vector<std::shared_ptr<IsochroneNode>>  my_undoredo_nodes;
 
+
+	/**
+	 * Label name used for the imgui window; must be unique so uses the standard
+	 * '##Topology' prefix with the workspace canonical UUID appended
+	 */
 	std::string  my_window_label;
 
+	/**
+	 * Flag to hide empty fields in the property view for system information.
+	 *
+	 * This allows a much more compact view, but loses the ability to add new
+	 * items unless we always show the main category for each
+	 */
 	bool  my_hide_empty_fields;
 
 	// popup management; open once, draw as long as needed. open+draw same frame
@@ -606,8 +624,6 @@ private:
 
 
 	/**
-	 * .
-	 * 
 	 * Creates an app-pin (file-backed) from the supplied imgui-pin (visual)
 	 * 
 	 * Called when a pin is dynamically added to a node, where the underlying
@@ -617,7 +633,9 @@ private:
 	 * @param[in] ng_pin
 	 *  The node graph pin
 	 * @return
-	 *  .
+	 *  - EFAULT if unable to cast the pin to a known type, or the attached
+	 *     node to an IsochroneNode
+	 *  - ErrNONE on success
 	 */
 	int
 	AddWorkspacePinFromNodeGraphPin(
@@ -776,6 +794,8 @@ private:
 		std::shared_ptr<IsochroneNode> node
 	);
 
+
+	// pending decision regarding removal
 	void
 	DrawPropertyView_SystemInfo(
 		int& row_count,
@@ -962,45 +982,18 @@ private:
 	);
 
 
+	/**
+	 * Loads the contents of the workspace data structure into imgui node form
+	 *
+	 * All operations within the topology are performed on these internal values
+	 * until the window is closed or otherwise saved, at which point they are
+	 * synchronized back.
+	 *
+	 * Until this is called, the topology display will be empty
+	 */
 	void
 	Populate();
 
-
-#if 0
-	/**
-	 * Removes the link by the link ID
-	 * 
-	 * Sends a notification event when actioned
-	 *
-	 * @param[in] id
-	 *  The link ID to remove
-	 * @return
-	 *  ErrNONE if no error, or ENOENT if the pairing was not found
-	 */
-	int
-	RemoveLink(
-		const trezanik::core::UUID& id
-	);
-
-
-	/**
-	 * Removes the link by ID pairings
-	 *
-	 * Sends a notification event when actioned
-	 * 
-	 * @param[in] srcid
-	 *  The source pin ID
-	 * @param[in] tgtid
-	 *  The target pin ID
-	 * @return
-	 *  ErrNONE if no error, or ENOENT if the pairing was not found
-	 */
-	int
-	RemoveLink(
-		const trezanik::core::UUID& srcid,
-		const trezanik::core::UUID& tgtid
-	);
-#endif
 
 	/**
 	 * Removes a node by its BaseNode pointer
@@ -1213,7 +1206,8 @@ public:
 	 * @param[in] gui_interactions
 	 *  The shared interaction structure
 	 * @param[in] wksp
-	 *  .
+	 *  Pointer to the ImGuiWorkspace we are held within; direct ownership,
+	 *  its lifetime is guaranteed to exceed this object
 	 */
 	ImGuiWkspTopology(
 		GuiInteractions& gui_interactions,

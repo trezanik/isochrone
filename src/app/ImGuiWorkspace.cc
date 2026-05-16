@@ -1327,204 +1327,19 @@ public:
 
 			ImGui::EndTabItem();
 		}
-#if 0  // quick debugging and proof of concept only
-		if ( ImGui::BeginTabItem("TestExec") )
-		{
-			static bool  override = false;
-			static bool  nt5 = false;
-			static std::string  exec_path;
-			static std::string  user_only;
-			
-			core::aux::ip_address  ipaddr;
-
-			auto task_common = [&](trezanik::core::UUID* cred_id) {
-				if ( cred_id == nullptr )
-				{
-					return (errno_ext)EINVAL;
-				}
-				if ( core::aux::string_to_ipaddr(node->targets.front().target.c_str(), ipaddr) > 0 )
-				{
-					for ( auto& c : node->components )
-					{
-						if ( c->component_id == cth_cmpt_credentials )
-						{
-							auto  cc = dynamic_cast<node_component_credentials*>(c.get());
-							*cred_id = cc->id;
-							break;
-						}
-					}
-					if ( *cred_id != blank_uuid )
-					{
-						return ErrNONE;
-					}
-				}
-				return ErrFAILED;
-			};
-
-			// note: impacket has no feedback for things like lcd failing, leading to
-			// potential issues like pulling down all the content in the root of C:
-
-			ImGui::Checkbox("Override OS restrictions", &override);
-			/// @todo make this a dropdown, clearer for the state it'll function as
-			ImGui::Checkbox("Function for NT5", &nt5);
-			ImGui::InputText("Path", &exec_path);
-			ImGui::SameLine();
-			ImGui::HelpMarker("Use for non-defaults or pointing to aware disk");
-
-			if ( ImGui::Button("File Autostarts") )
+			if ( selected_node->operating_system == OperatingSystem::Windows )
 			{
-				file_autostarts_task_params  params;
-				params.wksp = wksp->GetWorkspace();
-				params.node_uuid = node->id;
-				params.os = OperatingSystem::Windows;  // grab from node, hardcoded for now
-				params.winver = nt5 ? NTVersion::NT5_0 : NTVersion::NT6_0;
-				params.path = params.winver >= NTVersion::NT6_0 ? 
-					exec_path.empty() ? "C$\\Users\\t\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup" : exec_path :
-					exec_path.empty() ? "C$\\Documents and Settings\\t\\Start Menu\\Programs\\Startup" : exec_path;
+				int  osbuild_index = WindowsBuildIndex(selected_node->windows_osbuild);
 
-				if ( task_common(&params.creds) == ErrNONE )
+				if ( ImGui::Combo("OS Build", &osbuild_index, windows_osbuild_names) )
 				{
-					params.target_addr = ipaddr;
-					auto  fauto = std::make_shared<WindowsFileAutostartsTask>(params);
-					task_runner.AddTask(fauto);
-					task_runner.Sync();
+					TZK_LOG_FORMAT(LogLevel::Debug, "OS Build changed: %s", windows_osbuild_names[osbuild_index].c_str());
+					selected_node->windows_osbuild = TConverter<OSBuild>::FromString(windows_osbuild_names[osbuild_index]);
 				}
-			}
-			if ( ImGui::Button("Browser Data (todo)") )
-			{
-				browser_data_task_params  params;
-				params.wksp = wksp->GetWorkspace();
-				params.node_uuid = node->id;
-				params.os = OperatingSystem::Windows;  // grab from node, hardcoded for now
-				// multi-path
-				params.profiles_path = "C$\\Users\\t\\";
-				// chrome local user install? I don't have a system-wide installer to check!
-				// nt5 ? 
-				params.chromium_targets.push_back("Local Settings\\Application Data\\Google\\Chrome");
-				params.firefox_targets.push_back("Application Data\\Mozilla\\Firefox\\Profiles\\*.default");
-
-				if ( task_common(&params.creds) == ErrNONE )
-				{
-					params.target_addr = ipaddr;
-					auto  bdata = std::make_shared<BrowserDataTask>(params);
-					task_runner.AddTask(bdata);
-					task_runner.Sync();
-				}
-			}
-			if ( ImGui::Button("Folder Content (todo)") )
-			{
-				folder_content_task_params  params;
-				params.wksp = wksp->GetWorkspace();
-				params.node_uuid = node->id;
-				params.path = exec_path;
-
-				if ( task_common(&params.creds) == ErrNONE )
-				{
-					params.target_addr = ipaddr;
-					auto  dcont = std::make_shared<FolderContentTask>(params);
-					task_runner.AddTask(dcont);
-					task_runner.Sync();
-				}
-			}
-			if ( ImGui::Button("Process List (todo)") )
-			{
-			}
-			if ( ImGui::Button("Software Inventory") )
-			{
-				software_inventory_task_params  params;
-				params.wksp = wksp->GetWorkspace();
-				params.node_uuid = node->id;
-				params.os = OperatingSystem::Windows;
-
-				if ( task_common(&params.creds) == ErrNONE )
-				{
-					params.target_addr = ipaddr;
-					auto  inv = std::make_shared<SoftwareInventoryTask>(params);
-					task_runner.AddTask(inv);
-					task_runner.Sync();
-				}
-			}
-			if ( ImGui::Button("Port Scan") )
-			{
-				port_scan_task_params  params;
-				params.wksp = wksp->GetWorkspace();
-				params.node_uuid = node->id;
-
-				auto  scan = std::make_shared<PortScanTask>(params);
-				task_runner.AddTask(scan);
-				task_runner.Sync();
-			}
-			if ( override || selected_node->operating_system == OperatingSystem::Windows )
-			{
-				if ( ImGui::Button("Registry Autostarts") )
-				{
-					std::vector<std::pair<std::string, std::string>>  reg_autostarts;
-
-					// there's others, limiting to the variation types we need. Have this user customisable too, user-config
-					reg_autostarts.emplace_back("HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
-					reg_autostarts.emplace_back("HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "Shell");
-					reg_autostarts.emplace_back("HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", "Userinit");
-					// if arch == x64, add WOW6432Node
-
-					for ( auto& e : reg_autostarts )
-					{
-						registry_autostarts_task_params  params;
-						params.wksp = wksp->GetWorkspace();
-						params.node_uuid = node->id;
-						params.os = OperatingSystem::Windows;  // grab from node, hardcoded for now
-						params.key = e.first;
-						params.value = e.second;
-						//params.arch;
-
-						if ( task_common(&params.creds) == ErrNONE )
-						{
-							params.target_addr = ipaddr;
-							auto  rauto = std::make_shared<WindowsRegistryAutostartsTask>(params);
-							task_runner.AddTask(rauto);
-						}
-					}
-
-					task_runner.Sync();
-				}
-				if ( ImGui::Button("Scheduled Tasks") )
-				{
-					scheduled_tasks_task_params  params;
-					params.wksp = wksp->GetWorkspace();
-					params.node_uuid = node->id;
-					params.os = OperatingSystem::Windows;
-					params.nt5 = nt5;
-					params.path = exec_path;
-
-					if ( task_common(&params.creds) == ErrNONE )
-					{
-						params.target_addr = ipaddr;
-						auto  stasks = std::make_shared<ScheduledTasksTask>(params);
-						task_runner.AddTask(stasks);
-						task_runner.Sync();
-					}
-				}
-				if ( ImGui::Button("Prefetch") )
-				{
-					prefetch_task_params  params;
-					params.wksp = wksp->GetWorkspace();
-					params.node_uuid = node->id;
-					params.os = OperatingSystem::Windows;
-					params.path = exec_path.empty() ? "C:\\WINDOWS\\Prefetch" : exec_path;
-
-					if ( task_common(&params.creds) == ErrNONE )
-					{
-						params.target_addr = ipaddr;
-						auto  pref = std::make_shared<WindowsPrefetchTask>(params);
-						task_runner.AddTask(pref);
-						task_runner.Sync();
-					}
-				}
-				//if ( ImGui::Button("WMI Events") )
 			}
 
 			ImGui::EndTabItem();
 		}
-#endif  // test execution
 		if ( ImGui::BeginTabItem("Data") )
 		{
 			static time_t  last_refresh = 0;
@@ -2223,13 +2038,6 @@ ImGuiWorkspace::Draw()
 			my_settings->Draw();
 			ImGui::EndTabItem();
 		}
-#if 0  // Code Disabled: To add in future
-		if ( selected_nodes == 1 && ImGui::BeginTabItem("SelectedNode##") )
-		{
-			my_sel_node->Draw();
-			ImGui::EndTabItem();
-		}
-#endif
 
 		ImGui::EndTabBar();
 	}

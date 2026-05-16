@@ -834,7 +834,23 @@ enum class NTVersion : uint16_t
 
 
 /**
- * 
+ * The Windows Build version
+ *
+ * This replaces WindowsNT version checks that were historically the preference,
+ * since Microsoft made Windows 10 and 11 share the same NT version, combined
+ * with the SaaS structure breaking the associated ability to do feature checks.
+ * Now, we rely on the build which is available on all historic versions, and
+ * for 10+ the feature checks.
+ *
+ * For additions/amendments, ensure the following are updated:
+ * - TConverter.cc:WindowsBuildIndex
+ * - TConverter.cc:WindowsBuildToString
+ * - TConverter.cc:strs
+ * - TConverter.h:extern strs
+ * - Workspace.cc:windows_osbuild_names
+ * - Workspace.h:OSBuild
+ * ImGui::Combo indexing relies on these being in sync. Normally wouldn't have
+ * something horrid like this, but should only ever be tail-based additions
  */
 enum class OSBuild : uint32_t
 {

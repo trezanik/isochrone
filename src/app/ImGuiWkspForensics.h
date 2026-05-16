@@ -2,7 +2,7 @@
 
 /**
  * @file        src/app/ImGuiWkspForensics.h
- * @brief       Dedicated forensics tab within a workspace : INCOMPLETE, minimal rough idea so far
+ * @brief       Dedicated forensics tab within a workspace
  * @license     zlib (view the LICENSE file for details)
  * @copyright   Trezanik Developers, 2014-2026
  */
@@ -233,6 +233,9 @@ public:
 	 * 
 	 * @param[in] gui_interactions
 	 *  The shared interaction structure
+	 * @param[in] wksp
+	 *  Pointer to the ImGuiWorkspace we are held within; direct ownership,
+	 *  its lifetime is guaranteed to exceed this object
 	 */
 	ImGuiWkspForensics(
 		GuiInteractions& gui_interactions,

@@ -99,8 +99,11 @@ private:
 	 * 16-bit words in the ICMP message.
 	 *
 	 * @param[in] buffer
+	 *  Pointer to the buffer to calculate
 	 * @param[in] size
+	 *  The content size of the pointed-to buffer
 	 * @return
+	 *  The calculated checksum
 	 */
 	uint16_t
 	IPChecksum(

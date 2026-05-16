@@ -111,26 +111,6 @@ Link::DrawCubicBezier()
 #endif
 
 
-#if 0
-	smart_bezier(start, end, my_target->GetStyle()->socket_colour,
-		my_selected ? thickness + my_target->GetStyle()->link_selected_outline_thickness : thickness
-	);
-#elsif 0
-	ImDrawList* dl = ImGui::GetWindowDrawList();
-	float distance = sqrt(pow((end.x - start.x), 2.f) + pow((end.y - start.y), 2.f));
-	float delta = distance * 0.45f;
-	if ( end.x < start.x )
-		delta += 0.2f * (start.x - end.x);
-	float   vert = 0.f;
-	ImVec2  control_point_2 = end - ImVec2(delta, vert);
-	//if ( p2.x < p1.x - 50.f )
-	//	delta *= -1.f;
-	ImVec2  control_point_1 = start + ImVec2(delta, vert);
-	dl->AddBezierCubic(start, control_point_1, control_point_2, end,
-		my_target->GetStyle()->socket_colour,
-		my_selected ? thickness + my_target->GetStyle()->link_selected_outline_thickness : thickness
-	);
-#else
 	ImDrawList*  dl = ImGui::GetWindowDrawList();
 	float   distance = sqrt(pow((end.x - start.x), 2.f) + pow((end.y - start.y), 2.f));
 	float   delta = distance * 0.45f;
@@ -200,8 +180,6 @@ Link::DrawCubicBezier()
 		my_target->GetStyle()->socket_colour,
 		my_hovered ? thickness + my_target->GetStyle()->link_hovered_extra_thickness : thickness
 	);
-#endif
-	
 }
 
 
