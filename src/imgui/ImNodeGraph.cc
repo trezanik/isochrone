@@ -914,7 +914,7 @@ ImNodeGraph::UpdateSelectionDragging()
 		my_dragging_selection_next = true;
 
 		my_drag_start = ImGui::GetMousePos();
-		TZK_LOG_FORMAT(LogLevel::Trace, "Starting drag-selection from (%d,%d)", static_cast<uint32_t>(my_drag_start.x), static_cast<uint32_t>(my_drag_start.y));
+		TZK_LOG_FORMAT(LogLevel::Trace, "Starting drag-selection from (%d,%d)", static_cast<int32_t>(my_drag_start.x), static_cast<int32_t>(my_drag_start.y));
 	}
 	else if ( my_dragging_selection )
 	{
