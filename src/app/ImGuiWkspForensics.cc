@@ -733,7 +733,7 @@ ImGuiWkspForensics::DrawExecResults(
 				}
 				if ( data_files.size() == INT_MAX )
 				{
-					TZK_LOG_FORMAT(LogLevel::Warning, "Maximum file count reached");
+					TZK_LOG(LogLevel::Warning, "Maximum file count reached");
 					break;
 				}
 			}
@@ -1059,23 +1059,20 @@ ImGuiWkspForensics::DrawOperationSettings(
 			{
 				ImGui::Text("Tasks Path");
 				ImGui::TableNextColumn();
-				
-				std::string  expanded = cfg.windows.systemroot;
-				core::aux::FindAndReplace(expanded, "%SystemRoot%", cfg.windows.systemroot);
 				if ( cfg.windows.winver < NTVersion::NT6_0 )
 				{
-					ImGui::Text("%s\\Tasks", expanded.c_str());
+					ImGui::Text("%s\\Tasks", cfg.windows.systemroot.c_str());
 				}
 				else
 				{
-					ImGui::Text("%s\\System32\\Tasks", expanded.c_str());
+					ImGui::Text("%s\\System32\\Tasks", cfg.windows.systemroot.c_str());
 
 					if ( cfg.arch == Architecture::x86_64 )
 					{
 						ImGui::TableNextColumn();
 						ImGui::Text("Tasks Path");
 						ImGui::TableNextColumn();
-						ImGui::Text("%s\\SysWOW64\\Tasks", expanded.c_str());
+						ImGui::Text("%s\\SysWOW64\\Tasks", cfg.windows.systemroot.c_str());
 					}
 				}
 				ImGui::TableNextColumn();
@@ -1085,10 +1082,7 @@ ImGuiWkspForensics::DrawOperationSettings(
 			{
 				ImGui::Text("Prefetch Path");
 				ImGui::TableNextColumn();
-				
-				std::string  expanded = cfg.windows.systemroot;
-				core::aux::FindAndReplace(expanded, "%SystemRoot%", cfg.windows.systemroot);
-				ImGui::Text("%s\\Prefetch", expanded.c_str());
+				ImGui::Text("%s\\Prefetch", cfg.windows.systemroot.c_str());
 				ImGui::TableNextColumn();
 			}
 			break;
@@ -1183,9 +1177,6 @@ ImGuiWkspForensics::ExecOperation(
 			params.wksp = my_wksp->GetWorkspace();
 			params.node_uuid = node->id;
 			params.os = OperatingSystem::Windows;
-			
-			std::string  expanded = cfg.windows.systemroot;
-			core::aux::FindAndReplace(expanded, "%SystemRoot%", cfg.windows.systemroot);
 			params.path = cfg.windows.systemroot;
 
 			if ( task_common(&params.creds) == ErrNONE )

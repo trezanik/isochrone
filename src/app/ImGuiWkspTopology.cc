@@ -3438,18 +3438,18 @@ ImGuiWkspTopology::RemoveNodeStyle(
 		return EBUSY;
 	}
 
-	auto  iter = std::find_if(my_wksp_data->pin_styles.begin(), my_wksp_data->pin_styles.end(), [name](auto& entry)
+	auto  iter = std::find_if(my_wksp_data->node_styles.begin(), my_wksp_data->node_styles.end(), [name](auto& entry)
 	{
 		return entry.first.compare(name) == 0;
 	});
-	if ( iter == my_wksp_data->pin_styles.end() )
+	if ( iter == my_wksp_data->node_styles.end() )
 	{
 		TZK_LOG_FORMAT(LogLevel::Warning, "Node style '%s' not found", name);
 		return ENOENT;
 	}
 
 	TZK_LOG_FORMAT(LogLevel::Debug, "Removing style '%s'", name);
-	my_wksp_data->pin_styles.erase(iter);
+	my_wksp_data->node_styles.erase(iter);
 
 	return ErrNONE;
 }

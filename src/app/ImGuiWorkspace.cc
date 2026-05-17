@@ -1336,8 +1336,6 @@ public:
 			}
 			ImGui::EndGroup();
 
-			ImGui::EndTabItem();
-		}
 			if ( selected_node->operating_system == OperatingSystem::Windows )
 			{
 				int  osbuild_index = WindowsBuildIndex(selected_node->windows_osbuild);

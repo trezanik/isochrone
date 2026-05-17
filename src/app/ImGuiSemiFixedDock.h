@@ -53,7 +53,7 @@ struct DrawClient
 	/** the window id (presently declared in AppImGui.h) */
 	trezanik::core::UUID  id;
 	/** which dock this is currently assigned to */
-	WindowLocation  dock;
+	WindowLocation  dock = WindowLocation::Invalid;
 	/** name as displayed in the menubar */
 	std::string  menu_name;
 };
