@@ -30,9 +30,10 @@ static size_t   min_control_points = 2;
 static size_t   max_control_points_direct = 2;
 static size_t   max_control_points_quadbez = 3;
 static size_t   max_control_points_cubbez = 4;
-static size_t   max_control_points_autoline = 6;
-static size_t   max_control_points_autolinehyb = 16;
+static size_t   max_control_points_multi = 16;
 #endif
+extern IMGUI_API float  control_point_radius;
+
 
 enum class LinkMethod : int
 {
@@ -88,7 +89,7 @@ private:
 	/** Pointer to the link display method in use */
 	LinkMethod*   my_method;
 
-	/** (Not implemented) Location of all explicit control points for the link */
+	/** Location of all explicit control points for the link */
 	std::vector<ImVec2>*  my_control_points;
 
 
@@ -144,6 +145,8 @@ public:
 	 *  link, where {0,0} is the center
 	 * @param[in] method
 	 *  The display type method
+	 * @param[in] control_points
+	 *  Pointer to collection of control points
 	 */
 	Link(
 		const trezanik::core::UUID& uuid,
@@ -152,7 +155,8 @@ public:
 		ImNodeGraph* context,
 		std::string* text,
 		ImVec2* text_offset,
-		LinkMethod* method
+		LinkMethod* method,
+		std::vector<ImVec2>* control_points
 	);
 
 
@@ -160,6 +164,46 @@ public:
 	 * Standard destructor
 	 */
 	~Link();
+
+
+	/**
+	 * Pushes a new control point to the back of the collection
+	 *
+	 * @param point
+	 *  The point co-ordinates to add
+	 */
+	void
+	AddControlPoint(
+		ImVec2& point
+	);
+
+
+	/**
+	 * Deletes an existing control point.
+	 *
+	 * If two control points happen to share the same position, then this will
+	 * remove only the first one found
+	 *
+	 * @param point
+	 *  The position to delete
+	 */
+	void
+	DeleteControlPoint(
+		ImVec2& point
+	);
+
+
+	/**
+	 * Gets the collection of control points
+	 *
+	 * @return
+	 *  A pointer to the vector of ImVec2 positions
+	 */
+	std::vector<ImVec2>*
+	GetControlPoints()
+	{
+		return my_control_points;
+	}
 
 
 	/**

@@ -51,6 +51,11 @@
 #	define TZK_FILEDIALOG_INPUTBUF_SIZE     1024
 #endif
 
+#if !defined(TZK_MAX_LINK_CONTROL_POINTS)
+	// Number of control points that a link can possess
+#	define TZK_MAX_LINK_CONTROL_POINTS   16
+#endif
+
 #if !defined(TZK_MAX_NODES)
 	// Number of nodes that can be added; arbritrary, no real limit
 #	define TZK_MAX_NODES     1024

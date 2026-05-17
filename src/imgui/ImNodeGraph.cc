@@ -539,6 +539,7 @@ ImNodeGraph::Update()
 		std::vector<std::pair<bool, std::shared_ptr<Link>>>  link_deletions;
 		// selected nodes update each frame (nodes remember their state)
 		my_selected_nodes.clear();
+		my_selected_link = nullptr;
 
 		for ( auto& n : my_nodes )
 		{
@@ -571,6 +572,14 @@ ImNodeGraph::Update()
 			 * in the linked nodes if they're being kept alive
 			 */
 			RemoveLink(d.second);
+		}
+		for ( auto& l : my_links )
+		{
+			if ( l->IsSelected() )
+			{
+				my_selected_link = l;
+				break;
+			}
 		}
 		for ( auto& d : node_deletions )
 		{

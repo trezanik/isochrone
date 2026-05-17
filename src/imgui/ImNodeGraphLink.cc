@@ -12,9 +12,132 @@
 
 #include "core/services/log/Log.h"
 
+#include <algorithm>
+
 
 namespace trezanik {
 namespace imgui {
+
+
+float  control_point_radius = 5.f;
+
+
+/**
+ * Checks if the supplied point lies on the line segment for start-end
+ *
+ * @param[in] start
+ *  The line start
+ * @param[in] end
+ *  The line end
+ * @param[in] point
+ *  The point to check
+ * @return
+ *  true if the point lies within the segment, otherwise false
+ */
+bool
+PointOnSegment(
+	const ImVec2& start,
+	const ImVec2& end,
+	const ImVec2& point
+)
+{
+	if ( point.x <= fmax(start.x, end.x)
+		&& point.x >= fmin(start.x, end.x)
+		&& point.y <= fmax(start.y, end.y)
+		&& point.y >= fmin(start.y, end.y) )
+		return true;
+
+	return false;
+}
+
+
+/**
+ * Gets the orientation of a triplet
+ *
+ * @param[in] p
+ *  The first point
+ * @param[in] q
+ *  The second point
+ * @param[in] r
+ *  The third point
+ * @return
+ *  - 0 if the points are co-linear
+ *  - 1 if the points are clockwise
+ *  - 2 if the points are counter-clockwise
+ */
+int
+TripletOrientation(
+	const ImVec2& p,
+	const ImVec2& q,
+	const ImVec2& r
+)
+{
+	double  val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+	if ( val == 0 )
+	{
+		return 0;
+	}
+
+	return (val > 0) ? 1 : 2;
+}
+
+
+/**
+ * Checks if two supplied lines intersect
+ *
+ * @param[in] p1
+ *  The start of the first line
+ * @param[in] q1
+ *  The start of the second line
+ * @param[in] p2
+ *  The end of the first line
+ * @param[in] q2
+ *  The end of the second line
+ * @return
+ *  true if the two lines intersect (including colinear overlap), otherwise false
+ */
+bool
+LinesIntersect(
+	const ImVec2& p1,
+	const ImVec2& q1,
+	const ImVec2& p2,
+	const ImVec2& q2
+)
+{
+	int  o1 = TripletOrientation(p1, q1, p2);
+	int  o2 = TripletOrientation(p1, q1, q2);
+	int  o3 = TripletOrientation(p2, q2, p1);
+	int  o4 = TripletOrientation(p2, q2, q1);
+
+	// general case: lines intersect if they have different orientations
+	if ( o1 != o2 && o3 != o4 )
+	{
+		// compute intersection point
+		double  a1 = q1.y - p1.y;
+		double  b1 = p1.x - q1.x;
+		double  a2 = q2.y - p2.y;
+		double  b2 = p2.x - q2.x;
+		double  determinant = a1 * b2 - a2 * b1;
+
+		if ( determinant != 0 )
+		{
+			return true;
+		}
+	}
+
+	// special cases: check if the lines are co-linear and overlap
+	if ( o1 == 0 && PointOnSegment(p1, p2, q1) )
+		return true;
+	if ( o2 == 0 && PointOnSegment(p1, q2, q1) )
+		return true;
+	if ( o3 == 0 && PointOnSegment(p2, p1, q2) )
+		return true;
+	if ( o4 == 0 && PointOnSegment(p2, q1, q2) )
+		return true;
+
+	return false;
+}
+
 
 
 Link::Link(
@@ -24,7 +147,8 @@ Link::Link(
 	ImNodeGraph* context,
 	std::string* text,
 	ImVec2* text_offset,
-	LinkMethod* method
+	LinkMethod* method,
+	std::vector<ImVec2>* control_points
 )
 : my_uuid(uuid)
 , my_source(source)
@@ -35,7 +159,7 @@ Link::Link(
 , my_hovered(false)
 , my_selected(false)
 , my_method(method)
-, my_control_points(nullptr)
+, my_control_points(control_points)
 {
 	using namespace trezanik::core;
 
@@ -48,6 +172,7 @@ Link::Link(
 		assert(text != nullptr);
 		assert(text_offset != nullptr);
 		assert(method != nullptr);
+		assert(control_points != nullptr);
 	}
 	TZK_LOG(LogLevel::Trace, "Constructor finished");
 }
@@ -62,6 +187,46 @@ Link::~Link()
 
 	}
 	TZK_LOG(LogLevel::Trace, "Destructor finished");
+}
+
+
+void
+Link::AddControlPoint(
+	ImVec2& point
+)
+{
+	using namespace trezanik::core;
+
+	auto res = std::find_if(my_control_points->begin(), my_control_points->end(), [&point](auto&& e){ return e == point; });
+	if ( res != my_control_points->end() )
+	{
+		TZK_LOG_FORMAT(LogLevel::Warning, "Control point at {%d,%d} already exists", (int)point.x, (int)point.y);
+		return;
+	}
+
+	my_control_points->push_back(point);
+}
+
+
+void
+Link::DeleteControlPoint(
+	ImVec2& point
+)
+{
+	using namespace trezanik::core;
+
+	std::vector<ImVec2>&  ref = *my_control_points;
+
+	auto res = std::find_if(ref.begin(), ref.end(), [&point](auto&& e){ return e == point; });
+	if ( res != ref.end() )
+	{
+		TZK_LOG_FORMAT(LogLevel::Warning, "Control point at {%d,%d} deleted", (int)point.x, (int)point.y);
+		ref.erase(res);
+	}
+	else
+	{
+		TZK_LOG_FORMAT(LogLevel::Warning, "Control point at {%d,%d} not found", (int)point.x, (int)point.y);
+	}
 }
 
 
@@ -209,8 +374,77 @@ Link::DrawDirect()
 void
 Link::DrawMultiLinePoint()
 {
+	/*
+	 * There will be a proper way of doing this, but I'm no good at it, so instead
+	 * we'll setup the ability for user-supplied control points, as many as
+	 * desired (capped), allowing full user control. They're then free to bypass
+	 * nodes in the way, intentionally cross over, etc.
+	 */
 
+	ImDrawList*  dl = ImGui::GetWindowDrawList();
+	ImVec2  last = my_source->PinPoint();
+	float   thickness = my_selected ? my_target->GetStyle()->link_selected_thickness : my_target->GetStyle()->link_thickness;
+	ImU32   socket_colour = my_target->GetStyle()->socket_colour;
+	bool    mouse_lclick_state = my_ctx->ClickAvailable(ImGuiMouseButton_Left);
 
+	if ( !ImGui::IsKeyDown(ImGuiKey_LeftCtrl) && mouse_lclick_state )
+	{
+		my_selected = false;
+	}
+
+	ImVec2  mpos1 = ImGui::GetMousePos();
+	mpos1.x -= thickness;
+	mpos1.y -= thickness;
+	ImVec2  mpos2 = ImGui::GetMousePos();
+	mpos2.x += thickness;
+	mpos2.y += thickness;
+
+	bool  any_intersect = false;
+
+	auto intersect_check = [&](const ImVec2& cp){
+		if ( LinesIntersect(cp, last, mpos1, mpos2) )
+		{
+			any_intersect = true;
+			my_hovered = true;
+
+			if ( mouse_lclick_state )
+			{
+				my_ctx->ConsumeClick(ImGuiMouseButton_Left);
+				my_selected = true;
+			}
+
+			my_ctx->HoveredLink(this);
+		}
+	};
+
+	my_hovered = false;
+
+	/*
+	 * So we can highlight every line in the chain regardless of which one is
+	 * hovered, check prior state and restore on entry.
+	 * Once all checks done, clear this if no longer hovering.
+	 * @note this is bugged for the final point-to-target, if at least 1 cp exists
+	 */
+	if ( my_ctx->GetHoveredLink() == this )
+		my_hovered = true;
+
+	for ( auto cp : *my_control_points )
+	{
+		auto  norm_pos = my_ctx->GetGridPosOnScreen(cp);
+		intersect_check(norm_pos);
+		dl->AddLine(last, norm_pos, socket_colour, my_hovered ? thickness + my_target->GetStyle()->link_hovered_extra_thickness : thickness);
+		dl->AddCircle(norm_pos, control_point_radius, socket_colour);
+		last = norm_pos;
+	}
+
+	// if no control points, this will be the equivalent of DrawDirect
+	intersect_check(my_target->PinPoint());
+	dl->AddLine(last, my_target->PinPoint(), socket_colour, my_hovered ? thickness + my_target->GetStyle()->link_hovered_extra_thickness : thickness);
+
+	if ( !any_intersect )
+	{
+		my_hovered = false;
+	}
 }
 
 
@@ -266,9 +500,9 @@ Link::DrawQuadraticBezier()
 		segs
 	);
 }
-	
 
-	
+
+
 void
 Link::Update()
 {
@@ -331,7 +565,7 @@ Link::Update()
 				my_ctx->RemoveLink(l);
 				break;
 			}
-		}		
+		}
 	}
 }
 

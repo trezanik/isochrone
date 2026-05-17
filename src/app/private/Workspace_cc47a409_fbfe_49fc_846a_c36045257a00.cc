@@ -153,6 +153,7 @@ const char  xmlstr_attr_kernel[] = "kernel";
 const char  xmlstr_attr_key[] = "key";
 const char  xmlstr_attr_l[] = "l";
 const char  xmlstr_attr_mac[] = "mac";
+const char  xmlstr_attr_method[] = "method";
 const char  xmlstr_attr_model[] = "model";
 const char  xmlstr_attr_monitorid[] = "monitor_id";
 const char  xmlstr_attr_name[] = "name";
@@ -215,7 +216,7 @@ std::map<std::string, std::string>  typemap {
 	{settingname_grid_draworigin, strtype_bool},
 	{settingname_grid_size, strtype_uint},
 	{settingname_grid_subdivisions, strtype_uint},
-	{settingname_link_defaultmethod, strtype_uint},
+	{settingname_link_defaultmethod, strtype_string},
 	{settingname_node_dragfromheadersonly, strtype_bool},
 	{settingname_node_drawheaders, strtype_bool},
 	{settingname_node_trackonlinestate, strtype_bool},
@@ -1229,6 +1230,7 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadLinks(
 		TZK_LOG_FORMAT(LogLevel::Trace, "Parsing %s %zu", xmlstr_links_child, num_links);
 
 		pugi::xml_attribute  attr_id = xml_link.attribute(xmlstr_attr_id);
+		pugi::xml_attribute  attr_method = xml_link.attribute(xmlstr_attr_method);
 
 		char  failfmt[] = "Fail: %s %zu is invalid - %s";
 
@@ -1246,6 +1248,7 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadLinks(
 		pugi::xml_node   xmlsrc = xml_link.child(xmlstr_source);
 		pugi::xml_node   xmltgt = xml_link.child(xmlstr_target);
 		pugi::xml_node   xmltxt = xml_link.child(xmlstr_text);
+		pugi::xml_node   xmlctrlpts = xml_link.child(xmlstr_control_points);
 
 		if ( !xmlsrc )
 		{
@@ -1257,7 +1260,7 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadLinks(
 			TZK_LOG_FORMAT(LogLevel::Warning, failfmt, xmlstr_links_child, num_links, "no target");
 			continue;
 		}
-		// text is optional
+		// text, control points are optional
 
 		pugi::xml_attribute  attr_sourceid = xmlsrc.attribute(xmlstr_attr_id);
 		pugi::xml_attribute  attr_targetid = xmltgt.attribute(xmlstr_attr_id);
@@ -1332,6 +1335,28 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadLinks(
 
 			lnk->text = xmltxt.child_value();
 			lnk->offset = ImVec2{x, y};
+		}
+		if ( attr_method )
+		{
+			lnk->method = imgui::TConverter<imgui::LinkMethod>::FromString(attr_method.value());
+		}
+		if ( xmlctrlpts )
+		{
+			for ( auto& xml_cp : xmlctrlpts.children() )
+			{
+				float  x = 0.f;
+				float  y = 0.f;
+				pugi::xml_attribute  attr_xpos = xml_cp.attribute(xmlstr_attr_x);
+				pugi::xml_attribute  attr_ypos = xml_cp.attribute(xmlstr_attr_y);
+
+				if ( attr_xpos && attr_ypos )
+				{
+					x = attr_xpos.as_float();
+					y = attr_ypos.as_float();
+
+					lnk->control_points.push_back({x, y});
+				}
+			}
 		}
 
 		valid_links++;
@@ -2637,6 +2662,11 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::SaveLinks(
 
 		// optionals
 
+		if ( link->method != imgui::TConverter<imgui::LinkMethod>::FromString(saver.wksp_data->settings[settingname_link_defaultmethod]) )
+		{
+			xmllink.append_attribute(xmlstr_attr_method).set_value(imgui::TConverter<imgui::LinkMethod>::ToString(link->method).c_str());
+		}
+
 		// destructive; lose x+y positioning if there's no text, intentionally
 		if ( !link->text.empty() )
 		{
@@ -2646,6 +2676,17 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::SaveLinks(
 			if ( link->offset.y != 0.f )
 				xmltxt.append_attribute(xmlstr_attr_y).set_value(link->offset.y);
 			xmltxt.text().set(link->text.c_str());
+		}
+		if ( !link->control_points.empty() )
+		{
+			pugi::xml_node  xml_cps = xmllink.append_child(xmlstr_control_points);
+
+			for ( auto& cp : link->control_points )
+			{
+				pugi::xml_node  xml_cp = xml_cps.append_child(xmlstr_control_point);
+				xml_cp.append_attribute(xmlstr_attr_x).set_value(cp.x);
+				xml_cp.append_attribute(xmlstr_attr_y).set_value(cp.y);
+			}
 		}
 	}
 

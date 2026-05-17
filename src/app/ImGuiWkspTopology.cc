@@ -981,7 +981,7 @@ ImGuiWkspTopology::CreateLink(
 	auto  retval = my_nodegraph.CreateLink<imgui::Link>(
 		link->id, source, target,
 		&my_nodegraph,
-		&link->text, &link->offset, &link->method
+		&link->text, &link->offset, &link->method, &link->control_points
 	);
 	return retval;
 }
@@ -1169,6 +1169,42 @@ ImGuiWkspTopology::DrawContextPopupLinkSelect(
 
 	float  button_width = ImGui::GetContentRegionAvail().x;
 
+	if ( *link->GetMethod() == imgui::LinkMethod::MultiLinePoint )
+	{
+		bool  disable_del = true;
+		auto  ctrl_pts = link->GetControlPoints();
+
+		ImVec2  confines_h {
+			my_context_cursor_pos.x - imgui::control_point_radius, my_context_cursor_pos.x + imgui::control_point_radius
+		};
+		ImVec2  confines_v {
+			my_context_cursor_pos.y - imgui::control_point_radius, my_context_cursor_pos.y + imgui::control_point_radius
+		};
+		ImVec2  del;
+
+		for ( auto& cp : *ctrl_pts )
+		{
+			// find the 'actual' control point with its radius taken into account
+			if ( (cp.x >= confines_h.x && cp.x <= confines_h.y)
+			  && (cp.y >= confines_v.x && cp.y <= confines_v.y) )
+			{
+				del = cp;
+				disable_del = false;
+				break;
+			}
+		}
+		// no control points is permissible, as it'll go back to direct/cubic bezier
+		if ( disable_del ) ImGui::BeginDisabled();
+		if ( ImGui::Button("Delete Control Point") )
+		{
+			link->DeleteControlPoint(del);
+			retval = true;
+		}
+		if ( disable_del ) ImGui::EndDisabled();
+
+		ImGui::Separator();
+	}
+
 	ImGui::SetNextWindowSize(ImVec2(button_width, 0));
 	if ( ImGui::Button("Delete Link") )
 	{
@@ -1208,8 +1244,35 @@ ImGuiWkspTopology::DrawContextPopupNoSelect()
 {
 	using namespace trezanik::core;
 
+	bool  retval = false;
+
 	ImGui::Text("Graph Context Menu");
 	ImGui::Separator();
+
+	// if link is selected, and if multi-point, enable Add Control Point
+	auto  sel_link = my_nodegraph.GetSelectedLink();
+	if ( sel_link != nullptr && *sel_link->GetMethod() == imgui::LinkMethod::MultiLinePoint )
+	{
+		bool  disable_add = false;
+		auto  ctrl_pts = sel_link->GetControlPoints();
+
+		if ( ctrl_pts->size() >= TZK_MAX_LINK_CONTROL_POINTS )
+		{
+			disable_add = true;
+		}
+
+		if ( disable_add ) ImGui::BeginDisabled();
+		if ( ImGui::Button("Add Control Point") )
+		{
+			sel_link->AddControlPoint(my_context_cursor_pos);
+			TZK_LOG_FORMAT(LogLevel::Trace, "Adding Control Point at (%d,%d)",
+				static_cast<int32_t>(my_context_cursor_pos.x), static_cast<int32_t>(my_context_cursor_pos.y)
+			);
+
+			retval = true;
+		}
+		if ( disable_add ) ImGui::EndDisabled();
+	}
 
 	if ( ImGui::Button("New Node") )
 	{
@@ -1225,10 +1288,10 @@ ImGuiWkspTopology::DrawContextPopupNoSelect()
 		// DispatchEvent :: NodeCreated -> one handler for dup checking
 		AddNode(node);
 
-		return true;
+		retval = true;
 	}
 	
-	return false;
+	return retval;
 }
 
 

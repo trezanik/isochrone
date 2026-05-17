@@ -353,6 +353,8 @@ private:
 	/// All the links between pins within this graph
 	std::vector<std::shared_ptr<Link>>  my_links;
 
+	/// The selected link, if any
+	std::shared_ptr<Link>  my_selected_link;
 
 	// yes, these are all going to be flag based eventually!
 
@@ -837,6 +839,19 @@ public:
 	GetNodes()
 	{
 		return my_nodes;
+	}
+
+
+	/**
+	 * Selected link getter
+	 *
+	 * @return
+	 *  A const reference to the selected link, or nullptr if none selected
+	 */
+	const std::shared_ptr<Link>&
+	GetSelectedLink()
+	{
+		return my_selected_link;
 	}
 
 
