@@ -51,6 +51,7 @@ namespace app {
 
 
 constexpr char  popupname_hardware[] = "Hardware";
+constexpr char  popupname_linktext[] = "Link Text";
 constexpr char  popupname_service_group[] = "Service Group";
 constexpr char  popupname_service_selector[] = "Service Selector";
 constexpr char  popupname_service[] = "Service";
@@ -73,6 +74,46 @@ struct PinPosition
 	float* y;
 };
 
+/**
+ * Funky structure for interacting with imgui float widgets
+ * 
+ * Use this as a default baseline, and alter values as appropriate (e.g. pin
+ * relative positions would have v_max as 1.0f, and would have custom speeds).
+ * 
+ * Does require advance knowledge, but means we can save duplication by using
+ * this type wherever needed.
+ */
+struct float_values
+{
+	float  step = 0.f;
+	float  step_fast = 0.f;
+	float  v_speed = 1.0f;
+	float  v_min = 0.f;
+	float  v_max = 0.f;
+	char   zero_precision[5] = "%.0f";
+	char   one_precision[5] = "%.1f";
+	char   two_precision[5] = "%.2f";
+	/*
+	* independent modifications for x+y feed back, so must be separate elements
+	* on the same row, recreating the XxxFloat2() imgui methods.
+	* Should be tied to font size and not hardcoded
+	*/
+	float  edit_width = 55.f;
+};
+
+
+/**
+ * All tree node flags share the same values, save parameters by just accessing this
+ */
+ImGuiTreeNodeFlags  tree_node_flags = ImGuiTreeNodeFlags_SpanAllColumns
+	| ImGuiTreeNodeFlags_AllowOverlap // table row selected otherwise, not the cell widget
+	| ImGuiTreeNodeFlags_Leaf
+	| ImGuiTreeNodeFlags_FramePadding
+	| ImGuiTreeNodeFlags_NoTreePushOnOpen;
+	//| ImGuiTreeNodeFlags_DefaultOpen  // don't like it, but some people might. Configurable?
+
+
+
 
 ImGuiWkspTopology::ImGuiWkspTopology(
 	GuiInteractions& gui_interactions,
@@ -93,6 +134,8 @@ ImGuiWkspTopology::ImGuiWkspTopology(
 , my_hide_empty_fields(false)
 , my_open_hardware_popup(false)
 , my_draw_hardware_popup(false)
+, my_open_linktext_popup(false)
+, my_draw_linktext_popup(false)
 {
 	using namespace trezanik::core;
 
@@ -1144,6 +1187,25 @@ ImGuiWkspTopology::Draw()
 			ImGui::ClosePopupToLevel(0, false);
 		}
 	}
+
+	if ( my_open_linktext_popup )
+	{
+		ImGui::OpenPopup(popupname_linktext);
+		my_open_linktext_popup = false;
+		my_draw_linktext_popup = true;
+	}
+	if ( my_draw_linktext_popup )
+	{
+		if ( my_context_link != nullptr )
+		{
+			DrawLinkTextDialog(my_context_link);
+		}
+		else
+		{
+			my_draw_linktext_popup = false;
+			ImGui::ClosePopupToLevel(0, false);
+		}
+	}
 }
 
 
@@ -1160,13 +1222,10 @@ ImGuiWkspTopology::DrawContextPopupLinkSelect(
 	ImGui::Separator();
 
 
-	// disable for alpha, not yet implemented - use propview
-	ImGui::BeginDisabled();
 	if ( ImGui::Button("Set Text") )
 	{
-		/// @todo add link text dialog
+		my_open_linktext_popup = true;
 	}
-	ImGui::EndDisabled();
 
 	ImGui::Separator();
 
@@ -1696,399 +1755,750 @@ ImGuiWkspTopology::DrawHardwareDialog(
 
 
 void
+ImGuiWkspTopology::DrawLinkTextDialog(
+	trezanik::imgui::Link* link
+)
+{
+	using namespace trezanik::core;
+
+	if ( link == nullptr || !ImGui::BeginPopupModal(popupname_linktext, &my_draw_linktext_popup) )
+	{
+		my_draw_linktext_popup = false;
+		return;
+	}
+
+	/// @todo Text, offset as per PropView
+	ImGui::Text("ID");
+	ImGui::SameLine();
+	ImGui::Text("%s", link->GetID().GetCanonical());
+
+	ImGui::Text("Text");
+	ImGui::SameLine();
+	ImGui::InputText("##Text", link->GetText());
+
+	ImGui::Text("Relative Offset");
+	ImGui::SameLine();
+	ImGui::InputFloat2("##TextOffset", &link->GetTextOffset()->x);
+
+	if ( ImGui::Button("Close") )
+	{
+		my_draw_linktext_popup = false;
+		ImGui::CloseCurrentPopup();
+	}
+
+	ImGui::EndPopup();
+}
+
+
+void
 ImGuiWkspTopology::DrawPropertyView()
 {
 	using namespace trezanik::core;
 
-	auto  AddSeparatorRow = [](const char* txt)
-	{
-		ImGui::TableNextColumn();
-		ImGui::SeparatorText(txt);
-		ImGui::TableNextRow();
-	};
+	ImGuiTableFlags  common_table_flags = ImGuiTableFlags_Resizable
+		| ImGuiTableFlags_NoSavedSettings
+		| ImGuiTableFlags_RowBg
+		| ImGuiTableFlags_SizingStretchProp
+		| ImGuiTableFlags_ScrollY
+		| ImGuiTableFlags_HighlightHoveredColumn;
 
-	if ( ImGui::CollapsingHeader("Workspace Properties", ImGuiTreeNodeFlags_None) )
-	{
-		static ImVec2  outer_size = { 0.f, 0.f };
-		int  row_count = 0;
-
-		ImGuiTableFlags  table_flags = ImGuiTableFlags_Resizable
-			| ImGuiTableFlags_NoSavedSettings
-			| ImGuiTableFlags_RowBg
-			| ImGuiTableFlags_SizingStretchProp
-			| ImGuiTableFlags_ScrollY
-			| ImGuiTableFlags_HighlightHoveredColumn;
-
-		if ( ImGui::BeginTable("workspaceprops##", 2, table_flags, outer_size) )
-		{
-			ImGuiTableColumnFlags  col_flags = ImGuiTableColumnFlags_NoHeaderWidth | ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_PreferSortDescending;
-			ImGui::TableSetupColumn("Property", col_flags, 0.3f);
-			ImGui::TableSetupColumn("Value", col_flags, 0.7f);
-			ImGui::TableHeadersRow();
-			ImGui::TableNextRow();
-			row_count += 2;
-
-			AddSeparatorRow("Configuration");
-			row_count += 2;
-
-			ImGui::TableNextColumn();
-			ImGui::Text("Default Link Method");
-			ImGui::TableNextColumn();
-			ImGui::RadioButton("Direct", &my_nodegraph.settings.link_default_method, static_cast<int>(imgui::LinkMethod::Direct));
-			ImGui::RadioButton("Cubic Bezier", &my_nodegraph.settings.link_default_method, static_cast<int>(imgui::LinkMethod::CubicBezier));
-			ImGui::RadioButton("Quadratic Bezier", &my_nodegraph.settings.link_default_method, static_cast<int>(imgui::LinkMethod::QuadraticBezier));
-			ImGui::RadioButton("Multi-line Auto", &my_nodegraph.settings.link_default_method, static_cast<int>(imgui::LinkMethod::MultiLineAuto));
-			ImGui::RadioButton("Multi-line Hybrid", &my_nodegraph.settings.link_default_method, static_cast<int>(imgui::LinkMethod::MultiLineHybrid));
-			row_count += 5;
-
-			AddSeparatorRow("Links");
-			row_count += 1;
-
-			for ( auto& l : my_nodegraph.GetLinks() )
-			{
-				ImGui::PushID(l.get());
-
-				ImU32  oc = IM_COL32(166, 169, 74, 255);
-				ImGui::PushStyleColor(ImGuiCol_Text, oc);
-				ImGui::TableNextColumn();
-				ImGui::Text("ID");
-				ImGui::TableNextColumn();
-				ImGui::PushFont(_gui_interactions.font_fixed_width, _gui_interactions.font_fixed_width_size);
-				ImGui::Text("%s", l->GetID().GetCanonical());
-				ImGui::PopFont();
-				ImGui::PopStyleColor();
-				
-				ImGui::TableNextColumn();
-				ImGui::Text("Text");
-				ImGui::TableNextColumn();
-				ImGui::InputText("##Text", l->GetText());
-
-				ImGui::TableNextColumn();
-				ImGui::Text("Text Offset");
-				ImGui::TableNextColumn();
-				ImGui::InputFloat2("##TextOffset", &l->GetTextOffset()->x);
-
-				ImGui::TableNextColumn();
-				ImGui::Text("Source Pin");
-				ImGui::TableNextColumn();
-				ImGui::Text("%s", l->Source()->GetID().GetCanonical());
-
-				ImGui::TableNextColumn();
-				ImGui::Text("Target Pin");
-				ImGui::TableNextColumn();
-				ImGui::Text("%s", l->Target()->GetID().GetCanonical());
-
-				ImGui::TableNextColumn();
-				ImGui::Text("Source Node");
-				ImGui::TableNextColumn();
-				//ImGui::Text("%s", l->Source()->GetAttachedNode()->GetName()->c_str());
-				ImGui::Text("%s", l->Source()->GetAttachedNode()->GetID().GetCanonical());
-
-				ImGui::TableNextColumn();
-				ImGui::Text("Target Node");
-				ImGui::TableNextColumn();
-				//ImGui::Text("%s", l->Target()->GetAttachedNode()->GetName()->c_str());
-				ImGui::Text("%s", l->Target()->GetAttachedNode()->GetID().GetCanonical());
-
-				ImGui::TableNextColumn();
-				ImGui::Text("Method");
-				ImGui::TableNextColumn();
-				int*   rval = reinterpret_cast<int*>(l->GetMethod());
-				ImGui::RadioButton("Direct", rval, static_cast<int>(imgui::LinkMethod::Direct));
-				ImGui::RadioButton("Cubic Bezier", rval, static_cast<int>(imgui::LinkMethod::CubicBezier));
-				ImGui::RadioButton("Quadratic Bezier", rval, static_cast<int>(imgui::LinkMethod::QuadraticBezier));
-				ImGui::RadioButton("Multi-line Auto", rval, static_cast<int>(imgui::LinkMethod::MultiLineAuto));
-				ImGui::RadioButton("Multi-line Hybrid", rval, static_cast<int>(imgui::LinkMethod::MultiLineHybrid));
-
-				row_count += 12;
-
-				ImGui::Separator();
-				ImGui::PopID();
-			}
-
-			ImGui::EndTable();
-		}
-
-		// correct size for the next frame
-		outer_size.y = ImGui::GetFrameHeight() + row_count * (ImGui::GetTextLineHeight() + ImGui::GetStyle().CellPadding.y * 2.0f);
-
-	} // workspace properties
-
-	if ( ImGui::CollapsingHeader("Node Properties", ImGuiTreeNodeFlags_None) )
-	{
-		/*
-		 * Shared between all nodes/workspaces.
-		 * Each frame, the content is calculated allowing us to then determine
-		 * the size needing to be given, which will take effect on the next frame.
-		 *
-		 * If we don't specify this, the table consumes all the available content
-		 * region - which I wouldn't mind, but it pushes the other collapsing
-		 * headers out of view in verticality, which looks ridiculous when there
-		 * can frequently only be one row.
-		 * Easy to then miss all the child headers since the next one is heavily
-		 * cut-off and looks more like a horizontal scrollbar
-		 */
-		static ImVec2  outer_size = { 0.f, 0.f };
-		int  row_count = 0;
-
-		ImGuiTableFlags  table_flags = ImGuiTableFlags_Resizable
-			| ImGuiTableFlags_NoSavedSettings
-			| ImGuiTableFlags_RowBg
-			| ImGuiTableFlags_SizingStretchProp
-			| ImGuiTableFlags_ScrollY
-			| ImGuiTableFlags_HighlightHoveredColumn;
-
-		if ( ImGui::BeginTable("nodeprops##", 2, table_flags, outer_size) )
-		{
-			ImGuiTableColumnFlags  col_flags = ImGuiTableColumnFlags_NoHeaderWidth | ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_PreferSortDescending;
-			ImGui::TableSetupColumn("Property", col_flags, 0.3f);
-			ImGui::TableSetupColumn("Value", col_flags, 0.7f);
-			ImGui::TableHeadersRow();
-			ImGui::TableNextRow();
-			/*
-			 * each 'property row' is responsible for moving onto its own row
-			 * with each invocation.
-			 * This is to allow us to dynamically insert a trailing element that
-			 * can indicate an invalid item, or add undo/redo/other buttons in
-			 * future.
-			 * 
-			 * So this comes later: ImGui::TableNextColumn();
-			 */
-			row_count = 3; // 1 row plus 2 spacing
-
-			if ( my_selected_nodes.empty() )
-			{
-				/*
-				 * Keep drawing the table, but don't populate any data (since
-				 * there are multiple nodes selected).
-				 * This will keep positions of buttons and areas of focus in
-				 * the same spot, which can be less jarring for users
-				 */
-
-				ImGui::TableNextColumn();
-				ImGui::Text("Nodes Selected");
-				ImGui::TableNextColumn();
-				ImGui::Text("None");
-				row_count += 1;
-			}
-			else if ( my_selected_nodes.size() > 1 )
-			{
-				ImGui::TableNextColumn();
-				ImGui::Text("Nodes Selected");
-				ImGui::TableNextColumn();
-				ImGui::Text("%zu", my_selected_nodes.size());
-				row_count += 1;
-			}
-			else
-			{
-				// properties for selected node
-				auto  node = std::dynamic_pointer_cast<IsochroneNode>(my_selected_nodes[0]);
-				auto  gn = node->GetGraphNode();
-
-				/*
-				 * I really don't want to make this an incrementable that *every* one
-				 * needs to invoke, but I'm also aligned with hardcoded counts being
-				 * highly error-prone and ugly.
-				 * We'll do it for now, hopefully imgui will have a table sizing fix
-				 * by the time we need to revisit.
-				 */
-				row_count += 5; // yes, counted by hand
-
-				AddPropertyRow(PropertyRowType::TextReadOnly, "ID", gn->id);
-				if ( AddPropertyRow(PropertyRowType::TextMultilineInput, "Data", &gn->datastr) )
-				{
-					// not a graphnode property! anyone to notify?
-				}
-				if ( AddPropertyRow(PropertyRowType::FloatInput, "Position", &gn->position) )
-				{
-					node->SetPosition(gn->position);
-				}
-				if ( AddPropertyRow(PropertyRowType::FloatInput, "Size", &gn->size) )
-				{
-					ImVec2  requested_size = gn->size;
-
-					if ( requested_size.x < imgui::node_minimum_width )
-					{
-						requested_size.x = imgui::node_minimum_width;
-					}
-					if ( requested_size.y < imgui::node_minimum_height )
-					{
-						requested_size.y = imgui::node_minimum_height;
-					}
-
-					node->SetStaticSize(requested_size);
-				}
-				if ( AddPropertyRow(PropertyRowType::NodeStyle, "Style", &gn->style) )
-				{
-					TZK_LOG_FORMAT(LogLevel::Trace, "Setting new node style: %s", gn->style.c_str());
-					node->SetStyle(GetNodeStyle(gn->style.c_str()));
-				}
-
-				DrawPropertyView_Pins(row_count, gn->pins, node);
-
-				auto  gnc_sysinf = dynamic_cast<node_component_systeminfo*>(node->GetWorkspaceNode()->get_component(cth_cmpt_sysinfo));
-				if ( gnc_sysinf != nullptr )
-				{
-					DrawPropertyView_SystemInfo(row_count, gnc_sysinf->system_info);
-				}
-
-				
-#if 0  // multi-sys prior code
-					AddSeparatorRow("Elements");
-					ImGui::SameLine();
-					ImGui::HelpMarker("Free-form elements; NO validation is performed");
-					// we can validate, easy enough to code. Maybe for future once this mess is split up..
-
-					static std::string  delete_entry;
-					static std::string  str_newhost;
-					static std::string  str_newip;
-					static std::string  str_newiprange;
-					static std::string  str_newsubnet;
-
-					auto  disp_list = [&row_count, this](
-						std::vector<std::string>& vec, std::string& newstr, const char* disp_label,
-						const char* label_delbutton, const char* label_iteminput, const char* label_addbutton
-					)
-					{
-						row_count++;
-
-						for ( auto& e : vec )
-						{
-							row_count++;
-
-							ImGui::PushID(row_count); // hey, an actual use for this
-							AddPropertyRow(PropertyRowType::TextInput, disp_label, &e);
-							ImGui::SameLine();
-							if ( ImGui::SmallButton(label_delbutton) )
-							{
-								delete_entry = e;
-							}
-							ImGui::PopID();
-						}
-						if ( !delete_entry.empty() )
-						{
-							auto  res = std::find(vec.begin(), vec.end(), delete_entry);
-							if ( (res != vec.end()) )
-							{
-								TZK_LOG_FORMAT(LogLevel::Trace, "Erasing %s: %s", disp_label, delete_entry.c_str());
-								vec.erase(res);
-							}
-							delete_entry.clear();
-						}
-						
-						ImGui::TableNextColumn();
-						// nothing in this column as the text hint displays equivalent
-						ImGui::TableNextColumn();
-						ImGui::InputTextWithHint(label_iteminput, disp_label, &newstr);
-						ImGui::SameLine();
-						if ( ImGui::SmallButton(label_addbutton) && !newstr.empty() )
-						{
-							// prevent duplicates
-							auto  res = std::find(vec.begin(), vec.end(), newstr);
-							if ( res == vec.end() )
-							{
-								TZK_LOG_FORMAT(LogLevel::Trace, "Adding %s: %s", disp_label, newstr.c_str());
-								vec.emplace_back(newstr);
-								newstr.clear();
-							}
-						}
-					};
-
-					disp_list(mnode->graph.hostnames, str_newhost, "Hostname", "Delete##Host", "##new_host", "Add Host");
-					disp_list(mnode->graph.ips, str_newip, "IP", "Delete##IP", "##new_ip", "Add IP");
-					disp_list(mnode->graph.ip_ranges, str_newiprange, "IP Range", "Delete##IPRange", "##new_iprange", "Add IP Range");
-					disp_list(mnode->graph.subnets, str_newsubnet, "Subnet", "Delete##Subnet", "##new_subnet", "Add Subnet");
-#endif
-				
-			}
-
-			ImGui::EndTable();
-		}
-
-		// correct size for the next frame
-		outer_size.y = ImGui::GetFrameHeight() + row_count * (ImGui::GetTextLineHeight() + ImGui::GetStyle().CellPadding.y * 2.0f);
-
-	} // node properties
-	
-	// if sysinfo component
-	if ( ImGui::CollapsingHeader("System Information", ImGuiTreeNodeFlags_None) )
-	{
-		// same comments apply as Node Properties above!
-		static ImVec2  outer_size = { 0.f, 0.f };
-		int  row_count = 4; // checkbox and button, +2 spacing
-
-		ImGuiTableFlags  table_flags = ImGuiTableFlags_Resizable
-			| ImGuiTableFlags_NoSavedSettings
-			| ImGuiTableFlags_RowBg
-			| ImGuiTableFlags_SizingStretchProp
-			| ImGuiTableFlags_ScrollY
-			| ImGuiTableFlags_HighlightHoveredColumn;
-
-		if ( my_selected_nodes.size() == 1 && ImGui::SmallButton("Edit Hardware") )
-		{
-			my_open_hardware_popup = true;
-		}
-
-		if ( ImGui::BeginTable("nodehw##", 2, table_flags, outer_size) )
-		{
-			ImGuiTableColumnFlags  col_flags = ImGuiTableColumnFlags_NoHeaderWidth | ImGuiTableColumnFlags_WidthStretch;
-			ImGui::TableSetupColumn("", col_flags, 0.3f);
-			ImGui::TableSetupColumn("", col_flags, 0.7f);
-			ImGui::TableHeadersRow();
-			ImGui::TableNextRow();
-
-			row_count += 2;
-
-			if ( my_selected_nodes.size() == 1 )
-			{
-				auto  node = std::dynamic_pointer_cast<IsochroneNode>(my_selected_nodes[0]);
-				auto  gnc_sysinf = dynamic_cast<node_component_systeminfo*>(node->GetWorkspaceNode()->get_component(cth_cmpt_sysinfo));
-				
-				if ( gnc_sysinf != nullptr )
-				{
-					DrawPropertyView_SystemInfo(row_count, gnc_sysinf->system_info);
-				}
-			}
-			else
-			{
-				ImGui::TableNextColumn();
-				ImGui::Text("Nodes Selected");
-				ImGui::TableNextColumn();
-				if ( my_selected_nodes.empty() )
-					ImGui::Text("%s", "None");
-				else
-					ImGui::Text("%zu", my_selected_nodes.size());
-			}
-
-			ImGui::EndTable();
-		}
-
-		// correct size for the next frame
-		outer_size.y = ImGui::GetFrameHeight() + row_count * (ImGui::GetTextLineHeight() + ImGui::GetStyle().CellPadding.y * 2.0f);
-
-	} // systeminfo
-
+	static int  last_num_open_tables = 0;
+	int  num_open_tables = 0;
 	/*
-	 * Lambdas for the styles (nodes and pins), to reduce the LoC and make
-	 * it a bit clearer to read
+	 * We are currently afflicted with https://github.com/ocornut/imgui/issues/7982
+	 * Three options:
+	 * 1) Leave at automatics, which will expand any containing table into all
+	 *    available space. Looks ridiculous for small quantity items and blocks
+	 *    viewing anything underneath until closing the collapsing header
+	 * 2) Manually calculate the required table size by counting the number of
+	 *    rows and using logic. Works great for small quantity items, but has
+	 *    funky scrolling states for large quantities.
+	 * 3) Set the table size explicitly to 75% of the available space, which
+	 *    is a middle ground; both small and large quantities are imperfect, but
+	 *    much nicer for all types.
+	 *    We could use the sizes of each ng type to provide better values, but
+	 *    that's a PITA with much refactoring for a suboptimal solution anyway
 	 */
-	auto colouredit4 = [](auto& colour, std::string& label)
+	auto  avail = ImGui::GetContentRegionAvail();
+	float  multiplier = 0.75f;
+	if ( last_num_open_tables == 2 )
+		multiplier = 0.5f;
+	if ( last_num_open_tables >= 3 )
+		multiplier = 0.25f;
+	avail.y *= multiplier;
+	ImVec2  outer_size(avail);
+
+
+	if ( ImGui::CollapsingHeader("Links", ImGuiTreeNodeFlags_None) && ImGui::BeginTable("workspaceprops_links##", 2, common_table_flags, outer_size) )
 	{
+		num_open_tables++;
+
+		ImGuiTableColumnFlags  col_flags = ImGuiTableColumnFlags_NoHeaderWidth | ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_PreferSortDescending;
+		ImGui::TableSetupColumn("Property", col_flags, 0.3f);
+		ImGui::TableSetupColumn("Value", col_flags, 0.7f);
+		ImGui::TableHeadersRow();
+
+		for ( auto& l : my_nodegraph.GetLinks() )
+		{
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+			ImGui::PushID(l.get());
+
+			if ( ImGui::TreeNode("Link") )
+			{
+				DrawPropertyView_Link(l);
+
+				ImGui::TreePop();
+			}
+			else
+			{
+				//ImGui::SameLine();
+				//ImGui::Text("%s", l->GetID().GetCanonical());
+				// love this to be a 'selected' indicator
+			}
+
+			ImGui::PopID();
+		}
+
+		ImGui::EndTable();
+	}
+
+#if 0  /// @todo Add with selected link
+	if ( ImGui::CollapsingHeader("Selected Link", ImGuiTreeNodeFlags_None) && my_selected_link != nullptr )
+	{
+		if ( ImGui::BeginTable("linkprops##", 2, common_table_flags, outer_size))
+		{
+			num_open_tables++;
+
+			ImGuiTableColumnFlags  col_flags = ImGuiTableColumnFlags_NoHeaderWidth | ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_PreferSortDescending;
+			ImGui::TableSetupColumn("Property", col_flags, 0.4f);
+			ImGui::TableSetupColumn("Value", col_flags, 0.6f);
+			ImGui::TableHeadersRow();
+			ImGui::TableNextRow();
+
+			DrawPropertyView_Link(my_selected_link);
+
+			ImGui::EndTable();
+		}
+	}
+#endif
+
+	if ( ImGui::CollapsingHeader("Nodes", ImGuiTreeNodeFlags_None) && ImGui::BeginTable("workspaceprops_nodes##", 2, common_table_flags, outer_size) )
+	{
+		num_open_tables++;
+
+		ImGuiTableColumnFlags  col_flags = ImGuiTableColumnFlags_NoHeaderWidth | ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_PreferSortDescending;
+		ImGui::TableSetupColumn("Property", col_flags, 0.4f);
+		ImGui::TableSetupColumn("Value", col_flags, 0.6f);
+		ImGui::TableHeadersRow();
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+
+		for ( auto& n : my_nodegraph.GetNodes() )
+		{
+			auto  node = std::dynamic_pointer_cast<IsochroneNode>(n);
+
+			ImGui::PushID(n->GetID().GetCanonical());
+
+			if ( ImGui::TreeNode("Node") )
+			{
+				DrawPropertyView_Node(node);
+
+				ImGui::TreePop();
+			}
+			else
+			{
+				ImGui::SameLine();
+				ImGui::Text("%s", node->GetWorkspaceNode()->name.c_str());
+			}
+
+			ImGui::PopID();
+		}
+
+		ImGui::EndTable();
+	}
+
+	if ( ImGui::CollapsingHeader("Selected Node", ImGuiTreeNodeFlags_None) && my_selected_nodes.size() == 1 )
+	{
+		if ( ImGui::BeginTable("nodeprops##", 2, common_table_flags, outer_size))
+		{
+			num_open_tables++;
+
+			ImGuiTableColumnFlags  col_flags = ImGuiTableColumnFlags_NoHeaderWidth | ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_PreferSortDescending;
+			ImGui::TableSetupColumn("Property", col_flags, 0.4f);
+			ImGui::TableSetupColumn("Value", col_flags, 0.6f);
+			ImGui::TableHeadersRow();
+			ImGui::TableNextRow();
+
+			auto  node = std::dynamic_pointer_cast<IsochroneNode>(my_selected_nodes[0]);
+			DrawPropertyView_Node(node);
+
+			ImGui::EndTable();
+		}
+	}
+
+	if ( ImGui::CollapsingHeader("Node Styles") )
+	{
+		auto&  ns = my_wksp_data->node_styles;
+		static std::string  style_name = "New Style Name";
+		static bool  show_all = false;
+		static int   selected_num = -1;
+
+		/// @todo callback, on focus auto-hide. Default alpha would be good too
+		ImGui::InputText("##NewStyleName", &style_name);
+		ImGui::SameLine();
+		if ( ImGui::Button("Add##NodeStyle") && !style_name.empty() )
+		{
+			auto  new_style = trezanik::imgui::NodeStyle::standard();
+			AddNodeStyle(style_name.c_str(), new_style);
+			style_name = "New Style Name";
+		}
+
+		// cover external deletions, revert to no selection
+		if ( selected_num >= static_cast<int>(ns.size()) )
+		{
+			selected_num = -1;
+		}
+
+		ImGui::Checkbox("Show All##nodestyles", &show_all);
+		ImGui::SameLine();
+		if ( show_all ) ImGui::BeginDisabled();
+		if ( ImGui::BeginCombo("##nodestylecombo", selected_num != -1 ? ns[selected_num].first.c_str() : "") )
+		{
+			bool  selected = false;
+			int   num = 0;
+
+			for ( auto& s : ns )
+			{
+				std::string&  str = s.first;
+				selected = (num == selected_num);
+				if ( ImGui::Selectable(str.c_str(), &selected) )
+				{
+					selected_num = num;
+				}
+				num++;
+			}
+			ImGui::EndCombo();
+		}
+		if ( show_all ) ImGui::EndDisabled();
+
+		ImGui::Spacing();
+
+		if ( ImGui::BeginTable("nodestyles##", 2, common_table_flags, outer_size))
+		{
+			num_open_tables++;
+
+			ImGuiTableColumnFlags  col_flags = ImGuiTableColumnFlags_NoHeaderWidth | ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_PreferSortDescending;
+			ImGui::TableSetupColumn("Property", col_flags, 0.4f);
+			ImGui::TableSetupColumn("Value", col_flags, 0.6f);
+			ImGui::TableHeadersRow();
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+
+			if ( show_all )
+			{
+				for ( auto& n : ns )
+				{
+					ImGui::PushID(n.second.get());
+
+					if ( ImGui::TreeNode(n.first.c_str()) )
+					{
+						if ( !DrawPropertyView_NodeStyle(n) )
+						{
+							ImGui::TreePop();
+							ImGui::PopID();
+							break;
+						}
+						/*
+						 * If n is deleted and it was the last item, we now have
+						 * an invalid reference; be careful, don't use it!
+						 * If it wasn't last, it's now become the next item, but
+						 * will still iterate beyond the end.
+						 * Although TreeNode doesn't attempt to use the pointer,
+						 * the text is still controlled, bad state all round.
+						 * 
+						 * Have the Draw*Style methods return false if they're
+						 * deleted so the iteration loop can be broken. Either
+						 * that or store the deletion to be executed later.
+						 */
+
+						ImGui::TreePop();
+					}
+
+					ImGui::PopID();
+
+					// here for cleanliness since we branch
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+				}
+			}
+			else if ( selected_num != -1 )
+			{
+				DrawPropertyView_NodeStyle(ns[selected_num]);
+			}
+
+			ImGui::EndTable();
+		}
+	}
+	if ( ImGui::CollapsingHeader("Pin Styles") )
+	{
+		// comments for Node Styles equally apply here since these are the same
+
+		auto&  ps = my_wksp_data->pin_styles;
+		static std::string  style_name = "New Style Name";
+		static bool  show_all = false;
+		static int   selected_num = -1;
+
+		ImGui::InputText("##NewStyleName", &style_name);
+		ImGui::SameLine();
+		if ( ImGui::Button("Add##PinStyle") && !style_name.empty() )
+		{
+			auto  new_style = trezanik::imgui::PinStyle::connector();
+			AddPinStyle(style_name.c_str(), new_style);
+			style_name = "New Style Name";
+		}
+
+		if ( selected_num >= static_cast<int>(ps.size()) )
+		{
+			selected_num = -1;
+		}
+
+		ImGui::Checkbox("Show All##pinstyles", &show_all);
+		ImGui::SameLine();
+		if ( show_all ) ImGui::BeginDisabled();
+		if ( ImGui::BeginCombo("##pinstylecombo", selected_num != -1 ? ps[selected_num].first.c_str() : "") )
+		{
+			bool  selected = false;
+			int   num = 0;
+
+			for ( auto& s : ps )
+			{
+				std::string&  str = s.first;
+				selected = (num == selected_num);
+				if ( ImGui::Selectable(str.c_str(), &selected) )
+				{
+					selected_num = num;
+				}
+				num++;
+			}
+			ImGui::EndCombo();
+		}
+		if ( show_all ) ImGui::EndDisabled();
+
+		ImGui::Spacing();
+
+		if ( ImGui::BeginTable("pinstyles##", 2, common_table_flags, outer_size))
+		{
+			num_open_tables++;
+
+			ImGuiTableColumnFlags  col_flags = ImGuiTableColumnFlags_NoHeaderWidth | ImGuiTableColumnFlags_WidthStretch | ImGuiTableColumnFlags_PreferSortDescending;
+			ImGui::TableSetupColumn("Property", col_flags, 0.4f);
+			ImGui::TableSetupColumn("Value", col_flags, 0.6f);
+			ImGui::TableHeadersRow();
+			ImGui::TableNextRow();
+			ImGui::TableNextColumn();
+
+			if ( show_all )
+			{
+				for ( auto& p : ps )
+				{
+					ImGui::PushID(p.second.get());
+
+					if ( ImGui::TreeNode(p.first.c_str()) )
+					{
+						DrawPropertyView_PinStyle(p);
+
+						if ( p.first.empty() )
+						{
+							ImGui::TreePop();
+							ImGui::PopID();
+							break;
+						}
+
+						ImGui::TreePop();
+					}
+
+					ImGui::PopID();
+
+					// here for cleanliness since we branch
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+				}
+			}
+			else if ( selected_num != -1 )
+			{
+				DrawPropertyView_PinStyle(ps[selected_num]);
+			}
+
+			ImGui::EndTable();
+		}
+	}
+
+	last_num_open_tables = num_open_tables;
+}
+
+
+void
+ImGuiWkspTopology::DrawPropertyView_Link(
+	std::shared_ptr<trezanik::imgui::Link> link
+)
+{
+	using namespace trezanik::core;
+
+	ImGui::TableNextRow();
+
+	float_values  fval;
+
+#if 0 // alt colour/font example, might desire this somewhere
+	ImU32  oc = IM_COL32(166, 169, 74, 255);
+	ImGui::PushStyleColor(ImGuiCol_Text, oc);
+	ImGui::TableNextColumn();
+	ImGui::Text("ID");
+	ImGui::TableNextColumn();
+	ImGui::PushFont(_gui_interactions.font_fixed_width, _gui_interactions.font_fixed_width_size);
+	ImGui::Text("%s", l->GetID().GetCanonical());
+	ImGui::PopFont();
+	ImGui::PopStyleColor();
+#endif
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("ID", tree_node_flags);
+	ImGui::TableNextColumn();
+	ImGui::Text("%s", link->GetID().GetCanonical());
+
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Text", tree_node_flags);
+	ImGui::TableNextColumn();
+	ImGui::InputText("##Text", link->GetText());
+
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Text Offset", tree_node_flags);
+	ImGui::TableNextColumn();
+	ImGui::DragFloat2("##TextOffset", &link->GetTextOffset()->x, fval.v_speed, fval.v_min, fval.v_max, fval.zero_precision);
+
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Source Pin", tree_node_flags);
+	ImGui::TableNextColumn();
+	ImGui::Text("%s", link->Source()->GetID().GetCanonical());
+
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Target Pin", tree_node_flags);
+	ImGui::TableNextColumn();
+	ImGui::Text("%s", link->Target()->GetID().GetCanonical());
+
+	auto  src_node = dynamic_cast<IsochroneNode*>(link->Source()->GetAttachedNode());
+	auto  tgt_node = dynamic_cast<IsochroneNode*>(link->Target()->GetAttachedNode());
+
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Source Node", tree_node_flags);
+	ImGui::TableNextColumn();
+	ImGui::Text("%s [%s]", src_node->GetWorkspaceNode()->name.c_str(), src_node->GetID().GetCanonical());
+
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Target Node", tree_node_flags);
+	ImGui::TableNextColumn();
+	ImGui::Text("%s [%s]", tgt_node->GetWorkspaceNode()->name.c_str(), tgt_node->GetID().GetCanonical());
+
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Method", tree_node_flags);
+	ImGui::TableNextColumn();
+	int*   rval = reinterpret_cast<int*>(link->GetMethod());
+	ImGui::RadioButton("Direct", rval, static_cast<int>(imgui::LinkMethod::Direct));
+	ImGui::RadioButton("Cubic Bezier", rval, static_cast<int>(imgui::LinkMethod::CubicBezier));
+	ImGui::RadioButton("Quadratic Bezier", rval, static_cast<int>(imgui::LinkMethod::QuadraticBezier));
+	ImGui::RadioButton("Multi-line Point", rval, static_cast<int>(imgui::LinkMethod::MultiLinePoint));
+
+	if ( *link->GetMethod() == imgui::LinkMethod::MultiLinePoint )
+	{
+		ImVec2  del_cp { FLT_MAX, FLT_MAX };
+		auto  cps = link->GetControlPoints();
+		int   i = 0;
+		for ( auto& cp : *cps )
+		{
+			ImGui::PushID(++i);
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("Control Point", tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::DragFloat2("##cp", &cp.x, fval.v_speed, fval.v_min, fval.v_max, fval.zero_precision);
+			ImGui::SameLine();
+			if ( ImGui::SmallButton("Delete") )
+			{
+				TZK_LOG_FORMAT(LogLevel::Trace, "Deleting control point %d", i);
+				del_cp = cp;
+			}
+			ImGui::PopID();
+		}
+		if ( del_cp != ImVec2(FLT_MAX, FLT_MAX) )
+		{
+			link->DeleteControlPoint(del_cp);
+		}
+	}
+}
+
+
+void
+ImGuiWkspTopology::DrawPropertyView_Node(
+	std::shared_ptr<IsochroneNode> node
+)
+{
+	using namespace trezanik::core;
+
+	// already inside table, TreeNode opened
+
+	auto   gn = node->GetGraphNode();
+	bool   modified = false;
+	float_values  fval;
+
+#if 0  // no direct access into implementation, to open the node dialog. options, choices
+	ImGui::TableNextColumn();
+	if ( ImGui::Button("Editor") )
+	{
+		my_wksp->my_impl->show_node_dialog = true;
+		_gui_interactions.show_node_editor = true;
+	}
+#endif
+	ImGui::TableNextRow();
+
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("ID", tree_node_flags);
+	ImGui::TableNextColumn();
+	ImGui::Text("%s", gn->id->GetCanonical());
+
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Name", tree_node_flags);
+	ImGui::TableNextColumn();
+	if ( ImGui::InputText("##name", &node->GetWorkspaceNode()->name) )
+	{
+		//node->SetName();
+	}
+
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Data", tree_node_flags);
+	ImGui::TableNextColumn();
+	if ( ImGui::InputTextMultiline("##data", &gn->datastr) )
+	{
+		// not a graphnode property! anyone to notify?
+	}
+
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Position", tree_node_flags);
+	ImGui::TableNextColumn();
+	ImGui::SetNextItemWidth(fval.edit_width);
+	ImGui::DragFloat("##posx", &gn->position.x, fval.v_speed, fval.v_min, fval.v_max, fval.zero_precision);
+	if ( ImGui::IsItemEdited() ) modified = true;
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(fval.edit_width);
+	ImGui::DragFloat("##posy", &gn->position.y, fval.v_speed, fval.v_min, fval.v_max, fval.zero_precision);
+	if ( ImGui::IsItemEdited() ) modified = true;
+	if ( modified )
+	{
+		node->SetPosition(gn->position);
+		modified = false;
+	}
+
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Size", tree_node_flags);
+	ImGui::TableNextColumn();
+	ImGui::SetNextItemWidth(fval.edit_width);
+	//ImGui::InputFloat("##szx", &gn->size.x, step, step_fast, zero_float_precision);
+	ImGui::DragFloat("##szx", &gn->size.x, fval.v_speed, fval.v_min, fval.v_max, fval.zero_precision);
+	if ( ImGui::IsItemEdited() ) modified = true;
+	ImGui::SameLine();
+	ImGui::SetNextItemWidth(fval.edit_width);
+	//ImGui::InputFloat("##szy", &gn->size.y, step, step_fast, zero_float_precision);
+	ImGui::DragFloat("##szy", &gn->size.y, fval.v_speed, fval.v_min, fval.v_max, fval.zero_precision);
+	if ( ImGui::IsItemEdited() ) modified = true;
+	if ( modified )
+	{
+		ImVec2  requested_size = gn->size;
+
+		if ( requested_size.x < imgui::node_minimum_width )
+		{
+			requested_size.x = imgui::node_minimum_width;
+		}
+		if ( requested_size.y < imgui::node_minimum_height )
+		{
+			requested_size.y = imgui::node_minimum_height;
+		}
+
+		node->SetStaticSize(requested_size);
+		modified = false;
+	}
+
+	int  index = IndexFromNodeStyle(&gn->style);
+	if ( index == -1 )
+		index = 0;
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Style", tree_node_flags);
+	ImGui::TableNextColumn();
+	if ( ImGui::BeginCombo("##combo", gn->style.c_str(), 0) )
+	{
+		int  pos = -1;
+
+		auto style_loop = [&pos,&index,&modified,&gn](auto& e) {
+			const bool  is_selected = (++pos == index);
+
+			if ( e.first.empty() )
+			{
+				TZK_DEBUG_BREAK;
+			}
+			else
+			{
+				if ( ImGui::Selectable(e.first.c_str(), is_selected) )
+				{
+					gn->style.assign(e.first);
+					modified = true;
+				}
+				if ( is_selected )
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+		};
+
+		for ( auto& e : my_wksp_data->node_styles )
+		{
+			style_loop(e);
+		}
+
+		ImGui::EndCombo();
+	}
+
+	if ( modified )
+	{
+		TZK_LOG_FORMAT(LogLevel::Trace, "Setting new node style: %s", gn->style.c_str());
+		node->SetStyle(GetNodeStyle(gn->style.c_str()));
+		modified = false;
+	}
+
+	DrawPropertyView_Pins(gn->pins, node);
+
+	auto  gnc_sysinf = dynamic_cast<node_component_systeminfo*>(node->GetWorkspaceNode()->get_component(cth_cmpt_sysinfo));
+	if ( gnc_sysinf != nullptr )
+	{
+		DrawPropertyView_SystemInfo(gnc_sysinf->system_info);
+	}
+}
+
+
+bool
+ImGuiWkspTopology::DrawPropertyView_NodeStyle(
+	std::pair<std::string, std::shared_ptr<trezanik::imgui::NodeStyle>>& style
+)
+{
+	float_values  fval;
+	int  uid = 0;
+
+	ImGui::TableNextRow();
+
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Name", tree_node_flags);
+	ImGui::TableNextColumn();
+	/*
+	 * Renaming is possible, due to update flows it'd be desired to have
+	 * this as a dedicated prompt rather than immediate. Allows invocation
+	 * of workspace verification and command issuance for rollback.
+	 */
+	ImGui::Text("%s", style.first.c_str());
+
+	if ( !IsReservedStyleName(style.first.c_str()) )
+	{
+		ImGui::SameLine();
+		std::string  lbl_delete = "Delete##" + style.first;
+		if ( ImGui::Button(lbl_delete.c_str()) )
+		{
+			RemoveNodeStyle(style.first.c_str());
+			return false;
+		}
+	}
+
+	auto colouredit4 = [&](auto& colour, const char* label)
+	{
+		ImGui::PushID(++uid);
+		ImGui::TableNextColumn();
+		ImGui::TreeNodeEx(&label[2], tree_node_flags);
+		ImGui::TableNextColumn();
 		ImVec4  f4 = ImGui::ColorConvertU32ToFloat4(colour);
-		if ( ImGui::ColorEdit4(label.c_str(), &f4.x, ImGuiColorEditFlags_None) )
+		if ( ImGui::ColorEdit4(label, &f4.x, ImGuiColorEditFlags_None) )
 		{
 			colour = ImGui::ColorConvertFloat4ToU32(f4);
 		}
+		ImGui::PopID();
 	};
-	auto comboshape = [](imgui::PinSocketShape& shape, std::string& label)
+	auto dragfloat = [&](float* f, const char* label)
 	{
+		ImGui::PushID(++uid);
+		ImGui::TableNextColumn();
+		ImGui::TreeNodeEx(&label[2], tree_node_flags);
+		ImGui::TableNextColumn();
+		ImGui::DragFloat(label, f, fval.v_speed, fval.v_min, fval.v_max, fval.two_precision);
+		ImGui::PopID();
+	};
+	auto dragfloat4 = [&](float* f4, const char* label)
+	{
+		ImGui::PushID(++uid);
+		ImGui::TableNextColumn();
+		ImGui::TreeNodeEx(&label[2], tree_node_flags);
+		ImGui::TableNextColumn();
+		ImGui::DragFloat4(label, f4, fval.v_speed, fval.v_min, fval.v_max, fval.one_precision);
+		ImGui::PopID();
+	};
+
+	colouredit4(style.second->bg, "##Background");
+	colouredit4(style.second->border_colour, "##Border");
+	colouredit4(style.second->border_selected_colour, "##Border Selected");
+	dragfloat(&style.second->border_selected_thickness, "##Border Selected Thickness");
+	dragfloat(&style.second->border_thickness, "##Border Thickness");
+	colouredit4(style.second->header_bg, "##Header Background");
+	colouredit4(style.second->header_title_colour, "##Header Title");
+	dragfloat4(&style.second->margin_header.x, "##Margin (Header: LTRB)");
+	dragfloat4(&style.second->margin.x, "##Margin (Body:LTRB)");
+	dragfloat(&style.second->radius, "##Radius");
+
+	return true;
+}
+
+
+bool
+ImGuiWkspTopology::DrawPropertyView_PinStyle(
+	std::pair<std::string, std::shared_ptr<trezanik::imgui::PinStyle>>& style
+)
+{
+	float_values  fval;
+	int  uid = 0;
+
+	ImGui::TableNextRow();
+
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Name", tree_node_flags);
+	ImGui::TableNextColumn();
+	ImGui::Text("%s", style.first.c_str());
+
+	if ( !IsReservedStyleName(style.first.c_str()) )
+	{
+		ImGui::SameLine();
+		std::string  lbl_delete = "Delete##" + style.first;
+		if ( ImGui::Button(lbl_delete.c_str()) )
+		{
+			RemovePinStyle(style.first.c_str());
+			return false;
+		}
+	}
+
+
+	auto comboshape = [&](imgui::PinSocketShape& shape, const char* label)
+	{
+		ImGui::PushID(++uid);
+		ImGui::TableNextColumn();
+		ImGui::TreeNodeEx(&label[2], tree_node_flags);
+		ImGui::TableNextColumn();
+
 		/// @todo grab these from external so this doesn't need touching on amendments
 		const char* strs[] = { "Circle", "Square", "Diamond", "Hexagon" };
 		int   selected_num = imgui::TConverter<imgui::PinSocketShape>::ToUint8(shape) - 1;
 		bool  selected = false;
 		int   num = 0;
 
-		if ( ImGui::BeginCombo(label.c_str(), selected_num != -1 ? strs[selected_num] : "") )
+		if ( ImGui::BeginCombo(label, selected_num != -1 ? strs[selected_num] : "") )
 		{
 			for ( auto& str : strs )
 			{
@@ -2102,265 +2512,269 @@ ImGuiWkspTopology::DrawPropertyView()
 			}
 			ImGui::EndCombo();
 		}
+		ImGui::PopID();
 	};
-	auto inputfloat = [](float* f, std::string& label)
+	auto colouredit4 = [&](auto& colour, const char* label)
 	{
-		ImGui::InputFloat(label.c_str(), f, 0.f, 0.f, "%.1f", ImGuiInputTextFlags_None);
-	};
-#if 0  // Code Disabled: unused, keep available
-	auto inputfloat2 = [](float* f2, std::string& label)
-	{
-		ImGui::InputFloat2(label.c_str(), f2, "%.1f", ImGuiInputTextFlags_None);
-	};
-#endif
-	auto inputfloat4 = [](float* f4, std::string& label)
-	{
-		ImGui::InputFloat4(label.c_str(), f4, "%.1f", ImGuiInputTextFlags_None);
-	};
-#if 0  // Code Disabled: unused, keep available
-	auto inputint = [](auto& i, std::string& label)
-	{
-		ImGui::InputInt(label.c_str(), &i, 1, 100, ImGuiInputTextFlags_None);
-	};
-#endif
-	if ( ImGui::CollapsingHeader("Node Styles") )
-	{
-		auto&  ns = my_wksp_data->node_styles;
-		static std::string  style_name = "New Style Name";
-
-		/// @todo callback, on focus auto-hide. Default alpha would be good too
-		ImGui::InputText("##NewStyleName", &style_name);
-		ImGui::SameLine();
-		if ( ImGui::Button("Add") && !style_name.empty() )
+		ImGui::PushID(++uid);
+		ImGui::TableNextColumn();
+		ImGui::TreeNodeEx(&label[2], tree_node_flags);
+		ImGui::TableNextColumn();
+		ImVec4  f4 = ImGui::ColorConvertU32ToFloat4(colour);
+		if ( ImGui::ColorEdit4(label, &f4.x, ImGuiColorEditFlags_None) )
 		{
-			auto  new_style = trezanik::imgui::NodeStyle::standard();
-			AddNodeStyle(style_name.c_str(), new_style);
-			style_name = "New Style Name";
+			colour = ImGui::ColorConvertFloat4ToU32(f4);
 		}
-
-		for ( auto& n : ns )
-		{
-			ImGui::Separator();
-			/*
-			 * Renaming is possible, due to update flows it'd be desired to have
-			 * this as a dedicated prompt rather than immediate. Allows invocation
-			 * of workspace verification and command issuance for rollback.
-			 */
-			ImGui::Text("%s", n.first.c_str());
-
-			if ( !IsReservedStyleName(n.first.c_str()) )
-			{
-				ImGui::SameLine();
-				std::string  lbl_delete = "Delete##" + n.first;
-				if ( ImGui::Button(lbl_delete.c_str()) )
-				{
-					RemoveNodeStyle(n.first.c_str());
-				}
-			}
-
-			std::string  lbl_a = "Background##" + n.first;
-			std::string  lbl_b = "Border##" + n.first;
-			std::string  lbl_c = "Border Selected##" + n.first;
-			std::string  lbl_d = "Border Selected Thickness##" + n.first;
-			std::string  lbl_e = "Border Thickness##" + n.first;
-			std::string  lbl_f = "Header Background##" + n.first;
-			std::string  lbl_g = "Header Title##" + n.first;
-			std::string  lbl_h = "Margin (Header:LTRB)##" + n.first;
-			std::string  lbl_i = "Margin (Body:LTRB)##" + n.first;
-			std::string  lbl_j = "Radius##" + n.first;
-
-			colouredit4(n.second->bg, lbl_a);
-			colouredit4(n.second->border_colour, lbl_b);
-			colouredit4(n.second->border_selected_colour, lbl_c);
-			inputfloat(&n.second->border_selected_thickness, lbl_d);
-			inputfloat(&n.second->border_thickness, lbl_e);
-			colouredit4(n.second->header_bg, lbl_f);
-			colouredit4(n.second->header_title_colour, lbl_g);
-			inputfloat4(&n.second->margin_header.x, lbl_h);
-			inputfloat4(&n.second->margin.x, lbl_i);
-			inputfloat(&n.second->radius, lbl_j);
-		}
-	} // node styles
-
-	if ( ImGui::CollapsingHeader("Pin Styles") )
+		ImGui::PopID();
+	};
+	auto dragfloat = [&](float* f, const char* label)
 	{
-		auto  ps = my_wksp_data->pin_styles;
-		static std::string  style_name = "New Style Name";
+		ImGui::PushID(++uid);
+		ImGui::TableNextColumn();
+		ImGui::TreeNodeEx(&label[2], tree_node_flags);
+		ImGui::TableNextColumn();
+		ImGui::DragFloat(label, f, fval.v_speed, fval.v_min, fval.v_max, fval.two_precision);
+		ImGui::PopID();
+	};
 
-		/// @todo callback, on focus auto-hide. Default alpha would be good too
-		ImGui::InputText("##NewPinStyleName", &style_name);
-		ImGui::SameLine();
-		if ( ImGui::Button("Add") && !style_name.empty() )
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Display", tree_node_flags);
+	ImGui::TableNextColumn();
+	bool  shape_selected = style.second->display == imgui::PinStyleDisplay::Shape;
+	bool  image_selected = style.second->display == imgui::PinStyleDisplay::Image;
+	const char* strs[] = { "Shape", "Image" };
+	if ( ImGui::BeginCombo("##Display", shape_selected ? strs[0] : strs[1]) )
+	{
+		if ( ImGui::Selectable("Shape", &shape_selected) )
 		{
-			auto  new_style = trezanik::imgui::PinStyle::connector();
-			AddPinStyle(style_name.c_str(), new_style);
-			style_name = "New Style Name";
+			image_selected = false;
+			style.second->display = imgui::PinStyleDisplay::Shape;
 		}
-
-		for ( auto& s : ps )
+		if ( ImGui::Selectable("Image", &image_selected) )
 		{
-			ImGui::Separator();
-
-			ImGui::Text("%s", s.first.c_str());
-
-			if ( !IsReservedStyleName(s.first.c_str()) )
-			{
-				ImGui::SameLine();
-				std::string  lbl_delete = "Delete##" + s.first;
-				if ( ImGui::Button(lbl_delete.c_str()) )
-				{
-					RemovePinStyle(s.first.c_str());
-				}
-
-				std::string  lbl_a = "Display##" + s.first;
-				std::string  lbl_b = "Image##" + s.first;
-
-				bool  shape_selected = s.second->display == imgui::PinStyleDisplay::Shape;
-				bool  image_selected = s.second->display == imgui::PinStyleDisplay::Image;
-				const char* strs[] = { "Shape", "Image" };
-
-				if ( ImGui::BeginCombo(lbl_a.c_str(), shape_selected ? strs[0] : strs[1]) )
-				{
-					if ( ImGui::Selectable("Shape", &shape_selected) )
-					{
-						image_selected = false;
-						s.second->display = imgui::PinStyleDisplay::Shape;
-					}
-					if ( ImGui::Selectable("Image", &image_selected) )
-					{
-						shape_selected = false;
-						s.second->display = imgui::PinStyleDisplay::Image;
-					}
-					ImGui::EndCombo();
-				}
-
-				ImGui::InputText(lbl_b.c_str(), &s.second->filename);
-			}
-
-			std::string  lbl_c = "Link Drag Thickness##" + s.first;
-			std::string  lbl_d = "Link Hover Extra Thickness##" + s.first;
-			std::string  lbl_e = "Link Selected Thickness##" + s.first;
-			std::string  lbl_f = "Link Thickness##" + s.first;
-			std::string  lbl_g = "Socket Colour##" + s.first;
-			std::string  lbl_h = "Socket Connected Radius##" + s.first;
-			std::string  lbl_i = "Socket Hovered Radius##" + s.first;
-			std::string  lbl_j = "Socket Radius##" + s.first;
-			std::string  lbl_k = "Socket Shape##" + s.first;
-			std::string  lbl_l = "Socket Thickness##" + s.first;
-
-			inputfloat(&s.second->link_dragged_thickness, lbl_c);
-			inputfloat(&s.second->link_hovered_extra_thickness, lbl_d);
-			inputfloat(&s.second->link_selected_thickness, lbl_e);
-			inputfloat(&s.second->link_thickness, lbl_f);
-			colouredit4(s.second->socket_colour, lbl_g);
-			inputfloat(&s.second->socket_connected_radius, lbl_h);
-			inputfloat(&s.second->socket_hovered_radius, lbl_i);
-			inputfloat(&s.second->socket_radius, lbl_j);
-			comboshape(s.second->socket_shape, lbl_k);
-			inputfloat(&s.second->socket_thickness, lbl_l);
+			shape_selected = false;
+			style.second->display = imgui::PinStyleDisplay::Image;
 		}
+		ImGui::EndCombo();
+	}
 
-	} // pin styles
+	ImGui::TableNextColumn();
+	ImGui::TreeNodeEx("Image", tree_node_flags);
+	ImGui::TableNextColumn();
+	ImGui::InputText("##Image", &style.second->filename);
+
+	dragfloat(&style.second->link_dragged_thickness, "##Link Drag Thickness");
+	dragfloat(&style.second->link_hovered_extra_thickness, "##Link Hover Extra Thickness");
+	dragfloat(&style.second->link_selected_thickness, "##Link Selected Thickness");
+	dragfloat(&style.second->link_thickness, "##Link Thickness");
+	colouredit4(style.second->socket_colour, "##Socket Colour");
+	dragfloat(&style.second->socket_connected_radius, "##Socket Connected Radius");
+	dragfloat(&style.second->socket_hovered_radius, "##Socket Hovered Radius");
+	dragfloat(&style.second->socket_radius, "##Socket Radius");
+	comboshape(style.second->socket_shape, "##Socket Shape");
+	dragfloat(&style.second->socket_thickness, "##Socket Thickness");
+
+	return true;
 }
 
 
 void
 ImGuiWkspTopology::DrawPropertyView_Pins(
-	int& row_count,
 	std::vector<pin>& pins,
 	std::shared_ptr<IsochroneNode> node
 )
 {
 	using namespace trezanik::core;
 
-	static PinPosition  pp;
-	int  pc = 0;
+	//int  pc = 0;  // colour switching
+	// used for any 'value' columns that have more than one editable, for DRY
+	bool   modified = false;
+	// relative positions between 0..1, custom stepping required
+	float_values  fval;
+	fval.v_speed = 0.025f;
+	fval.v_min = 0.f;
+	fval.v_max = 1.f;
 
 	for ( auto& p : pins )
 	{
+#if 0
 		pc++;
 		ImU32  ec = IM_COL32(186, 189, 94, 255);
 		ImU32  oc = IM_COL32(166, 169, 74, 255);
-
-		row_count += 5;
-
-		ImGui::Separator();
+#endif
 		ImGui::PushID(p.id.GetCanonical());
-		ImGui::PushStyleColor(ImGuiCol_Text, pc % 2 == 0 ? ec : oc);
-		AddPropertyRow(PropertyRowType::TextReadOnly, "Pin.ID", &p.id);
-		ImGui::PopStyleColor();
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
 
-		if ( AddPropertyRow(PropertyRowType::TextInput, "Pin.Name", &p.name) )
+		if ( ImGui::TreeNode("Pin") )
 		{
-
-		}
-		pp.x = &p.pos.x;
-		pp.y = &p.pos.y;
-		if ( AddPropertyRow(PropertyRowType::FloatInput, "Pin.RelativePosition", &pp) )
-		{
-			auto  impin = node->GetPin(p.id);
-
-			if ( impin != nullptr )
+			ImGui::TableNextRow();
+#if 0
+			ImGui::PushStyleColor(ImGuiCol_Text, pc % 2 == 0 ? ec : oc);
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("ID", tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::InputText("##uuid", (char*)p.id.GetCanonical(), trezanik::core::uuid_buffer_size, ImGuiInputTextFlags_ReadOnly);
+			ImGui::PopStyleColor();
+#else
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("ID", tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::Text("%s", p.id.GetCanonical());
+#endif
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("Name", tree_node_flags);
+			ImGui::TableNextColumn();
+			if ( ImGui::InputText("##text", &p.name) )
 			{
-				TZK_LOG_FORMAT(LogLevel::Trace, "Setting new pin relative position: %g,%g", p.pos.x, p.pos.y);
-				impin->SetRelativePosition(ImVec2(p.pos.x, p.pos.y));
-			}
-		}
-		if ( !IsValidRelativePosition(p.pos.x, p.pos.y) )
-		{
-			row_count++;
-			ImGui::TextColored(ImVec4(200, 0, 0, 200), "Invalid relative format");
-		}
-		/// @todo local enum lookup map, present raw type value? Save converting every frame needlessly
-		std::string  stype = TConverter<PinType>::ToString(p.type);
-		AddPropertyRow(PropertyRowType::TextReadOnly, "Pin.Type", &stype);
-		if ( AddPropertyRow(PropertyRowType::PinStyle, "Pin.Style", &p.style) )
-		{
-			auto  impin = node->GetPin(p.id);
 
-			if ( impin != nullptr )
-			{
-				TZK_LOG_FORMAT(LogLevel::Trace, "Setting new pin style: %s", p.style.c_str());
-				impin->SetStyle(GetPinStyle(p.style.c_str()));
 			}
-		}
 
-		/*
-		 * Get the imgui pin to access connections, links, etc.
-		 * We still need to use the graph_node pin as only that
-		 * has the service/group details, so property output is
-		 * obtained from a combination of the two
-		 */
-		auto  ipin = node->GetPin(p.id);
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("RelativePosition", tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::SetNextItemWidth(fval.edit_width);
+			ImGui::DragFloat("##posx", &p.pos.x, fval.v_speed, fval.v_min, fval.v_max, fval.two_precision);
+			if ( ImGui::IsItemEdited() )
+				modified = true;
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(fval.edit_width);
+			ImGui::DragFloat("##posy", &p.pos.y, fval.v_speed, fval.v_min, fval.v_max, fval.two_precision);
+			if ( ImGui::IsItemEdited() )
+				modified = true;
+			bool  valid_rel_pos = IsValidRelativePosition(p.pos.x, p.pos.y);
+			if ( modified )
+			{
+				auto  impin = node->GetPin(p.id);
 
-		if ( p.type == PinType::Server )
-		{
-			if ( p.svc_grp != nullptr )
-			{
-				AddPropertyRow(PropertyRowType::TextReadOnly, "Pin.Service Group", &p.svc_grp->name);
-				AddPropertyRow(PropertyRowType::TextInput, "Pin.ServiceComment", &p.svc_grp->comment);
+				if ( impin != nullptr && valid_rel_pos )
+				{
+					TZK_LOG_FORMAT(LogLevel::Trace, "Setting new pin relative position: %g,%g", p.pos.x, p.pos.y);
+					impin->SetRelativePosition(ImVec2(p.pos.x, p.pos.y));
+				}
+				modified = false;
 			}
-			else if ( p.svc != nullptr )
+			if ( !valid_rel_pos )
 			{
-				AddPropertyRow(PropertyRowType::TextReadOnly, "Pin.Service", &p.svc->name);
-				AddPropertyRow(PropertyRowType::TextInput, "Pin.ServiceComment", &p.svc->comment);
+				ImGui::TextColored(ImVec4(200, 0, 0, 200), "Invalid relative format");
 			}
-			std::string  numc = std::to_string(ipin->NumConnections());
-			AddPropertyRow(PropertyRowType::TextReadOnly, "Pin.Connections", &numc);
-		}
-		else if ( p.type == PinType::Client )
-		{
-			std::string  numc = std::to_string(ipin->NumConnections());
-			AddPropertyRow(PropertyRowType::TextReadOnly, "Pin.Connections", &numc);
-		}
-		else if ( p.type == PinType::Connector )
-		{
-			std::string  conn = std::to_string(ipin->IsConnected());
-			AddPropertyRow(PropertyRowType::TextReadOnly, "Pin.Connected", &conn);
-		}
-		else
-		{
-			// should be unreachable
+
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("Style", tree_node_flags);
+			ImGui::TableNextColumn();
+			int  index = IndexFromPinStyle(&p.style);
+			if ( index == -1 )
+				index = 0;
+			if ( ImGui::BeginCombo("##combo", p.style.c_str(), 0) )
+			{
+				int  pos = -1;
+
+				auto style_loop = [&pos,&index,&modified,&p](auto& e) {
+					const bool  is_selected = (++pos == index);
+
+					if ( e.first.empty() )
+					{
+						TZK_DEBUG_BREAK;
+					}
+					else
+					{
+						if ( ImGui::Selectable(e.first.c_str(), is_selected) )
+						{
+							p.style.assign(e.first);
+							modified = true;
+						}
+						if ( is_selected )
+						{
+							ImGui::SetItemDefaultFocus();
+						}
+					}
+				};
+
+				for ( auto& e : my_wksp_data->pin_styles )
+				{
+					style_loop(e);
+				}
+
+				ImGui::EndCombo();
+			}
+			if ( modified )
+			{
+				auto  impin = node->GetPin(p.id);
+
+				if ( impin != nullptr )
+				{
+					TZK_LOG_FORMAT(LogLevel::Trace, "Setting new pin style: %s", p.style.c_str());
+					impin->SetStyle(GetPinStyle(p.style.c_str()));
+				}
+				modified = false;
+			}
+
+			/// @todo local enum lookup map, present raw type value? Save converting every frame needlessly
+			std::string  stype = TConverter<PinType>::ToString(p.type);
+			ImGui::TableNextColumn();
+			ImGui::TreeNodeEx("Type", tree_node_flags);
+			ImGui::TableNextColumn();
+			ImGui::Text("%s", stype.c_str());
+
+			/*
+			 * Get the imgui pin to access connections, links, etc.
+			 * We still need to use the graph_node pin as only that
+			 * has the service/group details, so property output is
+			 * obtained from a combination of the two
+			 */
+			auto  ipin = node->GetPin(p.id);
+
+			ImGui::TableNextColumn();
+
+			if ( p.type == PinType::Server )
+			{
+				if ( p.svc_grp != nullptr )
+				{
+					ImGui::TreeNodeEx("Service Group", tree_node_flags);
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", p.svc_grp->name.c_str());
+
+					ImGui::TableNextColumn();
+					ImGui::TreeNodeEx("ServiceComment", tree_node_flags);
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", p.svc_grp->comment.c_str());
+				}
+				else if ( p.svc != nullptr )
+				{
+					ImGui::TreeNodeEx("Service", tree_node_flags);
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", p.svc->name.c_str());
+
+					ImGui::TableNextColumn();
+					ImGui::TreeNodeEx("ServiceComment", tree_node_flags);
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", p.svc->comment.c_str());
+				}
+
+				ImGui::TableNextColumn();
+				ImGui::TreeNodeEx("Connections", tree_node_flags);
+				ImGui::TableNextColumn();
+				ImGui::Text("%zu", ipin->NumConnections());
+			}
+			else if ( p.type == PinType::Client )
+			{
+				ImGui::TreeNodeEx("Connections", tree_node_flags);
+				ImGui::TableNextColumn();
+				ImGui::Text("%zu", ipin->NumConnections());
+			}
+			else if ( p.type == PinType::Connector )
+			{
+				ImGui::TreeNodeEx("Connected", tree_node_flags);
+				ImGui::TableNextColumn();
+				ImGui::Text("%s", ipin->IsConnected() ? "Yes" : "No");
+			}
+			else
+			{
+				// should be unreachable
+				TZK_DEBUG_BREAK;
+			}
+
+			ImGui::TreePop();
 		}
 
 		ImGui::PopID();
@@ -2370,7 +2784,6 @@ ImGuiWkspTopology::DrawPropertyView_Pins(
 
 void
 ImGuiWkspTopology::DrawPropertyView_SystemInfo(
-	int& row_count,
 	node_component_systeminfo::system& sysinf
 )
 {
@@ -2378,18 +2791,19 @@ ImGuiWkspTopology::DrawPropertyView_SystemInfo(
 	auto  AddSeparatorRow = [](const char* txt)
 	{
 		ImGui::TableNextColumn();
-		ImGui::SeparatorText(txt);
+		ImGui::TreeNodeEx(txt, tree_node_flags);
 		ImGui::TableNextRow();
 	};
 
-	// remember, all IdLabels need to be unique. we could push+pop after each row...
+	/// @todo convert to treenode listing as per other props, call Hardware Dialog tab if possible
+
 	int  labelid = 0;
 	/// @todo pass labelid into AddPropRow, have it inc, push and pop within the method
 
+	ImGui::TableNextRow();
+
 	for ( auto& elem : sysinf.cpus )
 	{
-		row_count += 3;
-
 		AddSeparatorRow("CPU");
 		ImGui::PushID(++labelid);
 		if ( AddPropertyRow(PropertyRowType::TextInput, "Vendor", &elem.vendor, my_hide_empty_fields) )
@@ -2405,8 +2819,6 @@ ImGuiWkspTopology::DrawPropertyView_SystemInfo(
 	}
 	for ( auto& elem : sysinf.dimms )
 	{
-		row_count += 5;
-
 		AddSeparatorRow("DIMM");
 		ImGui::PushID(++labelid);
 		if ( AddPropertyRow(PropertyRowType::TextInput, "Vendor", &elem.vendor, my_hide_empty_fields) )
@@ -2428,8 +2840,6 @@ ImGuiWkspTopology::DrawPropertyView_SystemInfo(
 	}
 	for ( auto& elem : sysinf.disks )
 	{
-		row_count += 4;
-
 		AddSeparatorRow("Disk");
 		ImGui::PushID(++labelid);
 		if ( AddPropertyRow(PropertyRowType::TextInput, "Vendor", &elem.vendor, my_hide_empty_fields) )
@@ -2448,8 +2858,6 @@ ImGuiWkspTopology::DrawPropertyView_SystemInfo(
 	}
 	for ( auto& elem : sysinf.gpus )
 	{
-		row_count += 3;
-
 		AddSeparatorRow("GPU");
 		ImGui::PushID(++labelid);
 		if ( AddPropertyRow(PropertyRowType::TextInput, "Vendor", &elem.vendor, my_hide_empty_fields) )
@@ -2465,8 +2873,6 @@ ImGuiWkspTopology::DrawPropertyView_SystemInfo(
 	}
 	for ( auto& elem : sysinf.psus )
 	{
-		row_count += 4;
-
 		AddSeparatorRow("PSU");
 		ImGui::PushID(++labelid);
 		if ( AddPropertyRow(PropertyRowType::TextInput, "Vendor", &elem.vendor, my_hide_empty_fields) )
@@ -2485,8 +2891,6 @@ ImGuiWkspTopology::DrawPropertyView_SystemInfo(
 	}
 	for ( auto& elem : sysinf.mobo )
 	{
-		row_count += 4;
-
 		AddSeparatorRow("Motherboard");
 		ImGui::PushID(++labelid);
 		if ( AddPropertyRow(PropertyRowType::TextInput, "Vendor", &elem.vendor, my_hide_empty_fields) )
@@ -2505,8 +2909,6 @@ ImGuiWkspTopology::DrawPropertyView_SystemInfo(
 	}
 	for ( auto& elem : sysinf.os )
 	{
-		row_count += 4;
-
 		AddSeparatorRow("Operating System");
 		ImGui::PushID(++labelid);
 		if ( AddPropertyRow(PropertyRowType::TextInput, "Architecture", &elem.arch, my_hide_empty_fields) )
@@ -2525,8 +2927,6 @@ ImGuiWkspTopology::DrawPropertyView_SystemInfo(
 	}
 	for ( auto& intf : sysinf.interfaces )
 	{
-		row_count += 3;
-
 		AddSeparatorRow("Interface");
 		ImGui::PushID(++labelid);
 		if ( AddPropertyRow(PropertyRowType::TextInput, "Alias", &intf.alias, my_hide_empty_fields) )
@@ -2539,7 +2939,6 @@ ImGuiWkspTopology::DrawPropertyView_SystemInfo(
 		}
 		if ( !intf.valid_mac && !(my_hide_empty_fields && intf.mac.empty()) )
 		{
-			row_count++;
 			ImGui::TextColored(ImVec4(200, 0, 0, 200), "Invalid format");
 		}
 		if ( AddPropertyRow(PropertyRowType::TextInput, "Model", &intf.model, my_hide_empty_fields) )
@@ -2548,8 +2947,6 @@ ImGuiWkspTopology::DrawPropertyView_SystemInfo(
 
 		for ( auto& ia : intf.addresses )
 		{
-			row_count += 3;
-
 			AddSeparatorRow("Address");
 			ImGui::PushID(++labelid);
 
@@ -2560,7 +2957,6 @@ ImGuiWkspTopology::DrawPropertyView_SystemInfo(
 			}
 			if ( !ia.valid_address && !(my_hide_empty_fields && ia.address.empty()) )
 			{
-				row_count++;
 				ImGui::TextColored(ImVec4(200, 0, 0, 200), "Invalid format");
 			}
 			/*if ( AddPropertyRow(IdLabel::IPv6, "IPv6", &ia.str_ipv6) )
@@ -2573,7 +2969,6 @@ ImGuiWkspTopology::DrawPropertyView_SystemInfo(
 			}
 			if ( !ia.valid_mask && !(my_hide_empty_fields && ia.mask.empty()) )
 			{
-				row_count++;
 				ImGui::TextColored(ImVec4(200, 0, 0, 200), "Invalid format");
 			}
 			if ( AddPropertyRow(PropertyRowType::TextInput, "Default Gateway", &ia.gateway, my_hide_empty_fields) )
@@ -2583,15 +2978,12 @@ ImGuiWkspTopology::DrawPropertyView_SystemInfo(
 			}
 			if ( !ia.valid_gateway && !(my_hide_empty_fields && ia.gateway.empty()) )
 			{
-				row_count++;
 				ImGui::TextColored(ImVec4(200, 0, 0, 200), "Invalid format");
 			}
 			ImGui::PopID();
 		}
 		for ( auto& in : intf.nameservers )
 		{
-			row_count += 1;
-
 			AddSeparatorRow("Nameserver");
 			ImGui::PushID(++labelid);
 			if ( AddPropertyRow(PropertyRowType::TextInput, "Nameserver", &in.nameserver, my_hide_empty_fields) )
@@ -2601,7 +2993,6 @@ ImGuiWkspTopology::DrawPropertyView_SystemInfo(
 			}
 			if ( !in.valid_nameserver && !(my_hide_empty_fields && in.nameserver.empty()) )
 			{
-				row_count++;
 				ImGui::TextColored(ImVec4(200, 0, 0, 200), "Invalid format");
 			}
 			ImGui::PopID();
@@ -3053,11 +3444,6 @@ ImGuiWkspTopology::Populate()
 {
 	using namespace trezanik::core;
 
-	/*
-	 * Load all the workspaces nodes into ImNodes mappings.
-	 * All operations are performed on these until the window is closed or
-	 * otherwise saved, at which point they are synchronized back.
-	 */
 	auto& nodes = my_wksp_data->nodes;
 	
 	for ( auto& iter : nodes )
@@ -3229,8 +3615,8 @@ ImGuiWkspTopology::Populate()
 		
 		// create the link in the nodegraph itself
 		auto  ngl = my_nodegraph.CreateLink<imgui::Link>(iter->id,
-			impin_out, impin_inp, &my_nodegraph,
-			&iter->text, (ImVec2*)&iter->offset, &iter->method
+			impin_out, impin_inp, &my_nodegraph, &iter->text,
+			(ImVec2*)&iter->offset, &iter->method, &iter->control_points
 		);
 		// assign the link to the pins
 		impin_inp->AssignLink(ngl);

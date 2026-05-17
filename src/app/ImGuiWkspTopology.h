@@ -491,6 +491,11 @@ private:
 	/** Hardware Popup: Flag to draw the modal popup */
 	bool  my_draw_hardware_popup;
 
+	/** Link Text Popup: Flag to open the modal popup */
+	bool  my_open_linktext_popup;
+	/** Link Text Popup: Flag to draw the modal popup */
+	bool  my_draw_linktext_popup;
+
 	/**
 	 * Set of all the registered event callback IDs
 	 */
@@ -776,12 +781,75 @@ private:
 
 
 	/**
-	 * Draws the Property View Pins
+	 * Draws the Link Text dialog
+	 *
+	 * @param[in] link
+	 *  The Link pointer to use and alter
+	 */
+	void
+	DrawLinkTextDialog(
+		trezanik::imgui::Link* link
+	);
+
+
+	/**
+	 * Draws the Property View Link table structure
+	 *
+	 * @param[in] link
+	 *  Shared pointer to the link to display
+	 */
+	void
+	DrawPropertyView_Link(
+		std::shared_ptr<trezanik::imgui::Link> link
+	);
+
+
+	/**
+	 * Draws the Property View Node table structure
+	 *
+	 * @param[in] node
+	 *  Shared pointer to the node to display
+	 */
+	void
+	DrawPropertyView_Node(
+		std::shared_ptr<IsochroneNode> node
+	);
+
+
+	/**
+	 * Draws the Property View Node Style table structure
+	 *
+	 * @param[in] pins
+	 *  Pair containing the style name and the style shared_ptr object
+	 * @return
+	 *  Always true unless the user has initiated deletion of the style object,
+	 *  in which case this returns false
+	 */
+	bool
+	DrawPropertyView_NodeStyle(
+		std::pair<std::string, std::shared_ptr<trezanik::imgui::NodeStyle>>& style
+	);
+
+
+	/**
+	 * Draws the Property View Pin Style table structure
+	 *
+	 * @param[in] pins
+	 *  Pair containing the style name and the style shared_ptr object
+	 * @return
+	 *  Always true unless the user has initiated deletion of the style object,
+	 *  in which case this returns false
+	 */
+	bool
+	DrawPropertyView_PinStyle(
+		std::pair<std::string, std::shared_ptr<trezanik::imgui::PinStyle>>& style
+	);
+
+	/**
+	 * Draws the Property View Pins table structure
 	 * 
 	 * Routine shared between multiple types, avoid repetition
 	 * 
-	 * @param[in] row_count
-	 *  Reference to the row count, used for calculating table size
 	 * @param[in] pins
 	 *  The app::pin vector
 	 * @param[in] node
@@ -789,7 +857,6 @@ private:
 	 */
 	void
 	DrawPropertyView_Pins(
-		int& row_count,
 		std::vector<pin>& pins,
 		std::shared_ptr<IsochroneNode> node
 	);
@@ -798,7 +865,6 @@ private:
 	// pending decision regarding removal
 	void
 	DrawPropertyView_SystemInfo(
-		int& row_count,
 		node_component_systeminfo::system& sysinf
 	);
 
