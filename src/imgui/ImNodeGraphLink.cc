@@ -479,14 +479,34 @@ Link::DrawDirect()
 	{
 		my_selected = false;
 	}
-	
-	// again, no IsLineHovered function.. and my maths is crap. This should be piss easy!
-	// vec1->vec2 + hover_scope_radius : GetMousePos - does mouse intersect
-	// determine hover
-	// determine selection
+
+	// can't figure out point intersection, but we can make it a line and use that!
+	ImVec2  mpos1 = ImGui::GetMousePos();
+	mpos1.x += thickness;
+	mpos1.y += thickness;
+	ImVec2  mpos2 = ImGui::GetMousePos();
+	mpos2.x -= thickness;
+	mpos2.y -= thickness;
+
+	if ( LinesIntersect(start, end, mpos1, mpos2) )
+	{
+		my_hovered = true;
+
+		if ( mouse_lclick_state )
+		{
+			my_ctx->ConsumeClick(ImGuiMouseButton_Left);
+			my_selected = true;
+		}
+
+		my_ctx->HoveredLink(this);
+	}
+	else
+	{
+		my_hovered = false;
+	}
 
 	ImDrawList*  dl = ImGui::GetWindowDrawList();
-	dl->AddLine(start, end, my_target->GetStyle()->socket_colour, thickness);
+	dl->AddLine(start, end, my_target->GetStyle()->socket_colour, my_hovered ? thickness + my_target->GetStyle()->link_hovered_extra_thickness : thickness);
 }
 
 
