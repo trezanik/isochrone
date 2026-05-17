@@ -1992,7 +1992,7 @@ Workspace_cc47a409_fbfe_49fc_846a_c36045257a00::LoadSettings(
 		loader.wksp_data->settings[attr_key.value()] = attr_value.value();
 
 		app::EventData::loaded_setting  evt;
-		// no workspace id here, applies directly
+		evt.workspace_id = loader.wksp_data->id;
 		evt.name  = attr_key.value();
 		evt.value = attr_value.value();
 		my_evtmgr.DispatchEvent(uuid_loaded_setting, evt);

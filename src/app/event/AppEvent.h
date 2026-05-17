@@ -293,6 +293,7 @@ struct loaded_service_group
 
 struct loaded_setting
 {
+	trezanik::core::UUID  workspace_id;
 	std::string  name;
 	std::string  value;
 };
