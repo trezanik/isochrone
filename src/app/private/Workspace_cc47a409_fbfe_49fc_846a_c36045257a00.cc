@@ -261,11 +261,8 @@ LoadComponent_OnlineTracker(
 	node_component_online_tracker& TZK_UNUSED(tracker)
 )
 {
-	pugi::xml_node  xmle = xml_component.child(xmlstr_online_track);
-	//tracker.x = xmle.text().as_string();
+	xml_component.child(xmlstr_online_track);
 	// no present settings, just presence
-
-	// will likely end up like credentials, id mapping to separate config
 }
 
 
@@ -783,8 +780,7 @@ SaveComponent_Header(
 	node_component_header& header
 )
 {
-	pugi::xml_node  xmle = xml_component.append_child(xmlstr_header);
-	xmle.text().set(header.text.c_str());
+	xml_component.append_child(xmlstr_header).text().set(header.text.c_str());
 	/// @todo style/bg+fg colours
 }
 
@@ -795,11 +791,8 @@ SaveComponent_OnlineTracker(
 	node_component_online_tracker& TZK_UNUSED(tracker)
 )
 {
-	pugi::xml_node  xmle = xml_component.append_child(xmlstr_online_track);
-	//xmle.text().set(tracker.text.c_str());
+	xml_component.append_child(xmlstr_online_track);
 	// no data for now
-
-	// as above, likely mirror of credentials implementation
 }
 
 
