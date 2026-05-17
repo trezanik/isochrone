@@ -33,6 +33,17 @@ namespace trezanik {
 namespace app {
 
 
+std::vector<std::string>  windows_osbuild_names = {
+	str_osb_2600, str_osb_2700, str_osb_2710, str_osb_3790,
+	str_osb_6002, str_osb_6003, str_osb_7601, str_osb_9200,
+	str_osb_9600, str_osb_10240, str_osb_10586, str_osb_14393,
+	str_osb_15063, str_osb_16299, str_osb_17134, str_osb_17763,
+	str_osb_18362, str_osb_18363, str_osb_19041, str_osb_19042,
+	str_osb_19043, str_osb_19044, str_osb_19045, str_osb_20348,
+	str_osb_22000, str_osb_22621, str_osb_22631, str_osb_26100,
+	str_osb_26200, str_osb_28000
+};
+
 // versions
 const char  workspace_ver_0_1[] = "60e18b8b-b4af-4065-af5e-a17c9cb73a41";
 const char  workspace_ver_0_2[] = "cc47a409-fbfe-49fc-846a-c36045257a00";

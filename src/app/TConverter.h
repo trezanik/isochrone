@@ -157,6 +157,14 @@ WindowsVersionToString(
 
 enum class OSBuild : uint32_t;
 
+/**
+ * Rapid method to get an ImGui combo index from the OSBuild
+ */
+int
+WindowsBuildIndex(
+	OSBuild build
+);
+
 std::string
 WindowsBuildToString(
 	OSBuild build

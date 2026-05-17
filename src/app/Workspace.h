@@ -50,6 +50,8 @@ namespace trezanik {
 namespace app {
 
 
+extern std::vector<std::string>  windows_osbuild_names;
+
 struct workspace_data;
 struct nodelist_style;
 
@@ -1343,6 +1345,9 @@ struct workspace_node
 	 * for single target nodes (i.e. one host, not ranges, subnets, etc.)
 	 */
 	OperatingSystem  operating_system = OperatingSystem::Invalid;
+
+	/** If operating_system is Windows, this indicates the build version */
+	OSBuild  windows_osbuild = OSBuild::Invalid;
 
 	/**
 	 * Destroys the component of the supplied ID if present in this node

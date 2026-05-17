@@ -752,6 +752,54 @@ const char  str_osb_26100[] = "Windows 11 24H2/Server 2025";
 const char  str_osb_26200[] = "Windows 11 25H2";
 const char  str_osb_28000[] = "Windows 11 26H1";
 
+int
+WindowsBuildIndex(
+	OSBuild build
+)
+{
+	int  retval = 0;  // 0 == Unset/Invalid
+
+TZK_CC_DISABLE_WARNING(-Wimplicit-fallthrough)
+	switch ( build )
+	{
+	case OSBuild::osb_28000: retval++; // fall throughs are intentional and required!
+	case OSBuild::osb_26200: retval++;
+	case OSBuild::osb_26100: retval++;
+	case OSBuild::osb_22631: retval++;
+	case OSBuild::osb_22621: retval++;
+	case OSBuild::osb_22000: retval++;
+	case OSBuild::osb_20348: retval++;
+	case OSBuild::osb_19045: retval++;
+	case OSBuild::osb_19044: retval++;
+	case OSBuild::osb_19043: retval++;
+	case OSBuild::osb_19042: retval++;
+	case OSBuild::osb_19041: retval++;
+	case OSBuild::osb_18363: retval++;
+	case OSBuild::osb_18362: retval++;
+	case OSBuild::osb_17763: retval++;
+	case OSBuild::osb_17134: retval++;
+	case OSBuild::osb_16299: retval++;
+	case OSBuild::osb_15063: retval++;
+	case OSBuild::osb_14393: retval++;
+	case OSBuild::osb_10586: retval++;
+	case OSBuild::osb_10240: retval++;
+	case OSBuild::osb_9600:  retval++;
+	case OSBuild::osb_9200:  retval++;
+	case OSBuild::osb_7601:  retval++;
+	case OSBuild::osb_6003:  retval++;
+	case OSBuild::osb_6002:  retval++;
+	case OSBuild::osb_3790:  retval++;
+	case OSBuild::osb_2710:  retval++;
+	case OSBuild::osb_2700:  retval++;
+	case OSBuild::osb_2600:  retval++;
+	default:
+		break;
+	}
+TZK_CC_RESTORE_WARNING
+
+	return retval;
+}
+
 std::string
 WindowsBuildToString(
 	OSBuild build
