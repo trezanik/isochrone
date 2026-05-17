@@ -3434,7 +3434,7 @@ ImGuiWkspTopology::RemoveNodeStyle(
 
 	if ( count > 0 )
 	{
-		TZK_LOG_FORMAT(LogLevel::Error, "Unable to remove style '%s' - is in use by %zu nodes", name, count);
+		TZK_LOG_FORMAT(LogLevel::Error, "Unable to remove style '%s' - is in use by %zu %s", name, count, "nodes");
 		return EBUSY;
 	}
 
@@ -3494,7 +3494,7 @@ ImGuiWkspTopology::RemovePinStyle(
 
 	if ( count > 0 )
 	{
-		TZK_LOG_FORMAT(LogLevel::Error, "Unable to remove style '%s' - is in use by %zu pins", iter->first.c_str(), count);
+		TZK_LOG_FORMAT(LogLevel::Error, "Unable to remove style '%s' - is in use by %zu %s", iter->first.c_str(), count, "pins");
 		return EBUSY;
 	}
 

@@ -141,6 +141,7 @@ Workspace::AddLink(
 {
 	using namespace trezanik::core;
 
+	const char  failfmt[] = "Link insertion failure;";
 	const graph_node*  srcnode = nullptr;
 	const graph_node*  tgtnode = nullptr;
 	const pin*         src = nullptr;
@@ -171,17 +172,23 @@ Workspace::AddLink(
 
 	if ( src == nullptr )
 	{
-		TZK_LOG(LogLevel::Warning, "Link insertion failure; source not found");
+		TZK_LOG_FORMAT(LogLevel::Warning, "%s source not found", failfmt);
 		return EINVAL;
 	}
 	if ( tgt == nullptr )
 	{
-		TZK_LOG(LogLevel::Warning, "Link insertion failure; target not found");
+		TZK_LOG_FORMAT(LogLevel::Warning, "%s target not found", failfmt);
 		return EINVAL;
 	}
 	if ( src == tgt )
 	{
-		TZK_LOG(LogLevel::Warning, "Link insertion failure; source and target are the same");
+		TZK_LOG_FORMAT(LogLevel::Warning, "%s source and target are the same", failfmt);
+		return EINVAL;
+	}
+
+	if ( l->control_points.size() > TZK_MAX_LINK_CONTROL_POINTS )
+	{
+		TZK_LOG_FORMAT(LogLevel::Warning, "%s maximum control point count reached", failfmt);
 		return EINVAL;
 	}
 
@@ -189,14 +196,14 @@ Workspace::AddLink(
 	{
 		if ( tgt->type != PinType::Server )
 		{
-			TZK_LOG(LogLevel::Warning, "Link insertion failure; target pin is not a server");
+			TZK_LOG_FORMAT(LogLevel::Warning, "%s target pin is not a server", failfmt);
 			return EINVAL;
 		}
 	}
 	else if ( (src->type == PinType::Connector && tgt->type != PinType::Connector)
 		   || (src->type != PinType::Connector && tgt->type == PinType::Connector) )
 	{
-		TZK_LOG(LogLevel::Warning, "Link insertion failure; source and target must be connectors");
+		TZK_LOG_FORMAT(LogLevel::Warning, "%s source and target must be connectors", failfmt);
 		return EINVAL;
 	}
 
@@ -208,7 +215,7 @@ Workspace::AddLink(
 
 	if ( !my_wksp_data.links.insert(l).second )
 	{
-		TZK_LOG(LogLevel::Warning, "Link insertion failure; duplicate");
+		TZK_LOG_FORMAT(LogLevel::Warning, "%s duplicate", failfmt);
 		return EEXIST;
 	}
 
