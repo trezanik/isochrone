@@ -654,8 +654,7 @@ ImGuiWkspForensics::DrawExecResults(
 	static bool   show_preview = true;
 
 	ImGui::Indent();
-	//auto   avail = ImGui::GetContentRegionAvail();
-	ImVec2  child_size(0.f, 0.f);
+	ImVec2  child_size(0.f, ImGui::GetTextLineHeightWithSpacing() * 3); // full width, line count + 1
 
 	if ( ImGui::BeginChild("exec_results", child_size, ImGuiChildFlags_FrameStyle) )
 	{
@@ -772,7 +771,9 @@ ImGuiWkspForensics::DrawExecResults(
 
 		ImGui::BeginGroup();
 		{
-			if ( disable_capture_combo )
+			bool  disable_element = my_selected_fdata == nullptr;
+
+			if ( disable_element )
 			{
 				ImGui::BeginDisabled();
 			}
@@ -782,14 +783,14 @@ ImGuiWkspForensics::DrawExecResults(
 
 				// common file dialog confirmation
 			}
-			if ( disable_capture_combo )
-			{
-				ImGui::EndDisabled();
-			}
 			ImGui::SameLine();
 			if ( ImGui::Button("Open in dedicated viewer") )
 			{
 				TZK_LOG(LogLevel::Warning, "Not implemented");
+			}
+			if ( disable_element )
+			{
+				ImGui::EndDisabled();
 			}
 			ImGui::SameLine();
 			if ( ImGui::Checkbox("Preview Content", &show_preview) )

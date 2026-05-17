@@ -53,11 +53,12 @@ struct node_exec_config
 	/** Holds the current operation index selection within imgui */
 	int  op_idx = 0;
 
+#if 0
 	struct {
 
 
-
 	} linux;  // unix-like if we share enough?
+#endif
 
 	struct {
 		
