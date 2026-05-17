@@ -279,13 +279,131 @@ Link::DrawCubicBezier()
 	ImDrawList*  dl = ImGui::GetWindowDrawList();
 	float   distance = sqrt(pow((end.x - start.x), 2.f) + pow((end.y - start.y), 2.f));
 	float   delta = distance * 0.45f;
+#if 0
 	bool    start_left = my_source->GetRelativePosition().x == 0.f;
 	bool    end_left = my_target->GetRelativePosition().x == 0.f;
+#endif
 	float   vert = 0.f;
-	ImVec2  control_point_2;
-	ImVec2  control_point_1;
+	ImVec2  control_point_1, control_point_2;
 
-	//delta += 0.2f * (start.y - end.y);
+	enum LinkDragPos_ : uint8_t
+	{
+		LinkDragPos_Unset = 0,
+		LinkDragPos_StartLeft = 1 << 0,
+		LinkDragPos_EndLeft = 1 << 1,
+		LinkDragPos_StartTop = 1 << 2,
+		LinkDragPos_EndTop = 1 << 3,
+		LinkDragPos_StartRight = 1 << 4,
+		LinkDragPos_EndRight = 1 << 5,
+		LinkDragPos_StartBottom = 1 << 6,
+		LinkDragPos_EndBottom = 1 << 7
+	};
+	typedef uint8_t  LinkDragPos;
+
+	LinkDragPos  drag_pos = LinkDragPos_Unset;
+
+	if ( my_source->GetRelativePosition().x == 0.f )
+		drag_pos |= LinkDragPos_StartLeft;
+	if ( my_source->GetRelativePosition().x == 1.f )
+		drag_pos |= LinkDragPos_StartRight;
+	if ( my_source->GetRelativePosition().y == 0.f )
+		drag_pos |= LinkDragPos_StartTop;
+	if ( my_source->GetRelativePosition().y == 1.f )
+		drag_pos |= LinkDragPos_StartBottom;
+	if ( my_target->GetRelativePosition().x == 0.f )
+		drag_pos |= LinkDragPos_EndLeft;
+	if ( my_target->GetRelativePosition().x == 1.f )
+		drag_pos |= LinkDragPos_EndRight;
+	if ( my_target->GetRelativePosition().y == 0.f )
+		drag_pos |= LinkDragPos_EndTop;
+	if ( my_target->GetRelativePosition().y == 1.f )
+		drag_pos |= LinkDragPos_EndBottom;
+
+
+	if ( drag_pos & LinkDragPos_StartLeft )
+	{
+		control_point_1 = start - ImVec2(delta, vert);
+
+		if ( drag_pos & LinkDragPos_EndLeft )
+		{
+			control_point_2 = end - ImVec2(delta, vert);
+		}
+		else if ( drag_pos & LinkDragPos_EndRight )
+		{
+			control_point_2 = end + ImVec2(delta, vert);
+		}
+		else if ( drag_pos & LinkDragPos_EndTop )
+		{
+			control_point_2 = end - ImVec2(vert, delta);
+		}
+		else if ( drag_pos & LinkDragPos_EndBottom )
+		{
+			control_point_2 = end + ImVec2(vert, delta);
+		}
+	}
+	else if ( drag_pos & LinkDragPos_StartTop )
+	{
+		control_point_1 = start - ImVec2(vert, delta);
+
+		if ( drag_pos & LinkDragPos_EndLeft )
+		{
+			control_point_2 = end - ImVec2(delta, vert);
+		}
+		else if ( drag_pos & LinkDragPos_EndRight )
+		{
+			control_point_2 = end + ImVec2(delta, vert);
+		}
+		else if ( drag_pos & LinkDragPos_EndTop )
+		{
+			control_point_2 = end - ImVec2(vert, delta);
+		}
+		else if ( drag_pos & LinkDragPos_EndBottom )
+		{
+			control_point_2 = end + ImVec2(vert, delta);
+		}
+	}
+	else if ( drag_pos & LinkDragPos_StartBottom )
+	{
+		control_point_1 = start + ImVec2(vert, delta);
+
+		if ( drag_pos & LinkDragPos_EndLeft )
+		{
+			control_point_2 = end - ImVec2(delta, vert);
+		}
+		else if ( drag_pos & LinkDragPos_EndRight )
+		{
+			control_point_2 = end + ImVec2(delta, vert);
+		}
+		else if ( drag_pos & LinkDragPos_EndTop )
+		{
+			control_point_2 = end - ImVec2(vert, delta);
+		}
+		else if ( drag_pos & LinkDragPos_EndBottom )
+		{
+			control_point_2 = end + ImVec2(vert, delta);
+		}
+	}
+	else if ( drag_pos & LinkDragPos_StartRight )
+	{
+		control_point_1 = start + ImVec2(delta, vert);
+
+		if ( drag_pos & LinkDragPos_EndLeft )
+		{
+			control_point_2 = end - ImVec2(delta, vert);
+		}
+		else if ( drag_pos & LinkDragPos_EndRight )
+		{
+			control_point_2 = end + ImVec2(delta, vert);
+		}
+		else if ( drag_pos & LinkDragPos_EndTop )
+		{
+			control_point_2 = end - ImVec2(vert, delta);
+		}
+		else if ( drag_pos & LinkDragPos_EndBottom )
+		{
+			control_point_2 = end + ImVec2(vert, delta);
+		}
+	}
 
 	/*
 	 * I need help applying this to the top/bottom start/end.
@@ -295,6 +413,7 @@ Link::DrawCubicBezier()
 	 * Cubic beziers are therefore 'funky' if starting/ending on a top or bottom
 	 * of a node. They still reach their target, but the path is questionable..
 	 */
+#if 0
 	if ( !start_left )
 	{
 		if ( end_left )
@@ -323,7 +442,7 @@ Link::DrawCubicBezier()
 		}
 		control_point_1 = start - ImVec2(delta, vert);
 	}
-
+#endif
 	if ( ImProjectOnCubicBezier(ImGui::GetMousePos(), start, control_point_1, control_point_2, end).Distance < radius )
 	{
 		my_hovered = true;
