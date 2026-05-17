@@ -296,6 +296,12 @@ struct link
 	 */
 	imgui::LinkMethod  method;
 
+	/**
+	 * Collection of control points indicating the path a link curve/line set
+	 * should take
+	 */
+	std::vector<ImVec2>  control_points;
+
 
 	/**
 	 * Standard constructor
@@ -312,6 +318,8 @@ struct link
 	 *  [Optional] Offset from the link center to display the text at
 	 * @param[in] lmethod
 	 *  [Optional] Display type method; defaults to Cubic Bezier
+	 * @param[in] ctrl_pts
+	 *  [Optional] Vector of control points
 	 */
 	link(
 		const trezanik::core::UUID& uuid,
@@ -319,7 +327,8 @@ struct link
 		const trezanik::core::UUID& tgt,
 		const char* textstr = nullptr,
 		ImVec2 textoffset = ImVec2{0,0},
-		imgui::LinkMethod lmethod = imgui::LinkMethod::CubicBezier
+		imgui::LinkMethod lmethod = imgui::LinkMethod::CubicBezier,
+		std::vector<ImVec2> ctrl_pts = {}
 	)
 	{
 		id = uuid;
@@ -329,6 +338,10 @@ struct link
 		if ( textstr != nullptr )
 			text = textstr;
 		method = lmethod;
+		control_points = ctrl_pts;
+
+		if ( ctrl_pts.size() > TZK_MAX_LINK_CONTROL_POINTS )
+			throw std::runtime_error("Number of control points exceeds maximum");
 	}
 
 	bool operator !=(const link& rhs) const
