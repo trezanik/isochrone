@@ -481,6 +481,9 @@ ImGuiWkspTopology::AddPropertyRow<trezanik::core::UUID>(
 	bool TZK_UNUSED(hide_if_empty)
 )
 {
+	assert(label != nullptr);
+	assert(value != nullptr);
+
 	ImGui::PushID(value);
 	ImGui::TableNextColumn();
 	ImGui::Text("%s", label);

@@ -464,6 +464,7 @@ public:
 			node->graph.position = ImVec2(0.f, static_cast<float>(TZK_DEFAULT_NEWNODE_HEIGHT * wksp_data->nodes.size()));
 			node->graph.size.x = TZK_DEFAULT_NEWNODE_WIDTH;
 			node->graph.size.y = TZK_DEFAULT_NEWNODE_HEIGHT;
+			node->graph.id = &node->id;
 			node->name = newnode_name;
 			node->id.Generate();
 
