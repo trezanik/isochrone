@@ -236,6 +236,13 @@ Task::GetID() const
 }
 
 
+const trezanik::core::UUID&
+Task::GetOwnerID() const
+{
+	return _owner_id;
+}
+
+
 #if TZK_USING_PUGIXML
 pugi::xml_node
 Task::GetRootNode()

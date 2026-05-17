@@ -1197,14 +1197,14 @@ ImGuiWkspForensics::ExecOperation(
 					params.path += "\\Tasks";
 
 					auto  task = std::make_shared<ScheduledTasksTask>(params);
-					_gui_interactions.task_runner.AddTask(task);
+					_gui_interactions.task_runner.AddTask(task, node->id);
 				}
 				else
 				{
 					params.path += "\\System32\\Tasks";
 
 					auto  task = std::make_shared<ScheduledTasksTask>(params);
-					_gui_interactions.task_runner.AddTask(task);
+					_gui_interactions.task_runner.AddTask(task, node->id);
 
 					if ( cfg.arch == Architecture::x86_64 )
 					{
@@ -1212,7 +1212,7 @@ ImGuiWkspForensics::ExecOperation(
 						params.path += "\\SysWOW64\\Tasks";
 						
 						auto  task64 = std::make_shared<ScheduledTasksTask>(params);
-						_gui_interactions.task_runner.AddTask(task64);
+						_gui_interactions.task_runner.AddTask(task64, node->id);
 					}
 				}
 			}
@@ -1232,7 +1232,7 @@ ImGuiWkspForensics::ExecOperation(
 			{
 				params.target_addr = ipaddr;
 				auto  task = std::make_shared<WindowsPrefetchTask>(params);
-				_gui_interactions.task_runner.AddTask(task);
+				_gui_interactions.task_runner.AddTask(task, node->id);
 			}
 		}
 		break;
@@ -1258,7 +1258,7 @@ ImGuiWkspForensics::ExecOperation(
 				{
 					params.target_addr = ipaddr;
 					auto  task = std::make_shared<WindowsFileAutostartsTask>(params);
-					_gui_interactions.task_runner.AddTask(task);
+					_gui_interactions.task_runner.AddTask(task, node->id);
 				}
 			}
 		}
@@ -1279,7 +1279,7 @@ ImGuiWkspForensics::ExecOperation(
 				{
 					params.target_addr = ipaddr;
 					auto  task = std::make_shared<WindowsRegistryAutostartsTask>(params);
-					_gui_interactions.task_runner.AddTask(task);
+					_gui_interactions.task_runner.AddTask(task, node->id);
 				}
 			}
 		}

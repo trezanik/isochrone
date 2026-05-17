@@ -677,7 +677,8 @@ AppImGui::HandleTaskUpdate(
 	}
 	if ( evtdat.workspace_id == core::blank_uuid )
 	{
-		TZK_LOG(LogLevel::Warning, "No workspace ID provided");
+		// intentional for tasks that have no owner info, such as ping monitoring
+		TZK_LOG(LogLevel::Debug, "No workspace ID provided");
 		return;
 	}
 

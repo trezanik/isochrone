@@ -210,6 +210,7 @@ public:
 class Task
 {
 	friend class CommonExec;
+	friend class Tasker;
 
 	//TZK_NO_CLASS_ASSIGNMENT(Task);
 	TZK_NO_CLASS_COPY(Task);
@@ -270,6 +271,15 @@ protected:
 	 * inherit from - maybe in future
 	 */
 	trezanik::core::UUID   _wksp_id;
+
+	/**
+	 * Optional unique identifier for the owner of this task
+	 *
+	 * Used to determine if a node has a running task, for visual feedback
+	 *
+	 * If the owner was a workspace, this will be the same as _wksp_id.
+	 */
+	trezanik::core::UUID   _owner_id;
 
 
 	/**
@@ -398,6 +408,16 @@ public:
 	 */
 	const trezanik::core::UUID&
 	GetID() const;
+
+
+	/**
+	 * Gets the unique identifier of the owner of this task
+	 *
+	 * @return
+	 *  A reference to this tasks owner UUID
+	 */
+	const trezanik::core::UUID&
+	GetOwnerID() const;
 
 
 	/**

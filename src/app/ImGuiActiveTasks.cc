@@ -72,9 +72,12 @@ ImGuiActiveTasks::Draw()
 	}
 
 	static bool  show_id = true;
+	static bool  show_all = false;
 	static bool  retain_finished = false;
 
 	ImGui::Checkbox("Show ID", &show_id);
+	ImGui::SameLine();
+	ImGui::Checkbox("Show All", &show_all); // active workspace or everything
 	ImGui::SameLine();
 	ImGui::Checkbox("Retain in list on completion", &retain_finished); // grab task_status, hold, style colours
 	// Checkbox: StartTime+EndTime columns, or Duration only
@@ -104,20 +107,27 @@ ImGuiActiveTasks::Draw()
 	if ( show_id )
 		ImGui::TableSetupColumn("ID", col_flags, 0.3f);
 	ImGui::TableSetupColumn("Type", col_flags, 0.2f);
-	ImGui::TableSetupColumn("Node", col_flags, 0.3f);
+	ImGui::TableSetupColumn("Owner", col_flags, 0.3f);
 	ImGui::TableSetupColumn("Duration", col_flags + ImGuiTableColumnFlags_DefaultSort, 0.2f);
 	ImGui::TableSetupColumn("Details", col_flags, 0.3f);
 	ImGui::TableHeadersRow();
 
 	//auto tss = ImGui::TableGetSortSpecs();
 
+	std::string  owner_text;
 	std::vector<std::shared_ptr<Task>>  tasks;
 	tasks = _gui_interactions.task_runner.GetAllTasks();
+
+	if ( retain_finished )
+	{
+		for ( auto& t : _gui_interactions.task_runner.GetCompletedTasks() )
+			tasks.emplace_back(t);
+	}
 
 	for ( auto& t : tasks )
 	{
 		// potentially works in a roundabout way, subject to additional refactoring
-		if ( t->GetWorkspaceID() != _gui_interactions.active_workspace )
+		if ( !show_all && t->GetWorkspaceID() != _gui_interactions.active_workspace )
 			continue;
 
 		ImGui::TableNextRow();
@@ -130,11 +140,31 @@ ImGuiActiveTasks::Draw()
 		
 		ImGui::TableNextColumn();
 		// type
-		ImGui::Text("%u", static_cast<uint8_t>(t->GetType()));
+		ImGui::Text("%u", static_cast<uint8_t>(t->GetType())); /// @todo TConverter ToString
 
 		ImGui::TableNextColumn();
 		// node
-		ImGui::Text("<Node>");
+		owner_text = "Unknown";
+		for ( auto& w : _gui_interactions.workspaces )
+		{
+			if ( w.first == t->GetOwnerID() )
+			{
+				owner_text = "Workspace: ";
+				owner_text += w.second.second->GetName();
+				break;
+			}
+
+			for ( auto& n : w.second.second->GetWorkspaceData().nodes )
+			{
+				if ( t->GetOwnerID() == n->id )
+				{
+					owner_text = "Node: ";
+					owner_text += n->name;
+					break;
+				}
+			}
+		}
+		ImGui::Text("%s", owner_text.c_str());
 
 		ImGui::TableNextColumn();
 		// duration

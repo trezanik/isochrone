@@ -725,8 +725,18 @@ public:
 				ImGui::Text("Target: %s", node->targets.cbegin()->target.c_str());
 			}
 		}
-		
-		if ( 1 ) // performing task
+
+		bool  has_active_task = false;
+		for ( auto& t : wksp->_gui_interactions.task_runner.GetAllTasks() )
+		{
+			if ( t->IsRunning() && t->GetOwnerID() == node->id )
+			{
+				has_active_task = true;
+				break;
+			}
+		}
+
+		if ( has_active_task )
 		{
 			// colour child border differently rather than consuming valuable vertical space
 
@@ -752,7 +762,7 @@ public:
 			if ( core::aux::string_to_ipaddr(node->targets.front().target.c_str(), ipaddr) > 0 )
 			{
 				auto  pinger = std::make_shared<Ping>(ipaddr);
-				wksp->_gui_interactions.task_runner.AddTask(pinger);
+				wksp->_gui_interactions.task_runner.AddTask(pinger, node->id);
 				wksp->_gui_interactions.task_runner.Sync();
 			}
 		}
@@ -4894,7 +4904,7 @@ ImGuiWorkspace::UpdateTrackingState(
 			}
 		}
 
-		_gui_interactions.task_runner.AddTask(my_pingmon);
+		_gui_interactions.task_runner.AddTask(my_pingmon, my_wksp_data.id);
 		_gui_interactions.task_runner.Sync();
 	}
 	else

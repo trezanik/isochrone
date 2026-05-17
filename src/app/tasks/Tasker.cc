@@ -140,7 +140,8 @@ Tasker::~Tasker()
 
 int
 Tasker::AddTask(
-	std::shared_ptr<Task> task
+	std::shared_ptr<Task> task,
+	const trezanik::core::UUID& owner_id
 )
 {
 	using namespace trezanik::core;
@@ -152,14 +153,23 @@ Tasker::AddTask(
 	my_tasks_to_execute.emplace_back(task);
 	my_all_tasks.push_back(task);
 
+	task->_owner_id = owner_id;
+
 	return ErrNONE;
 }
 
 
 std::vector<std::shared_ptr<Task>>
-Tasker::GetAllTasks()
+Tasker::GetAllTasks() const
 {
 	return my_all_tasks;
+}
+
+
+std::vector<std::shared_ptr<Task>>
+Tasker::GetCompletedTasks() const
+{
+	return my_completed_tasks;
 }
 
 

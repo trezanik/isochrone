@@ -176,13 +176,16 @@ public:
 	 *
 	 * @param[in] task
 	 *  The base class task to be loaded
+	 * @param[in] owner_id
+	 *  (Optional) UUID of the task owner
 	 * @return
 	 *  - ErrNONE on successful addition
 	 *  - There is no present ability to fail
 	 */
 	int
 	AddTask(
-		std::shared_ptr<Task> task
+		std::shared_ptr<Task> task,
+		const trezanik::core::UUID& owner_id = trezanik::core::blank_uuid
 	);
 
 
@@ -194,7 +197,17 @@ public:
 	 *  Completed tasks are NOT included here
 	 */
 	std::vector<std::shared_ptr<Task>>
-	GetAllTasks();
+	GetAllTasks() const;
+
+
+	/**
+	 * Acquires a new collection of all completed tasks within this processor
+	 *
+	 * @return
+	 *  The collection of all finished tasks, regardless of outcome
+	 */
+	std::vector<std::shared_ptr<Task>>
+	GetCompletedTasks() const;
 
 
 	/**
